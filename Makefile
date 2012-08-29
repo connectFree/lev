@@ -266,7 +266,7 @@ test-uninstall: uninstall
 api: api.markdown
 
 api.markdown: $(wildcard lib/*.lua)
-	find lib -name "*.lua" | grep -v "luvit.lua" | sort | xargs -l luvit tools/doc-parser.lua > $@
+	find lib -name "*.lua" | grep -v "lev.lua" | sort | xargs -l lev tools/doc-parser.lua > $@
 
 DIST_DIR?=${HOME}/lev/dist
 DIST_NAME=lev-${VERSION}
