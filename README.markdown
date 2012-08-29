@@ -34,6 +34,13 @@ tools/build.py test
 ./out/Debug/luvit
 ```
 
+To install with the gyp build system run:
+
+```
+sudo make -C out install
+```
+
+
 To use the Makefile build system (for embedded systems without python)
 run:
 
@@ -44,3 +51,10 @@ make test
 ./build/luvit
 ```
 
+To install with the Makefile build system run:
+
+```
+sudo make install
+```
+
+Note: Travis CI uses the Makefile build system. So please make sure that it builds OK with the Makefile build system before sending pull requests.
