@@ -82,7 +82,7 @@ local function myloadlib(filepath)
   end
 
   local name = path.basename(filepath)
-  if name == "init.luvit" then
+  if name == "init.lev" then
     name = path.basename(path.dirname(filepath))
   end
   local base_name = name:sub(1, #name - 6)
@@ -104,7 +104,7 @@ local function loadModule(filepath, verbose)
   if extension == ".lua" then
     return myloadfile(filepath)
   end
-  if extension == ".luvit" then
+  if extension == ".lev" then
     return myloadlib(filepath)
   end
 
@@ -118,7 +118,7 @@ local function loadModule(filepath, verbose)
 
   -- Try to load as either lua script or binary extension
   local fn = myloadfile(filepath .. ".lua") or myloadfile(path.join(filepath, "init.lua"))
-          or myloadlib(filepath .. ".luvit") or myloadlib(path.join(filepath, "init.luvit"))
+          or myloadlib(filepath .. ".lev") or myloadlib(path.join(filepath, "init.lev"))
   if fn then return fn end
 
   return "\n\tCannot find module " .. filepath
