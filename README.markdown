@@ -46,7 +46,7 @@ run:
 
 ```
 cd lev
-make
+CC=gcc make
 make test
 ./build/luvit
 ```
