@@ -46,7 +46,7 @@ export Q=
 MAKEFLAGS+=-e
 
 LDFLAGS+=-L${BUILDDIR}
-LIBS += -lluvit \
+LIBS += -llev \
 	${ZLIBDIR}/libz.a \
 	${YAJLDIR}/yajl.a \
 	${UVDIR}/uv.a \
@@ -187,8 +187,8 @@ ${BUILDDIR}/%.o: src/%.c ${DEPS}
 		-DLUVIT_VERSION=\"${VERSION}\" \
 		-DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
 
-${BUILDDIR}/libluvit.a: ${CRYPTODIR}/Makefile ${LUVLIBS} ${DEPS}
-	$(AR) rvs ${BUILDDIR}/libluvit.a ${LUVLIBS} ${DEPS}
+${BUILDDIR}/liblev.a: ${CRYPTODIR}/Makefile ${LUVLIBS} ${DEPS}
+	$(AR) rvs ${BUILDDIR}/liblev.a ${LUVLIBS} ${DEPS}
 
 ${CRYPTODIR}/Makefile:
 	git submodule update --init ${CRYPTODIR}
@@ -197,8 +197,8 @@ ${CRYPTODIR}/src/lcrypto.o: ${CRYPTODIR}/Makefile
 	${CC} ${CPPFLAGS} -c -o ${CRYPTODIR}/src/lcrypto.o -I${CRYPTODIR}/src/ \
 		 -I${LUADIR}/src/ ${CRYPTODIR}/src/lcrypto.c
 
-${BUILDDIR}/lev: ${BUILDDIR}/libluvit.a ${BUILDDIR}/luvit_main.o ${CRYPTODIR}/src/lcrypto.o
-	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/lev ${BUILDDIR}/luvit_main.o ${BUILDDIR}/libluvit.a \
+${BUILDDIR}/lev: ${BUILDDIR}/liblev.a ${BUILDDIR}/luvit_main.o ${CRYPTODIR}/src/lcrypto.o
+	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/lev ${BUILDDIR}/luvit_main.o ${BUILDDIR}/liblev.a \
 		${CRYPTODIR}/src/lcrypto.o ${LIBS}
 
 clean:
@@ -236,11 +236,11 @@ uninstall:
 
 bundle: bundle/luvit
 
-bundle/luvit: build/luvit ${BUILDDIR}/libluvit.a
+bundle/luvit: build/luvit ${BUILDDIR}/liblev.a
 	build/luvit tools/bundler.lua
 	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/luvit_exports.c -o bundle/luvit_exports.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
 	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/luvit_main.c -o bundle/luvit_main.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
-	$(CC) ${LDFLAGS} -g -o bundle/luvit ${BUILDDIR}/libluvit.a `ls bundle/*.o` ${LIBS} ${CRYPTODIR}/src/lcrypto.o
+	$(CC) ${LDFLAGS} -g -o bundle/luvit ${BUILDDIR}/liblev.a `ls bundle/*.o` ${LIBS} ${CRYPTODIR}/src/lcrypto.o
 
 # Test section
 
