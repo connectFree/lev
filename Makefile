@@ -282,7 +282,7 @@ dist_build:
             -e 's/LUAJIT_VERSION=".*/LUAJIT_VERSION=\"${LUAJIT_VERSION}\"'\'',/' \
             -e 's/UV_VERSION=".*/UV_VERSION=\"${UV_VERSION}\"'\'',/' \
             -e 's/HTTP_VERSION=".*/HTTP_VERSION=\"${HTTP_VERSION}\"'\'',/' \
-            -e 's/YAJL_VERSIONISH=".*/YAJL_VERSIONISH=\"${YAJL_VERSION}\"'\'',/' < luvit.gyp > luvit.gyp.dist
+            -e 's/YAJL_VERSIONISH=".*/YAJL_VERSIONISH=\"${YAJL_VERSION}\"'\'',/' < lev.gyp > lev.gyp.dist
 
 tarball: dist_build
 	rm -rf ${DIST_FOLDER} ${DIST_FILE}
@@ -292,7 +292,7 @@ tarball: dist_build
 	cd ${DIST_FOLDER} ; git submodule update --init
 	find ${DIST_FOLDER} -name ".git*" | xargs rm -r
 	mv Makefile.dist ${DIST_FOLDER}/Makefile
-	mv luvit.gyp.dist ${DIST_FOLDER}/luvit.gyp
+	mv lev.gyp.dist ${DIST_FOLDER}/lev.gyp
 	tar -czf ${DIST_FILE} -C ${DIST_DIR}/${VERSION} ${DIST_NAME}
 	rm -rf ${DIST_FOLDER}
 
