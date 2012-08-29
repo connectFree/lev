@@ -1,8 +1,8 @@
-language: erlang
+language: lua
 
 script:
   - "make test"
 
 notifications:
   email: true
-  irc: "irc.freenode.org#luvit"
+  irc: "irc.freenode.org#levdev"
