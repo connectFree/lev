@@ -129,7 +129,7 @@ ifeq (${USE_SYSTEM_SSL},0)
 DEPS+=${SSLDIR}/libopenssl.a
 endif
 
-all: ${BUILDDIR}/luvit
+all: ${BUILDDIR}/lev
 
 ${LUADIR}/Makefile:
 	git submodule update --init ${LUADIR}
@@ -197,8 +197,8 @@ ${CRYPTODIR}/src/lcrypto.o: ${CRYPTODIR}/Makefile
 	${CC} ${CPPFLAGS} -c -o ${CRYPTODIR}/src/lcrypto.o -I${CRYPTODIR}/src/ \
 		 -I${LUADIR}/src/ ${CRYPTODIR}/src/lcrypto.c
 
-${BUILDDIR}/luvit: ${BUILDDIR}/libluvit.a ${BUILDDIR}/luvit_main.o ${CRYPTODIR}/src/lcrypto.o
-	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/luvit ${BUILDDIR}/luvit_main.o ${BUILDDIR}/libluvit.a \
+${BUILDDIR}/lev: ${BUILDDIR}/libluvit.a ${BUILDDIR}/luvit_main.o ${CRYPTODIR}/src/lcrypto.o
+	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/lev ${BUILDDIR}/luvit_main.o ${BUILDDIR}/libluvit.a \
 		${CRYPTODIR}/src/lcrypto.o ${LIBS}
 
 clean:
@@ -214,7 +214,7 @@ clean:
 
 install: all
 	mkdir -p ${BINDIR}
-	install ${BUILDDIR}/luvit ${BINDIR}/luvit
+	install ${BUILDDIR}/lev ${BINDIR}/lev
 	mkdir -p ${LIBDIR}
 	cp lib/luvit/*.lua ${LIBDIR}
 	mkdir -p ${INCDIR}/luajit
@@ -230,7 +230,7 @@ install: all
 	cp src/*.h ${INCDIR}/
 
 uninstall:
-	test -f ${BINDIR}/luvit && rm -f ${BINDIR}/luvit
+	test -f ${BINDIR}/lev && rm -f ${BINDIR}/lev
 	test -d ${LIBDIR} && rm -rf ${LIBDIR}
 	test -d ${INCDIR} && rm -rf ${INCDIR}
 
@@ -246,20 +246,20 @@ bundle/luvit: build/luvit ${BUILDDIR}/libluvit.a
 
 test: test-lua test-install test-uninstall
 
-test-lua: ${BUILDDIR}/luvit
-	cd tests && ../${BUILDDIR}/luvit runner.lua
+test-lua: ${BUILDDIR}/lev
+	cd tests && ../${BUILDDIR}/lev runner.lua
 
 ifeq ($(MAKECMDGOALS),test)
 DESTDIR=test_install
 endif
 
 test-install: install
-	test -f ${BINDIR}/luvit
+	test -f ${BINDIR}/lev
 	test -d ${INCDIR}
 	test -d ${LIBDIR}
 
 test-uninstall: uninstall
-	test ! -f ${BINDIR}/luvit
+	test ! -f ${BINDIR}/lev
 	test ! -d ${INCDIR}
 	test ! -d ${LIBDIR}
 
