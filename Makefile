@@ -268,8 +268,8 @@ api: api.markdown
 api.markdown: $(wildcard lib/*.lua)
 	find lib -name "*.lua" | grep -v "luvit.lua" | sort | xargs -l luvit tools/doc-parser.lua > $@
 
-DIST_DIR?=${HOME}/luvit.io/dist
-DIST_NAME=luvit-${VERSION}
+DIST_DIR?=${HOME}/lev/dist
+DIST_NAME=lev-${VERSION}
 DIST_FOLDER=${DIST_DIR}/${VERSION}/${DIST_NAME}
 DIST_FILE=${DIST_FOLDER}.tar.gz
 dist_build:
