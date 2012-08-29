@@ -12,7 +12,7 @@ We believe that this lack of a core-library will allow us easily incorporate fas
 We have just begun initial development in late August of 2012.
 At the moment development is being lead from Japan.
 
-Join us on IRC at #lev on freenode.net
+Join us on IRC at #levdev on freenode.net
 
 Many thanks to the initial luvit team,
 those who have worked on libuv and of course Mike Pall for LuaJIT.
