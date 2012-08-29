@@ -216,7 +216,7 @@ install: all
 	mkdir -p ${BINDIR}
 	install ${BUILDDIR}/lev ${BINDIR}/lev
 	mkdir -p ${LIBDIR}
-	cp lib/luvit/*.lua ${LIBDIR}
+	cp lib/lev/*.lua ${LIBDIR}
 	mkdir -p ${INCDIR}/luajit
 	cp ${LUADIR}/src/lua.h ${INCDIR}/luajit/
 	cp ${LUADIR}/src/lauxlib.h ${INCDIR}/luajit/

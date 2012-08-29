@@ -126,7 +126,7 @@ end
 
 local builtinLoader = package.loaders[1]
 local base_path = process.cwd()
-local libpath = process.execPath:match('^(.*)' .. path.sep .. '[^' ..path.sep.. ']+' ..path.sep.. '[^' ..path.sep.. ']+$') ..path.sep.. 'lib' ..path.sep.. 'luvit' ..path.sep
+local libpath = process.execPath:match('^(.*)' .. path.sep .. '[^' ..path.sep.. ']+' ..path.sep.. '[^' ..path.sep.. ']+$') ..path.sep.. 'lib' ..path.sep.. 'lev' ..path.sep
 function module.require(filepath, dirname)
   if not dirname then dirname = base_path end
 
