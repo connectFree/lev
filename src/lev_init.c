@@ -24,7 +24,7 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-#include "luvit.h"
+#include "lev_main.h"
 #include "uv.h"
 #include "utils.h"
 #include "los.h"

@@ -28,8 +28,8 @@
 #endif
 #include "uv.h"
 
-#include "luvit.h"
-#include "luvit_init.h"
+#include "lev_main.h"
+#include "lev_init.h"
 #include "luv.h"
 
 #ifdef BUNDLE
