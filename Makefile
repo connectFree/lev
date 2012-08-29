@@ -14,8 +14,8 @@ CRYPTODIR=deps/luacrypto
 
 PREFIX?=/usr/local
 BINDIR?=${DESTDIR}${PREFIX}/bin
-INCDIR?=${DESTDIR}${PREFIX}/include/luvit
-LIBDIR?=${DESTDIR}${PREFIX}/lib/luvit
+INCDIR?=${DESTDIR}${PREFIX}/include/lev
+LIBDIR?=${DESTDIR}${PREFIX}/lib/lev
 
 OPENSSL_LIBS=$(shell pkg-config openssl --libs 2> /dev/null)
 ifeq (${OPENSSL_LIBS},)
@@ -46,7 +46,7 @@ export Q=
 MAKEFLAGS+=-e
 
 LDFLAGS+=-L${BUILDDIR}
-LIBS += -lluvit \
+LIBS += -llev \
 	${ZLIBDIR}/libz.a \
 	${YAJLDIR}/yajl.a \
 	${UVDIR}/uv.a \
@@ -129,7 +129,7 @@ ifeq (${USE_SYSTEM_SSL},0)
 DEPS+=${SSLDIR}/libopenssl.a
 endif
 
-all: ${BUILDDIR}/luvit
+all: ${BUILDDIR}/lev
 
 ${LUADIR}/Makefile:
 	git submodule update --init ${LUADIR}
@@ -187,8 +187,8 @@ ${BUILDDIR}/%.o: src/%.c ${DEPS}
 		-DLUVIT_VERSION=\"${VERSION}\" \
 		-DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
 
-${BUILDDIR}/libluvit.a: ${CRYPTODIR}/Makefile ${LUVLIBS} ${DEPS}
-	$(AR) rvs ${BUILDDIR}/libluvit.a ${LUVLIBS} ${DEPS}
+${BUILDDIR}/liblev.a: ${CRYPTODIR}/Makefile ${LUVLIBS} ${DEPS}
+	$(AR) rvs ${BUILDDIR}/liblev.a ${LUVLIBS} ${DEPS}
 
 ${CRYPTODIR}/Makefile:
 	git submodule update --init ${CRYPTODIR}
@@ -197,8 +197,8 @@ ${CRYPTODIR}/src/lcrypto.o: ${CRYPTODIR}/Makefile
 	${CC} ${CPPFLAGS} -c -o ${CRYPTODIR}/src/lcrypto.o -I${CRYPTODIR}/src/ \
 		 -I${LUADIR}/src/ ${CRYPTODIR}/src/lcrypto.c
 
-${BUILDDIR}/luvit: ${BUILDDIR}/libluvit.a ${BUILDDIR}/luvit_main.o ${CRYPTODIR}/src/lcrypto.o
-	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/luvit ${BUILDDIR}/luvit_main.o ${BUILDDIR}/libluvit.a \
+${BUILDDIR}/lev: ${BUILDDIR}/liblev.a ${BUILDDIR}/luvit_main.o ${CRYPTODIR}/src/lcrypto.o
+	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/lev ${BUILDDIR}/luvit_main.o ${BUILDDIR}/liblev.a \
 		${CRYPTODIR}/src/lcrypto.o ${LIBS}
 
 clean:
@@ -214,7 +214,7 @@ clean:
 
 install: all
 	mkdir -p ${BINDIR}
-	install ${BUILDDIR}/luvit ${BINDIR}/luvit
+	install ${BUILDDIR}/lev ${BINDIR}/lev
 	mkdir -p ${LIBDIR}
 	cp lib/luvit/*.lua ${LIBDIR}
 	mkdir -p ${INCDIR}/luajit
@@ -230,36 +230,36 @@ install: all
 	cp src/*.h ${INCDIR}/
 
 uninstall:
-	test -f ${BINDIR}/luvit && rm -f ${BINDIR}/luvit
+	test -f ${BINDIR}/lev && rm -f ${BINDIR}/lev
 	test -d ${LIBDIR} && rm -rf ${LIBDIR}
 	test -d ${INCDIR} && rm -rf ${INCDIR}
 
 bundle: bundle/luvit
 
-bundle/luvit: build/luvit ${BUILDDIR}/libluvit.a
-	build/luvit tools/bundler.lua
+bundle/luvit: build/lev ${BUILDDIR}/liblev.a
+	build/lev tools/bundler.lua
 	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/luvit_exports.c -o bundle/luvit_exports.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
 	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/luvit_main.c -o bundle/luvit_main.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
-	$(CC) ${LDFLAGS} -g -o bundle/luvit ${BUILDDIR}/libluvit.a `ls bundle/*.o` ${LIBS} ${CRYPTODIR}/src/lcrypto.o
+	$(CC) ${LDFLAGS} -g -o bundle/luvit ${BUILDDIR}/liblev.a `ls bundle/*.o` ${LIBS} ${CRYPTODIR}/src/lcrypto.o
 
 # Test section
 
 test: test-lua test-install test-uninstall
 
-test-lua: ${BUILDDIR}/luvit
-	cd tests && ../${BUILDDIR}/luvit runner.lua
+test-lua: ${BUILDDIR}/lev
+	cd tests && ../${BUILDDIR}/lev runner.lua
 
 ifeq ($(MAKECMDGOALS),test)
 DESTDIR=test_install
 endif
 
 test-install: install
-	test -f ${BINDIR}/luvit
+	test -f ${BINDIR}/lev
 	test -d ${INCDIR}
 	test -d ${LIBDIR}
 
 test-uninstall: uninstall
-	test ! -f ${BINDIR}/luvit
+	test ! -f ${BINDIR}/lev
 	test ! -d ${INCDIR}
 	test ! -d ${LIBDIR}
 
