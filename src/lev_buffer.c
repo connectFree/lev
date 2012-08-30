@@ -278,6 +278,11 @@ static int luvbuffer_upuntil (lua_State *L) {
     return luaL_argerror(L, 2, "Delimiter String is Required");
   }
 
+  if (!delimiter_len) {
+    lua_pushlstring(L, "", 0);
+    return 1;
+  }
+
   size_t offset = (size_t)lua_tonumber(L, 3);
   if (!offset) {
     offset = 1;
