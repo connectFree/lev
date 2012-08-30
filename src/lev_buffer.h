@@ -21,6 +21,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "utils.h"
+#include "lev_slab.h"
 
 LUALIB_API int luaopen_levbuffer (lua_State *L);
 
