@@ -94,6 +94,7 @@ CPPFLAGS += -I${SSLDIR}/openssl-configs/ia32
 endif
 
 LUVLIBS=${BUILDDIR}/utils.o          \
+        ${BUILDDIR}/lev_slab.o       \
         ${BUILDDIR}/luv_fs.o         \
         ${BUILDDIR}/luv_dns.o        \
         ${BUILDDIR}/luv_debug.o      \
@@ -117,7 +118,7 @@ LUVLIBS=${BUILDDIR}/utils.o          \
         ${BUILDDIR}/los.o            \
         ${BUILDDIR}/luv_zlib.o       \
         ${BUILDDIR}/lhttp_parser.o   \
-        ${BUILDDIR}/luv_buffer.o
+        ${BUILDDIR}/lev_buffer.o
 
 DEPS=${LUADIR}/src/libluajit.a \
      ${YAJLDIR}/yajl.a         \

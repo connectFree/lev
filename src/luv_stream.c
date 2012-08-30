@@ -35,6 +35,11 @@ void luv_on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf) {
   /* load the lua state and the userdata */
   lua_State* L = luv_handle_get_lua(handle->data);
 
+  /* perform some magic */
+  /* the base buffer is the offset of the slab block + sizeof(MemBlock) */
+  MemBlock *mb = (MemBlock *)(buf.base - sizeof(MemBlock));
+  printf("luv_on_read: %p pool=%p\n", mb, mb->pool);
+
   if (nread >= 0) {
 
     lua_pushlstring (L, buf.base, nread);
@@ -52,7 +57,8 @@ void luv_on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf) {
     }
   }
 
-  free(buf.base);
+  lev_slab_decRef( mb );
+  /*free(buf.base);*/
 }
 
 void luv_after_connect(uv_connect_t* req, int status) {
