@@ -64,7 +64,7 @@ setmetatable(process, {
   end
 })
 
--- Replace lua's stdio with luvit's
+-- Replace lua's stdio with lev's
 -- leave stderr using lua's blocking implementation
 process.stdin = uv.createReadableStdioStream(0)
 process.stdout = uv.createWriteableStdioStream(1)
@@ -90,7 +90,7 @@ _G.debug = utils.debug
 -- Move the version variables into a table
 process.version = VERSION
 process.versions = {
-  luvit = VERSION,
+  lev = VERSION,
   uv = native.VERSION_MAJOR .. "." .. native.VERSION_MINOR .. "-" .. UV_VERSION,
   luajit = LUAJIT_VERSION,
   yajl = YAJL_VERSION,
@@ -163,7 +163,7 @@ process.env = setmetatable({}, {
 --Retrieve PID
 process.pid = native.getpid()
 
--- Copy date and time over from lua os module into luvit os module
+-- Copy date and time over from lua os module into lev os module
 local OLD_OS = require('os')
 local OS_BINDING = require('os_binding')
 package.loaded.os = OS_BINDING
@@ -252,7 +252,7 @@ assert(xpcall(function ()
         -- calculate includes relative to the binary
         local include_dir = Path.normalize(Path.resolve(
           Path.dirname(process.execPath),
-          "../include/luvit"
+          "../include/lev"
         ))
         local cflags = {
           "-I" .. include_dir,

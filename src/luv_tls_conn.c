@@ -93,7 +93,7 @@ sni_context_callback(SSL *s, int *ad, void *arg) {
       lua_pushstring(tc->L, server_name);
       lua_pcall(L, 1, 1, 0);
       if (lua_touserdata(L, 1)) {
-        tls_sc_t *sc = luvit__lua_tls_sc_get(L, 1);
+        tls_sc_t *sc = lev__lua_tls_sc_get(L, 1);
         SSL_set_SSL_CTX(s, sc->ctx);
         lua_pop(L, 1);
       }
@@ -125,7 +125,7 @@ tls_conn_verify_cb(int preverify_ok, X509_STORE_CTX *ctx) {
 static tls_conn_t*
 newCONN(lua_State *L)
 {
-  tls_sc_t* sc = luvit__lua_tls_sc_get(L, 1);
+  tls_sc_t* sc = lev__lua_tls_sc_get(L, 1);
   int is_server = lua_toboolean(L, 2);
   int is_request_cert = FALSE;
   const char *server_name = NULL;
@@ -198,7 +198,7 @@ getCONN(lua_State *L, int index)
 }
 
 int
-luvit__lua_tls_conn_create(lua_State *L) {
+lev__lua_tls_conn_create(lua_State *L) {
   (void) newCONN(L);
   return 1;
 }
@@ -776,7 +776,7 @@ static const luaL_reg tls_conn_lib[] = {
 };
 
 int
-luvit__lua_tls_conn_init(lua_State *L)
+lev__lua_tls_conn_init(lua_State *L)
 {
   luaL_newmetatable(L, TLS_CONNECTION_HANDLE);
   lua_pushliteral(L, "__index");

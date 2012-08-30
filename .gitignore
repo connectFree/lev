@@ -3,7 +3,7 @@ bundle/*
 jit
 generated
 *.o
-*.luvit
+*.lev
 *.*~
 options.gypi
 *.xcodeproj

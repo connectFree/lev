@@ -2,6 +2,6 @@
 #ifndef LUV_EXPORTS
 #define LUV_EXPORTS
 
-const void *luvit__suck_in_symbols(void);
+const void *lev__suck_in_symbols(void);
 
 #endif
