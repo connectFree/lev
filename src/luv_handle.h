@@ -22,6 +22,7 @@
 #include "lauxlib.h"
 #include "uv.h"
 #include "utils.h"
+#include "lev_slab.h"
 
 
 /* Registers a callback, callback_index can't be negative */

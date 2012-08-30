@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The Luvit Authors. All Rights Reserved.
+ *  Copyright 2012 The lev Authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include "luv_buffer.h"
+#include "lev_buffer.h"
 
 /******************************************************************************/
 
@@ -73,7 +73,7 @@ static uint16_t __builtin_bswap16( uint16_t a ) {
 /******************************************************************************/
 
 #define BUFFER_UDATA(L)                                                        \
-  unsigned char *buffer = (unsigned char *)luaL_checkudata(L, 1, "luvbuffer"); \
+  unsigned char *buffer = (unsigned char *)luaL_checkudata(L, 1, "levbuffer"); \
   size_t buffer_len = *((size_t*)(buffer));                                    \
   buffer += sizeof(size_t);                                                    \
 
@@ -88,7 +88,7 @@ static uint16_t __builtin_bswap16( uint16_t a ) {
 void * lua_resizeuserdata(lua_State *L, int index, size_t size) {
   unsigned char *new_buffer;
 
-  unsigned char *old_buffer = (unsigned char *)luaL_checkudata(L, index, "luvbuffer");
+  unsigned char *old_buffer = (unsigned char *)luaL_checkudata(L, index, "levbuffer");
   size_t old_buffer_len = *((size_t*)(old_buffer));
   old_buffer += sizeof(size_t);
 
@@ -109,7 +109,7 @@ void * lua_resizeuserdata(lua_State *L, int index, size_t size) {
 /******************************************************************************/
 
 /* Takes as arguments a number or string */
-static int luvbuffer_new (lua_State *L) {
+static int levbuffer_new (lua_State *L) {
   size_t buffer_size;
   const char *lua_temp = NULL;
   unsigned char *buffer;
@@ -139,8 +139,8 @@ static int luvbuffer_new (lua_State *L) {
     memset(buffer + sizeof(size_t), '\0', buffer_size);
   }
 
-  /* Set the type of the userdata as an luvbuffer instance */
-  luaL_getmetatable(L, "luvbuffer");
+  /* Set the type of the userdata as an levbuffer instance */
+  luaL_getmetatable(L, "levbuffer");
   lua_setmetatable(L, -2);
 
   /* return the userdata */
@@ -149,13 +149,13 @@ static int luvbuffer_new (lua_State *L) {
 
 
 /* isBuffer( obj ) */
-static int luvbuffer_isbuffer (lua_State *L) {
+static int levbuffer_isbuffer (lua_State *L) {
   int is_buffer = 0;
 
   void*p=lua_touserdata(L, 1);
   if(p!=NULL){
     if(lua_getmetatable(L,1)){
-      lua_getfield(L,(-10000),"luvbuffer");
+      lua_getfield(L,(-10000),"levbuffer");
       if(lua_rawequal(L,-1,-2)){
         lua_pop(L,2);
         is_buffer = 1;
@@ -170,7 +170,7 @@ static int luvbuffer_isbuffer (lua_State *L) {
 /******************************************************************************/
 
 /* tostring(buffer, i, j) */
-static int luvbuffer_tostring (lua_State *L) {
+static int levbuffer_tostring (lua_State *L) {
   BUFFER_UDATA(L)
 
   size_t offset = (size_t)lua_tonumber(L, 2);
@@ -196,7 +196,7 @@ static int luvbuffer_tostring (lua_State *L) {
 }
 
 /* fill(buffer, char, i, j) */
-static int luvbuffer_fill (lua_State *L) {
+static int levbuffer_fill (lua_State *L) {
   BUFFER_UDATA(L)
 
   size_t offset = (size_t)lua_tonumber(L, 3);
@@ -238,7 +238,7 @@ static const char _hex[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C',
 
 /* inspect(buffer) */
 
-static int luvbuffer_inspect (lua_State *L) {
+static int levbuffer_inspect (lua_State *L) {
   int i;
 
   BUFFER_UDATA(L)
@@ -266,7 +266,7 @@ static int luvbuffer_inspect (lua_State *L) {
 }
 
 /* upuntil(buffer, i, j) */
-static int luvbuffer_upuntil (lua_State *L) {
+static int levbuffer_upuntil (lua_State *L) {
   size_t delimiter_len;
   const char *delimiter_buf = NULL;
   const char *found = NULL;
@@ -278,6 +278,11 @@ static int luvbuffer_upuntil (lua_State *L) {
     return luaL_argerror(L, 2, "Delimiter String is Required");
   }
 
+  if (!delimiter_len) {
+    lua_pushlstring(L, "", 0);
+    return 1;
+  }
+  
   size_t offset = (size_t)lua_tonumber(L, 3);
   if (!offset) {
     offset = 1;
@@ -307,7 +312,7 @@ static int luvbuffer_upuntil (lua_State *L) {
 }
 
 /* readInt8(buffer, offset) */
-static int luvbuffer_readInt8 (lua_State *L) {
+static int levbuffer_readInt8 (lua_State *L) {
   BUFFER_UDATA(L)
 
   BUFFER_GETOFFSET(L, 2) /* sets index */
@@ -317,7 +322,7 @@ static int luvbuffer_readInt8 (lua_State *L) {
 }
 
 /* readUInt16LE(buffer, offset) */
-static int luvbuffer_readUInt16BE (lua_State *L) {
+static int levbuffer_readUInt16BE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 2, 1) /* sets index */
@@ -327,7 +332,7 @@ static int luvbuffer_readUInt16BE (lua_State *L) {
 }
 
 /* readUInt16LE(buffer, offset) */
-static int luvbuffer_readUInt16LE (lua_State *L) {
+static int levbuffer_readUInt16LE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 2, 1) /* sets index */
@@ -337,7 +342,7 @@ static int luvbuffer_readUInt16LE (lua_State *L) {
 }
 
 /* readUInt32LE(buffer, offset) */
-static int luvbuffer_readUInt32BE (lua_State *L) {
+static int levbuffer_readUInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
@@ -348,7 +353,7 @@ static int luvbuffer_readUInt32BE (lua_State *L) {
 
 
 /* readUInt32LE(buffer, offset) */
-static int luvbuffer_readUInt32LE (lua_State *L) {
+static int levbuffer_readUInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
@@ -358,7 +363,7 @@ static int luvbuffer_readUInt32LE (lua_State *L) {
 }
 
 /* readInt32LE(buffer, offset) */
-static int luvbuffer_readInt32BE (lua_State *L) {
+static int levbuffer_readInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
@@ -369,7 +374,7 @@ static int luvbuffer_readInt32BE (lua_State *L) {
 
 
 /* readInt32LE(buffer, offset) */
-static int luvbuffer_readInt32LE (lua_State *L) {
+static int levbuffer_readInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
@@ -379,7 +384,7 @@ static int luvbuffer_readInt32LE (lua_State *L) {
 }
 
 /* writeUInt8(buffer, value, offset) */
-static int luvbuffer_writeUInt8 (lua_State *L) {
+static int levbuffer_writeUInt8 (lua_State *L) {
   BUFFER_UDATA(L)
 
   BUFFER_GETOFFSET(L, 3) /* sets index */
@@ -392,7 +397,7 @@ static int luvbuffer_writeUInt8 (lua_State *L) {
 
 
 /* writeInt8(buffer, value, offset) */
-static int luvbuffer_writeInt8 (lua_State *L) {
+static int levbuffer_writeInt8 (lua_State *L) {
   BUFFER_UDATA(L)
 
   BUFFER_GETOFFSET(L, 3) /* sets index */
@@ -403,7 +408,7 @@ static int luvbuffer_writeInt8 (lua_State *L) {
 }
 
 /* writeUInt16LE(buffer, value, offset) */
-static int luvbuffer_writeUInt16BE (lua_State *L) {
+static int levbuffer_writeUInt16BE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 3, 1) /* sets index */
@@ -414,7 +419,7 @@ static int luvbuffer_writeUInt16BE (lua_State *L) {
 }
 
 /* writeUInt16LE(buffer, value, offset) */
-static int luvbuffer_writeUInt16LE (lua_State *L) {
+static int levbuffer_writeUInt16LE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 3, 1) /* sets index */
@@ -425,7 +430,7 @@ static int luvbuffer_writeUInt16LE (lua_State *L) {
 }
 
 /* writeUInt32LE(buffer, value, offset) */
-static int luvbuffer_writeUInt32BE (lua_State *L) {
+static int levbuffer_writeUInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
@@ -437,7 +442,7 @@ static int luvbuffer_writeUInt32BE (lua_State *L) {
 
 
 /* writeUInt32LE(buffer, value, offset) */
-static int luvbuffer_writeUInt32LE (lua_State *L) {
+static int levbuffer_writeUInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
@@ -448,7 +453,7 @@ static int luvbuffer_writeUInt32LE (lua_State *L) {
 }
 
 /* writeInt32LE(buffer, value, offset) */
-static int luvbuffer_writeInt32BE (lua_State *L) {
+static int levbuffer_writeInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
@@ -460,7 +465,7 @@ static int luvbuffer_writeInt32BE (lua_State *L) {
 
 
 /* writeInt32LE(buffer, write, offset) */
-static int luvbuffer_writeInt32LE (lua_State *L) {
+static int levbuffer_writeInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
   _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
@@ -471,7 +476,7 @@ static int luvbuffer_writeInt32LE (lua_State *L) {
 }
 
 /* __len(buffer) */
-static int luvbuffer__len (lua_State *L) {
+static int levbuffer__len (lua_State *L) {
   BUFFER_UDATA(L)
 
   lua_pushnumber(L, buffer_len);
@@ -479,7 +484,7 @@ static int luvbuffer__len (lua_State *L) {
 }
 
 /* __index(buffer, key) */
-static int luvbuffer__index (lua_State *L) {
+static int levbuffer__index (lua_State *L) {
   if (!lua_isnumber(L, 2)) { /* key should be a number */
     const char *value = lua_tolstring(L, 2, NULL);
     if (value[0] == 'l' && 0 == strncmp(value, "length", 7)) { /* ghetto deprecation! */
@@ -502,8 +507,8 @@ static int luvbuffer__index (lua_State *L) {
   return 1;
 }
 
-int luvbuffer__pairs_aux(lua_State *L) {
-  unsigned char *buffer = (unsigned char *)luaL_checkudata(L, -2, "luvbuffer");
+int levbuffer__pairs_aux(lua_State *L) {
+  unsigned char *buffer = (unsigned char *)luaL_checkudata(L, -2, "levbuffer");
   size_t buffer_len = *((size_t*)(buffer));
 
   size_t index = luaL_checknumber(L,-1);
@@ -517,15 +522,15 @@ int luvbuffer__pairs_aux(lua_State *L) {
 }
 
 
-static int luvbuffer__pairs (lua_State *L) {
-  (void)luaL_checkudata(L,-1, "luvbuffer");
-  lua_pushcfunction(L, luvbuffer__pairs_aux);
+static int levbuffer__pairs (lua_State *L) {
+  (void)luaL_checkudata(L,-1, "levbuffer");
+  lua_pushcfunction(L, levbuffer__pairs_aux);
   lua_insert(L,-2);
   lua_pushinteger(L,0);
   return 3;
 }
 
-static int luvbuffer__concat (lua_State *L) {
+static int levbuffer__concat (lua_State *L) {
   size_t new_size;
   unsigned char *new_buffer;
   size_t other_buffer_len;
@@ -536,7 +541,7 @@ static int luvbuffer__concat (lua_State *L) {
   int other_type = lua_type(L, 2);
   switch (other_type) {
     case LUA_TUSERDATA:
-      other_buffer = (unsigned char *)luaL_checkudata(L, 2, "luvbuffer");
+      other_buffer = (unsigned char *)luaL_checkudata(L, 2, "levbuffer");
       other_buffer_len = *((size_t*)(other_buffer));
       other_buffer += sizeof(size_t);
       break;
@@ -558,8 +563,8 @@ static int luvbuffer__concat (lua_State *L) {
     ,other_buffer_len
   );
 
-  /* Set the type of the userdata as an luvbuffer instance */
-  luaL_getmetatable(L, "luvbuffer");
+  /* Set the type of the userdata as an levbuffer instance */
+  luaL_getmetatable(L, "levbuffer");
   lua_setmetatable(L, -2);
   return 1;
 
@@ -568,7 +573,7 @@ out_err:
 }
 
 /* __newindex(buffer, key, value) */
-static int luvbuffer__newindex (lua_State *L) {
+static int levbuffer__newindex (lua_State *L) {
   size_t value_len;
 
   if (!lua_isnumber(L, 2)) { /* key should be a number */
@@ -601,58 +606,58 @@ static int luvbuffer__newindex (lua_State *L) {
 
 /******************************************************************************/
 
-static const luaL_reg luvbuffer_m[] = {
-   {"toString", luvbuffer_tostring}
-  ,{"upUntil", luvbuffer_upuntil}
-  ,{"inspect", luvbuffer_inspect}
-  ,{"fill", luvbuffer_fill}
+static const luaL_reg levbuffer_m[] = {
+   {"toString", levbuffer_tostring}
+  ,{"upUntil", levbuffer_upuntil}
+  ,{"inspect", levbuffer_inspect}
+  ,{"fill", levbuffer_fill}
 
   /* binary helpers */
-  ,{"readUInt8", luvbuffer__index} /* same as __index */
-  ,{"readInt8", luvbuffer_readInt8}
-  ,{"readUInt16BE", luvbuffer_readUInt16BE}
-  ,{"readUInt16LE", luvbuffer_readUInt16LE}
-  ,{"readUInt32BE", luvbuffer_readUInt32BE}
-  ,{"readUInt32LE", luvbuffer_readUInt32LE}
-  ,{"readInt32BE", luvbuffer_readInt32BE}
-  ,{"readInt32LE", luvbuffer_readInt32LE}  
-  ,{"writeUInt8", luvbuffer_writeUInt8}
-  ,{"writeInt8", luvbuffer_writeInt8}
-  ,{"writeUInt16BE", luvbuffer_writeUInt16BE}
-  ,{"writeUInt16LE", luvbuffer_writeUInt16LE}
-  ,{"writeUInt32BE", luvbuffer_writeUInt32BE}
-  ,{"writeUInt32LE", luvbuffer_writeUInt32LE}
-  ,{"writeInt32BE", luvbuffer_writeInt32BE}
-  ,{"writeInt32LE", luvbuffer_writeInt32LE}  
+  ,{"readUInt8", levbuffer__index} /* same as __index */
+  ,{"readInt8", levbuffer_readInt8}
+  ,{"readUInt16BE", levbuffer_readUInt16BE}
+  ,{"readUInt16LE", levbuffer_readUInt16LE}
+  ,{"readUInt32BE", levbuffer_readUInt32BE}
+  ,{"readUInt32LE", levbuffer_readUInt32LE}
+  ,{"readInt32BE", levbuffer_readInt32BE}
+  ,{"readInt32LE", levbuffer_readInt32LE}  
+  ,{"writeUInt8", levbuffer_writeUInt8}
+  ,{"writeInt8", levbuffer_writeInt8}
+  ,{"writeUInt16BE", levbuffer_writeUInt16BE}
+  ,{"writeUInt16LE", levbuffer_writeUInt16LE}
+  ,{"writeUInt32BE", levbuffer_writeUInt32BE}
+  ,{"writeUInt32LE", levbuffer_writeUInt32LE}
+  ,{"writeInt32BE", levbuffer_writeInt32BE}
+  ,{"writeInt32LE", levbuffer_writeInt32LE}  
 
    /* meta */
-  ,{"__len", luvbuffer__len}
-  ,{"__index", luvbuffer__index}
-  ,{"__pairs", luvbuffer__pairs}
-  ,{"__concat", luvbuffer__concat}
-  ,{"__tostring", luvbuffer_tostring}
-  ,{"__newindex", luvbuffer__newindex}
+  ,{"__len", levbuffer__len}
+  ,{"__index", levbuffer__index}
+  ,{"__pairs", levbuffer__pairs}
+  ,{"__concat", levbuffer__concat}
+  ,{"__tostring", levbuffer_tostring}
+  ,{"__newindex", levbuffer__newindex}
   ,{NULL, NULL}
 };
 
-static const luaL_reg luvbuffer_f[] = {
-   {"new", luvbuffer_new}
-  ,{"isBuffer", luvbuffer_isbuffer}
+static const luaL_reg levbuffer_f[] = {
+   {"new", levbuffer_new}
+  ,{"isBuffer", levbuffer_isbuffer}
   ,{NULL, NULL}
 };
 
-LUALIB_API int luaopen_luvbuffer (lua_State *L) {
+LUALIB_API int luaopen_levbuffer (lua_State *L) {
 
-  /* Create a metatable for the luvbuffer userdata type */
-  luaL_newmetatable(L, "luvbuffer");
+  /* Create a metatable for the levbuffer userdata type */
+  luaL_newmetatable(L, "levbuffer");
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
-  luaL_register(L, NULL, luvbuffer_m);
+  luaL_register(L, NULL, levbuffer_m);
 
   /* Create a new exports table */
   lua_newtable (L);
   /* Put our one function on it */
-  luaL_register(L, NULL, luvbuffer_f);
+  luaL_register(L, NULL, levbuffer_f);
   /* Return the new module */
   return 1;
 }
