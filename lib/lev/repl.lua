@@ -85,7 +85,7 @@ function repl.evaluateLine(line)
 end
 
 repl.colored_name = function()
-  return c("Bred") .. "L" .. c("Bgreen") .. "uv" .. c("Bblue") .. "it" .. c()
+  return c("Bred") .. "L" .. c("Bgreen") .. "ev" .. c()
 end
 
 function repl.start()
