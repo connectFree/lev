@@ -56,6 +56,11 @@ static void luv_on_udp_recv(uv_udp_t* handle,
   /* load the lua state and the userdata */
   lua_State *L = luv_handle_get_lua(handle->data);
 
+  /* perform some magic */
+  /* the base buffer is the offset of the slab block + sizeof(MemBlock) */
+  MemBlock *mb = (MemBlock *)(buf.base - sizeof(MemBlock));
+  printf("luv_on_read: %p pool=%p\n", mb, mb->pool);
+
   if (nread == 0) {
     return;
   }
@@ -88,8 +93,8 @@ static void luv_on_udp_recv(uv_udp_t* handle,
   lua_setfield(L, -2, "size");
   luv_emit_event(L, "message", 2);
 
-  free(buf.base);
-  buf.base = NULL;
+  lev_slab_decRef( mb );
+  /*free(buf.base);*/
 }
 
 static void luv_on_udp_send(uv_udp_send_t* req, int status) {

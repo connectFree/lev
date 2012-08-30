@@ -45,7 +45,6 @@ void luv_emit_event(lua_State* L, const char* name, int nargs) {
     return;
   }
 
-
   /* move the function below the args */
   lua_insert(L, -nargs - 1);
   luv_acall(L, nargs, 0, name);
@@ -53,8 +52,16 @@ void luv_emit_event(lua_State* L, const char* name, int nargs) {
 
 uv_buf_t luv_on_alloc(uv_handle_t* handle, size_t suggested_size) {
   uv_buf_t buf;
-  buf.base = malloc(suggested_size);
-  buf.len = suggested_size;
+
+  /* perform some magic */
+  /* the base buffer is the offset of the slab block + sizeof(MemBlock) */
+  MemBlock *mb = lev_slab_getBlock(8*1024);
+  printf("mb=%p;;bb=%p\n", mb, mb->bytes);
+  buf.base = (char *)(mb->bytes);
+  buf.len = 8*1024;
+
+  lev_slab_incRef( mb );
+  printf("luv_on_alloc\t%p\n", mb);
   return buf;
 }
 
