@@ -39,7 +39,7 @@
 #include "luv_portability.h"
 #include "lconstants.h"
 #include "lhttp_parser.h"
-#include "luv_buffer.h"
+#include "lev_buffer.h"
 #include "lyajl.h"
 #include "lenv.h"
 
@@ -189,8 +189,8 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   /* Register http_parser */
   lua_pushcfunction(L, luaopen_http_parser);
   lua_setfield(L, -2, "http_parser");
-  /* Register luv_buffer */
-  lua_pushcfunction(L, luaopen_luvbuffer);
+  /* Register lev_buffer */
+  lua_pushcfunction(L, luaopen_levbuffer);
   lua_setfield(L, -2, "cbuffer");
   /* Register uv */
   lua_pushcfunction(L, luaopen_uv_native);
