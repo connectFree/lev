@@ -28,12 +28,12 @@
 #endif
 #include "uv.h"
 
-#include "luvit.h"
-#include "luvit_init.h"
+#include "lev_main.h"
+#include "lev_init.h"
 #include "luv.h"
 
 #ifdef BUNDLE
-#include "luvit_exports.h"
+#include "lev_exports.h"
 #endif
 
 int main(int argc, char *argv[])
@@ -54,20 +54,20 @@ int main(int argc, char *argv[])
   loop = uv_default_loop();
 
 #ifdef LUV_EXPORTS
-  luvit__suck_in_symbols();
+  lev__suck_in_symbols();
 #endif
 
 #ifdef USE_OPENSSL
-  luvit_init_ssl();
+  lev_init_ssl();
 #endif
 
-  if (luvit_init(L, loop, argc, argv)) {
-    fprintf(stderr, "luvit_init has failed\n");
+  if (lev_init(L, loop, argc, argv)) {
+    fprintf(stderr, "lev_init has failed\n");
     return 1;
   }
 
   /* Run the main lua script */
-  if (luvit_run(L)) {
+  if (lev_run(L)) {
     printf("%s\n", lua_tostring(L, -1));
     lua_pop(L, 1);
     lua_close(L);

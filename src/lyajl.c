@@ -37,14 +37,14 @@ typedef struct {
 #define JSON_PARSER_HANDLE "llyajl_parser_handle"
 #define JSON_GENERATOR_HANDLE "llyajl_generator_handle"
 
-typedef struct luvit_parser_t {
+typedef struct lev_parser_t {
   luv_ref_t *ref;
   yajl_handle handle;
-} luvit_parser_t;
+} lev_parser_t;
 
-typedef struct luvit_generator_t {
+typedef struct lev_generator_t {
   yajl_gen gen;
-} luvit_generator_t;
+} lev_generator_t;
 
 static int lyajl_on_null (void * ctx) {
   /* Load the callback */
@@ -231,21 +231,21 @@ static yajl_callbacks lyajl_callbacks = {
   lyajl_on_start_array, lyajl_on_end_array
 };
 
-luvit_parser_t* parser_get(lua_State *L, int index) {
+lev_parser_t* parser_get(lua_State *L, int index) {
   return luaL_checkudata(L, index, JSON_PARSER_HANDLE);
 }
 
-luvit_parser_t* parser_new(lua_State *L) {
-  luvit_parser_t *parser = lua_newuserdata(L, sizeof(*parser));
+lev_parser_t* parser_new(lua_State *L) {
+  lev_parser_t *parser = lua_newuserdata(L, sizeof(*parser));
   return parser;
 }
 
-luvit_generator_t* generator_get(lua_State *L, int index) {
+lev_generator_t* generator_get(lua_State *L, int index) {
   return luaL_checkudata(L, index, JSON_GENERATOR_HANDLE);
 }
 
-luvit_generator_t* generator_new(lua_State *L) {
-  luvit_generator_t *generator = lua_newuserdata(L, sizeof(*generator));
+lev_generator_t* generator_new(lua_State *L) {
+  lev_generator_t *generator = lua_newuserdata(L, sizeof(*generator));
   generator->gen = yajl_gen_alloc(NULL);
   luaL_getmetatable(L, JSON_GENERATOR_HANDLE);
   lua_setmetatable(L, -2);
@@ -255,7 +255,7 @@ luvit_generator_t* generator_new(lua_State *L) {
 static int lyajl_parse (lua_State *L) {
   size_t len;
   const char *chunk;
-  luvit_parser_t *parser;
+  lev_parser_t *parser;
   yajl_status stat;
 
   /* Process the args */
@@ -275,7 +275,7 @@ static int lyajl_parse (lua_State *L) {
 
 static int lyajl_complete_parse (lua_State *L) {
   yajl_status stat;
-  luvit_parser_t *parser = parser_get(L, 1);
+  lev_parser_t *parser = parser_get(L, 1);
 
   /* Process the args */
   stat = yajl_complete_parse(parser->handle);
@@ -294,7 +294,7 @@ static int lyajl_complete_parse (lua_State *L) {
 
 static int lyajl_config (lua_State *L) {
   const char* option;
-  luvit_parser_t *parser = parser_get(L, 1);
+  lev_parser_t *parser = parser_get(L, 1);
 
   option = luaL_checkstring(L, 2);
 
@@ -317,7 +317,7 @@ static int lyajl_config (lua_State *L) {
 
 static int lyajl_new_parser (lua_State *L) {
   int r = luaL_ref(L, LUA_REGISTRYINDEX);
-  luvit_parser_t *parser = parser_new(L);
+  lev_parser_t *parser = parser_new(L);
   parser->ref = malloc(sizeof(luv_ref_t));
   parser->ref->L = L;
   parser->ref->r = r;
@@ -333,21 +333,21 @@ static int lyajl_new_generator (lua_State *L) {
 }
 
 static int lyajl_parser_gc (lua_State *L) {
-  luvit_parser_t *parser = parser_get(L, 1);
+  lev_parser_t *parser = parser_get(L, 1);
   yajl_free(parser->handle);
   free(parser->ref);
   return 0;
 }
 
 static int lyajl_gen_null (lua_State *L) {
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   yajl_gen_null(generator->gen);
   return 0;
 }
 
 static int lyajl_gen_boolean (lua_State *L) {
   int value;
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   value = lua_toboolean(L, 2);
   yajl_gen_bool(generator->gen, value);
   return 0;
@@ -356,7 +356,7 @@ static int lyajl_gen_boolean (lua_State *L) {
 static int lyajl_gen_number (lua_State *L) {
   size_t len;
   const char *value;
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   value = luaL_checklstring(L, 2, &len);
   yajl_gen_number(generator->gen, value, len);
   return 0;
@@ -365,32 +365,32 @@ static int lyajl_gen_number (lua_State *L) {
 static int lyajl_gen_string (lua_State *L) {
   size_t len;
   const char *value;
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   value = luaL_checklstring(L, 2, &len);
   yajl_gen_string(generator->gen, (const unsigned char*)value, len);
   return 0;
 }
 
 static int lyajl_gen_map_open (lua_State *L) {
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   yajl_gen_map_open(generator->gen);
   return 0;
 }
 
 static int lyajl_gen_map_close (lua_State *L) {
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   yajl_gen_map_close(generator->gen);
   return 0;
 }
 
 static int lyajl_gen_array_open (lua_State *L) {
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   yajl_gen_array_open(generator->gen);
   return 0;
 }
 
 static int lyajl_gen_array_close (lua_State *L) {
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   yajl_gen_array_close(generator->gen);
   return 0;
 }
@@ -398,7 +398,7 @@ static int lyajl_gen_array_close (lua_State *L) {
 static int lyajl_gen_get_buf (lua_State *L) {
   const unsigned char *buf;
   size_t len;
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   yajl_gen_get_buf(generator->gen, &buf, &len);
   lua_pushlstring(L, (const char*)buf, len);
   yajl_gen_clear(generator->gen);
@@ -418,7 +418,7 @@ int lyajl_gen_on_print(void* ctx, const char* string, size_t len) {
 static int lyajl_gen_config (lua_State *L) {
   const char *option;
   luv_ref_t* ref;
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   option = luaL_checkstring(L, 2);
 
   if (strcmp(option, "beautify") == 0) {
@@ -446,7 +446,7 @@ static int lyajl_gen_config (lua_State *L) {
 }
 
 static int lyajl_gen_gc(lua_State *L) {
-  luvit_generator_t *generator = generator_get(L, 1);
+  lev_generator_t *generator = generator_get(L, 1);
   yajl_gen_free(generator->gen);
   return 0;
 }

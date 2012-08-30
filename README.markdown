@@ -24,6 +24,8 @@ Grab a copy of the source code:
 
 `git clone https://github.com/connectFree/lev.git --recursive`
 
+NOTE: the gyp build system is not maintained right now.
+
 To use the gyp build system run:
 
 ```
@@ -31,7 +33,7 @@ cd lev
 ./configure
 make -C out
 tools/build.py test
-./out/Debug/luvit
+./out/Debug/lev
 ```
 
 To install with the gyp build system run:
@@ -48,7 +50,7 @@ run:
 cd lev
 CC=gcc make
 make test
-./build/luvit
+./build/lev
 ```
 
 To install with the Makefile build system run:

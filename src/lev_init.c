@@ -24,7 +24,7 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-#include "luvit.h"
+#include "lev_main.h"
 #include "uv.h"
 #include "utils.h"
 #include "los.h"
@@ -43,13 +43,13 @@
 #include "lyajl.h"
 #include "lenv.h"
 
-static int luvit_exit(lua_State* L) {
+static int lev_exit(lua_State* L) {
   int exit_code = luaL_checkint(L, 1);
   exit(exit_code);
   return 0;
 }
 
-static int luvit_print_stderr(lua_State* L) {
+static int lev_print_stderr(lua_State* L) {
   const char* line = luaL_checkstring(L, 1);
   fprintf(stderr, "%s", line);
   return 0;
@@ -107,12 +107,12 @@ static void crypto_lock_cb(int mode, int n, const char* file, int line) {
 
 static char getbuf[PATH_MAX + 1];
 
-static int luvit_getcwd(lua_State* L) {
+static int lev_getcwd(lua_State* L) {
   uv_err_t rc;
 
   rc = uv_cwd(getbuf, ARRAY_SIZE(getbuf) - 1);
   if (rc.code != UV_OK) {
-    return luaL_error(L, "luvit_getcwd: %s\n", strerror(errno));
+    return luaL_error(L, "lev_getcwd: %s\n", strerror(errno));
   }
 
   getbuf[ARRAY_SIZE(getbuf) - 1] = '\0';
@@ -121,7 +121,7 @@ static int luvit_getcwd(lua_State* L) {
 }
 
 #ifdef USE_OPENSSL
-int luvit_init_ssl()
+int lev_init_ssl()
 {
 #if !defined(OPENSSL_NO_COMP)
   STACK_OF(SSL_COMP)* comp_methods;
@@ -153,7 +153,7 @@ int luvit_init_ssl()
 }
 #endif
 
-int luvit_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
+int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
 {
   int index, rc;
   ares_channel channel;
@@ -216,13 +216,13 @@ int luvit_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   }
   lua_setglobal(L, "argv");
 
-  lua_pushcfunction(L, luvit_exit);
+  lua_pushcfunction(L, lev_exit);
   lua_setglobal(L, "exitProcess");
 
-  lua_pushcfunction(L, luvit_print_stderr);
+  lua_pushcfunction(L, lev_print_stderr);
   lua_setglobal(L, "printStderr");
 
-  lua_pushcfunction(L, luvit_getcwd);
+  lua_pushcfunction(L, lev_getcwd);
   lua_setglobal(L, "getcwd");
 
   lua_pushstring(L, LUVIT_VERSION);
@@ -270,10 +270,10 @@ int luvit_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
 #endif
 
 
-int luvit_run(lua_State *L) {
+int lev_run(lua_State *L) {
   return luaL_dostring(L, "\
-    local path = require('uv_native').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"luvit"SEP"?.lua'\
+    local path = require('uv_native').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
     package.path = path .. ';' .. package.path\
-    assert(require('luvit'))");
+    assert(require('lev'))");
 }
 

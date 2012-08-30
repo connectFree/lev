@@ -110,7 +110,7 @@ LUVLIBS=${BUILDDIR}/utils.o          \
         ${BUILDDIR}/luv_tty.o        \
         ${BUILDDIR}/luv_misc.o       \
         ${BUILDDIR}/luv.o            \
-        ${BUILDDIR}/luvit_init.o     \
+        ${BUILDDIR}/lev_init.o       \
         ${BUILDDIR}/lconstants.o     \
         ${BUILDDIR}/lenv.o           \
         ${BUILDDIR}/lyajl.o          \
@@ -197,8 +197,8 @@ ${CRYPTODIR}/src/lcrypto.o: ${CRYPTODIR}/Makefile
 	${CC} ${CPPFLAGS} -c -o ${CRYPTODIR}/src/lcrypto.o -I${CRYPTODIR}/src/ \
 		 -I${LUADIR}/src/ ${CRYPTODIR}/src/lcrypto.c
 
-${BUILDDIR}/lev: ${BUILDDIR}/liblev.a ${BUILDDIR}/luvit_main.o ${CRYPTODIR}/src/lcrypto.o
-	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/lev ${BUILDDIR}/luvit_main.o ${BUILDDIR}/liblev.a \
+${BUILDDIR}/lev: ${BUILDDIR}/liblev.a ${BUILDDIR}/lev_main.o ${CRYPTODIR}/src/lcrypto.o
+	$(CC) ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -g -o ${BUILDDIR}/lev ${BUILDDIR}/lev_main.o ${BUILDDIR}/liblev.a \
 		${CRYPTODIR}/src/lcrypto.o ${LIBS}
 
 clean:
@@ -216,7 +216,7 @@ install: all
 	mkdir -p ${BINDIR}
 	install ${BUILDDIR}/lev ${BINDIR}/lev
 	mkdir -p ${LIBDIR}
-	cp lib/luvit/*.lua ${LIBDIR}
+	cp lib/lev/*.lua ${LIBDIR}
 	mkdir -p ${INCDIR}/luajit
 	cp ${LUADIR}/src/lua.h ${INCDIR}/luajit/
 	cp ${LUADIR}/src/lauxlib.h ${INCDIR}/luajit/
@@ -234,13 +234,13 @@ uninstall:
 	test -d ${LIBDIR} && rm -rf ${LIBDIR}
 	test -d ${INCDIR} && rm -rf ${INCDIR}
 
-bundle: bundle/luvit
+bundle: bundle/lev
 
-bundle/luvit: build/lev ${BUILDDIR}/liblev.a
+bundle/lev: build/lev ${BUILDDIR}/liblev.a
 	build/lev tools/bundler.lua
-	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/luvit_exports.c -o bundle/luvit_exports.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
-	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/luvit_main.c -o bundle/luvit_main.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
-	$(CC) ${LDFLAGS} -g -o bundle/luvit ${BUILDDIR}/liblev.a `ls bundle/*.o` ${LIBS} ${CRYPTODIR}/src/lcrypto.o
+	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/lev_exports.c -o bundle/lev_exports.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
+	$(CC) --std=c89 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/lev_main.c -o bundle/lev_main.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
+	$(CC) ${LDFLAGS} -g -o bundle/lev ${BUILDDIR}/liblev.a `ls bundle/*.o` ${LIBS} ${CRYPTODIR}/src/lcrypto.o
 
 # Test section
 
@@ -266,10 +266,10 @@ test-uninstall: uninstall
 api: api.markdown
 
 api.markdown: $(wildcard lib/*.lua)
-	find lib -name "*.lua" | grep -v "luvit.lua" | sort | xargs -l luvit tools/doc-parser.lua > $@
+	find lib -name "*.lua" | grep -v "lev.lua" | sort | xargs -l lev tools/doc-parser.lua > $@
 
-DIST_DIR?=${HOME}/luvit.io/dist
-DIST_NAME=luvit-${VERSION}
+DIST_DIR?=${HOME}/lev/dist
+DIST_NAME=lev-${VERSION}
 DIST_FOLDER=${DIST_DIR}/${VERSION}/${DIST_NAME}
 DIST_FILE=${DIST_FOLDER}.tar.gz
 dist_build:
@@ -282,7 +282,7 @@ dist_build:
             -e 's/LUAJIT_VERSION=".*/LUAJIT_VERSION=\"${LUAJIT_VERSION}\"'\'',/' \
             -e 's/UV_VERSION=".*/UV_VERSION=\"${UV_VERSION}\"'\'',/' \
             -e 's/HTTP_VERSION=".*/HTTP_VERSION=\"${HTTP_VERSION}\"'\'',/' \
-            -e 's/YAJL_VERSIONISH=".*/YAJL_VERSIONISH=\"${YAJL_VERSION}\"'\'',/' < luvit.gyp > luvit.gyp.dist
+            -e 's/YAJL_VERSIONISH=".*/YAJL_VERSIONISH=\"${YAJL_VERSION}\"'\'',/' < lev.gyp > lev.gyp.dist
 
 tarball: dist_build
 	rm -rf ${DIST_FOLDER} ${DIST_FILE}
@@ -292,7 +292,7 @@ tarball: dist_build
 	cd ${DIST_FOLDER} ; git submodule update --init
 	find ${DIST_FOLDER} -name ".git*" | xargs rm -r
 	mv Makefile.dist ${DIST_FOLDER}/Makefile
-	mv luvit.gyp.dist ${DIST_FOLDER}/luvit.gyp
+	mv lev.gyp.dist ${DIST_FOLDER}/lev.gyp
 	tar -czf ${DIST_FILE} -C ${DIST_DIR}/${VERSION} ${DIST_NAME}
 	rm -rf ${DIST_FOLDER}
 

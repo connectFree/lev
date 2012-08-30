@@ -14,8 +14,8 @@
  *  limitations under the License.
  *
  */
-#ifndef _luvit_lua_tls_h_
-#define _luvit_lua_tls_h_
+#ifndef _lev_lua_tls_h_
+#define _lev_lua_tls_h_
 
 #include "lua.h"
 
@@ -42,9 +42,9 @@ typedef struct tls_sc_t {
   X509_STORE *ca_store;
 } tls_sc_t;
 
-tls_sc_t* luvit__lua_tls_sc_get(lua_State *L, int index);
-int luvit__lua_tls_conn_init(lua_State *L);
-int luvit__lua_tls_conn_create(lua_State *L);
+tls_sc_t* lev__lua_tls_sc_get(lua_State *L, int index);
+int lev__lua_tls_conn_init(lua_State *L);
+int lev__lua_tls_conn_create(lua_State *L);
 int luaopen_tls(lua_State *L);
 
 #endif

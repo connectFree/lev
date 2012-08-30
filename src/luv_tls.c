@@ -38,7 +38,7 @@
 #endif
 #endif
 
-#define getSC(L) luvit__lua_tls_sc_get(L, 1)
+#define getSC(L) lev__lua_tls_sc_get(L, 1)
 
 static BIO* _lua_load_bio(lua_State *L, int index) {
   const char *data;
@@ -99,7 +99,7 @@ newSC(lua_State *L)
 }
 
 tls_sc_t*
-luvit__lua_tls_sc_get(lua_State *L, int index)
+lev__lua_tls_sc_get(lua_State *L, int index)
 {
   return luaL_checkudata(L, index, TLS_SECURE_CONTEXT_HANDLE);
 }
@@ -578,7 +578,7 @@ static const luaL_reg tls_sc_lib[] = {
 
 static const luaL_reg tls_lib[] = {
   {"secure_context", tls_sc_create},
-  {"connection", luvit__lua_tls_conn_create},
+  {"connection", lev__lua_tls_conn_create},
   {NULL, NULL}
 };
 
@@ -592,7 +592,7 @@ luaopen_tls(lua_State *L)
   luaL_openlib(L, NULL, tls_sc_lib, 0);
   lua_pushvalue(L, -1);
 
-  luvit__lua_tls_conn_init(L);
+  lev__lua_tls_conn_init(L);
 
   luaL_openlib(L, "_tls", tls_lib, 1);
 
