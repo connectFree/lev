@@ -65,6 +65,15 @@ uv_buf_t luv_on_alloc(uv_handle_t* handle, size_t suggested_size) {
   return buf;
 }
 
+void luv_free(uv_buf_t buf) {
+  /* perform some magic */
+  /* the base buffer is the offset of the slab block + sizeof(MemBlock) */
+  MemBlock *mb = (MemBlock *)(buf.base - sizeof(MemBlock));
+  printf("luv_on_read: %p pool=%p\n", mb, mb->pool);
+
+  lev_slab_decRef( mb );
+}
+
 void luv_on_close(uv_handle_t* handle) {
 /*  printf("on_close\tlhandle=%p handle=%p\n", handle->data, handle);*/
   /* load the lua state and the userdata */
