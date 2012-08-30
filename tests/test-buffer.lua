@@ -78,6 +78,9 @@ assert(buf:inspect() == "<Buffer FB 04 23 42 >")
 -- test Buffer.meta:__concat
 local concat_buf = buf .. buf2
 assert( concat_buf:inspect() == "<Buffer FB 04 23 42 61 62 63 64 65 66 67 68 69 6A >")
+-- initial memory for buf and buf2 should not be changed or altered
+assert(buf:inspect() == "<Buffer FB 04 23 42 >")
+assert(buf2:inspect() == "<Buffer 61 62 63 64 65 66 67 68 69 6A >")
 
 -- test Buffer.fill
 concat_buf:fill("", 4, 4)
@@ -113,3 +116,9 @@ writebuf:writeInt32BE(-0x04FBDCBE, 1)
 writebuf:writeInt32LE(0x422304FB, 1)
 assert( writebuf:inspect() == "<Buffer FB 04 23 42 >")
 
+-- test GC
+concat_buf = nil
+buf2 = nil
+buf = nil
+writebuf = nil
+collectgarbage()

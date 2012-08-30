@@ -72,8 +72,14 @@ static uint16_t __builtin_bswap16( uint16_t a ) {
 
 /******************************************************************************/
 
+#define lua_boxpointer(L, u)   (*(void **)(lua_newuserdata(L, sizeof(void *))) = (u))
+#define lua_unboxpointer(L, i)   (*(void **)(lua_touserdata(L, i)))
+#define lua_unboxpointerchk(L, i, tname)   (*(void **)(luaL_checkudata(L, i, tname)))
+
+
 #define BUFFER_UDATA(L)                                                        \
-  unsigned char *buffer = (unsigned char *)luaL_checkudata(L, 1, "levbuffer"); \
+  MemBlock *mb = lua_unboxpointerchk(L, 1, "levbuffer");                       \
+  unsigned char *buffer = (unsigned char *)mb->bytes;                          \
   size_t buffer_len = *((size_t*)(buffer));                                    \
   buffer += sizeof(size_t);                                                    \
 
@@ -85,14 +91,26 @@ static uint16_t __builtin_bswap16( uint16_t a ) {
 
 #define BUFFER_GETOFFSET(L, _idx) _BUFFER_GETOFFSET(L, _idx, 0)
 
-void * lua_resizeuserdata(lua_State *L, int index, size_t size) {
+MemBlock *lev_checkbufobj(lua_State *L, int index) {
+  MemBlock *mb = lua_unboxpointerchk(L, index, "levbuffer");
+  return mb;
+}
+
+MemBlock * lev_resizebuffer(lua_State *L, int index, size_t size) {
+  printf("WARNING: lev_resizebuffer not implemented;\n");
+  return NULL;
+
   unsigned char *new_buffer;
 
-  unsigned char *old_buffer = (unsigned char *)luaL_checkudata(L, index, "levbuffer");
+  MemBlock *old_mb = (MemBlock *)lev_checkbufobj(L, index);
+  unsigned char *old_buffer = (unsigned char *)old_mb->bytes;
   size_t old_buffer_len = *((size_t*)(old_buffer));
   old_buffer += sizeof(size_t);
 
-  new_buffer = (unsigned char*)lua_newuserdata(L, size + sizeof(size_t) );
+  MemBlock *new_mb = lev_slab_getBlock( size + sizeof(size_t) );
+  lev_slab_incRef( new_mb );
+  /***** here we would switch-out our pointers *****/
+  new_buffer = (unsigned char *)new_mb->bytes;
   /* store the length of string inside of the beginning of the buffer */
   *((size_t*)(new_buffer)) = (size_t)size;
 
@@ -103,7 +121,39 @@ void * lua_resizeuserdata(lua_State *L, int index, size_t size) {
     ,(size > old_buffer_len ? old_buffer_len : size)
   );
 
-  return new_buffer + sizeof(size_t);
+  lev_slab_decRef( old_mb );
+
+  return new_mb;
+}
+
+MemBlock * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size) {
+
+  MemBlock *mb = lev_slab_getBlock( size + sizeof(size_t) );
+  lev_slab_incRef( mb );
+  lua_boxpointer(L, mb);
+
+  /* store the length of string inside of the beginning of the buffer */
+  *((size_t*)(mb->bytes)) = (size_t)size;
+
+  if (temp) {
+    if (!temp_size) {
+      temp_size = size;
+    }
+    memcpy(
+      mb->bytes + sizeof(size_t)
+      ,temp
+      ,(size > temp_size ? temp_size : size)
+      );
+  } else {
+    memset(mb->bytes + sizeof(size_t), '\0', size);
+  }
+
+  /* Set the type of the userdata as an levbuffer instance */
+  luaL_getmetatable(L, "levbuffer");
+  lua_setmetatable(L, -2);
+
+  /* return the userdata */
+  return mb;
 }
 
 /******************************************************************************/
@@ -112,7 +162,6 @@ void * lua_resizeuserdata(lua_State *L, int index, size_t size) {
 static int levbuffer_new (lua_State *L) {
   size_t buffer_size;
   const char *lua_temp = NULL;
-  unsigned char *buffer;
 
   int init_idx = 1;
 
@@ -129,19 +178,7 @@ static int levbuffer_new (lua_State *L) {
     return luaL_argerror(L, init_idx, "Must be of type 'Number' or 'String'");
   }
 
-  buffer = (unsigned char*)lua_newuserdata(L, buffer_size + sizeof(size_t) ); /* perhaps this should be aligned? */
-  /* store the length of string inside of the beginning of the buffer */
-  *((size_t*)(buffer)) = (size_t)buffer_size;
-
-  if (lua_temp) {
-    memcpy(buffer + sizeof(size_t), lua_temp, buffer_size);
-  } else {
-    memset(buffer + sizeof(size_t), '\0', buffer_size);
-  }
-
-  /* Set the type of the userdata as an levbuffer instance */
-  luaL_getmetatable(L, "levbuffer");
-  lua_setmetatable(L, -2);
+  lev_buffer_new(L, buffer_size, lua_temp, 0);
 
   /* return the userdata */
   return 1;
@@ -282,7 +319,7 @@ static int levbuffer_upuntil (lua_State *L) {
     lua_pushlstring(L, "", 0);
     return 1;
   }
-  
+
   size_t offset = (size_t)lua_tonumber(L, 3);
   if (!offset) {
     offset = 1;
@@ -475,6 +512,13 @@ static int levbuffer_writeInt32LE (lua_State *L) {
   return 1;
 }
 
+/* __gc(buffer) */
+static int levbuffer__gc (lua_State *L) {
+  MemBlock *mb = (MemBlock *)lev_checkbufobj(L, 1);
+  lev_slab_decRef( mb );
+  return 0;
+}
+
 /* __len(buffer) */
 static int levbuffer__len (lua_State *L) {
   BUFFER_UDATA(L)
@@ -508,7 +552,8 @@ static int levbuffer__index (lua_State *L) {
 }
 
 int levbuffer__pairs_aux(lua_State *L) {
-  unsigned char *buffer = (unsigned char *)luaL_checkudata(L, -2, "levbuffer");
+  MemBlock *mb = lev_checkbufobj(L, -2);
+  unsigned char *buffer = (unsigned char *)mb->bytes;
   size_t buffer_len = *((size_t*)(buffer));
 
   size_t index = luaL_checknumber(L,-1);
@@ -523,7 +568,7 @@ int levbuffer__pairs_aux(lua_State *L) {
 
 
 static int levbuffer__pairs (lua_State *L) {
-  (void)luaL_checkudata(L,-1, "levbuffer");
+  (void)lev_checkbufobj(L, -1);
   lua_pushcfunction(L, levbuffer__pairs_aux);
   lua_insert(L,-2);
   lua_pushinteger(L,0);
@@ -534,14 +579,16 @@ static int levbuffer__concat (lua_State *L) {
   size_t new_size;
   unsigned char *new_buffer;
   size_t other_buffer_len;
-  unsigned char *other_buffer;
+  unsigned char *other_buffer = NULL;
+  MemBlock *other_mb = NULL;
 
   BUFFER_UDATA(L)
 
   int other_type = lua_type(L, 2);
   switch (other_type) {
     case LUA_TUSERDATA:
-      other_buffer = (unsigned char *)luaL_checkudata(L, 2, "levbuffer");
+      other_mb = lev_checkbufobj(L, 2);
+      other_buffer = (unsigned char *)other_mb->bytes;
       other_buffer_len = *((size_t*)(other_buffer));
       other_buffer += sizeof(size_t);
       break;
@@ -554,11 +601,12 @@ static int levbuffer__concat (lua_State *L) {
   }
 
   new_size = other_buffer_len + buffer_len;
-  new_buffer = (unsigned char *)lua_resizeuserdata(L, 1, new_size);
+  MemBlock *new_mb = lev_buffer_new(L, new_size, (const char *)buffer, buffer_len);
+  new_buffer = (unsigned char *)new_mb->bytes + sizeof(size_t);
 
   /* copy other_buffer to new userdata */
   memcpy(
-     new_buffer + buffer_len /* lua_resizeuserdata copies only half of the data, so seek */
+     new_buffer + buffer_len /* lev_resizebuffer copies only half of the data, so seek */
     ,other_buffer
     ,other_buffer_len
   );
@@ -631,6 +679,7 @@ static const luaL_reg levbuffer_m[] = {
   ,{"writeInt32LE", levbuffer_writeInt32LE}  
 
    /* meta */
+  ,{"__gc", levbuffer__gc}
   ,{"__len", levbuffer__len}
   ,{"__index", levbuffer__index}
   ,{"__pairs", levbuffer__pairs}
