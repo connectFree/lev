@@ -1,6 +1,6 @@
 {
   'targets': [
-    {'target_name': 'libluvit',
+    {'target_name': 'liblev',
      'type': 'static_library',
      'dependencies': [
        'deps/http-parser/http_parser.gyp:http_parser',
@@ -61,33 +61,33 @@
        'src/luv_tty.c',
        'src/luv_udp.c',
        'src/luv_zlib.c',
-       'src/luvit_init.c',
+       'src/lev_init.c',
        'src/lyajl.c',
        'src/utils.c',
-       'lib/luvit/buffer.lua',
-       'lib/luvit/childprocess.lua',
-       'lib/luvit/core.lua',
-       'lib/luvit/dgram.lua',
-       'lib/luvit/dns.lua',
-       'lib/luvit/fiber.lua',
-       'lib/luvit/fs.lua',
-       'lib/luvit/http.lua',
-       'lib/luvit/https.lua',
-       'lib/luvit/json.lua',
-       'lib/luvit/luvit.lua',
-       'lib/luvit/mime.lua',
-       'lib/luvit/module.lua',
-       'lib/luvit/net.lua',
-       'lib/luvit/path.lua',
-       'lib/luvit/querystring.lua',
-       'lib/luvit/repl.lua',
-       'lib/luvit/stack.lua',
-       'lib/luvit/timer.lua',
-       'lib/luvit/tls.lua',
-       'lib/luvit/url.lua',
-       'lib/luvit/utils.lua',
-       'lib/luvit/uv.lua',
-       'lib/luvit/zlib.lua',
+       'lib/lev/buffer.lua',
+       'lib/lev/childprocess.lua',
+       'lib/lev/core.lua',
+       'lib/lev/dgram.lua',
+       'lib/lev/dns.lua',
+       'lib/lev/fiber.lua',
+       'lib/lev/fs.lua',
+       'lib/lev/http.lua',
+       'lib/lev/https.lua',
+       'lib/lev/json.lua',
+       'lib/lev/lev.lua',
+       'lib/lev/mime.lua',
+       'lib/lev/module.lua',
+       'lib/lev/net.lua',
+       'lib/lev/path.lua',
+       'lib/lev/querystring.lua',
+       'lib/lev/repl.lua',
+       'lib/lev/stack.lua',
+       'lib/lev/timer.lua',
+       'lib/lev/tls.lua',
+       'lib/lev/url.lua',
+       'lib/lev/utils.lua',
+       'lib/lev/uv.lua',
+       'lib/lev/zlib.lua',
      ],
      'defines': [
        'LUVIT_OS="<(OS)"',
@@ -126,14 +126,14 @@
      ],
     },
     {
-      'target_name': 'luvit',
+      'target_name': 'lev',
       'type': 'executable',
       'dependencies': [
-        'libluvit',
+        'liblev',
       ],
       'sources': [
-        'src/luvit_main.c',
-        'src/luvit_exports.c',
+        'src/lev_main.c',
+        'src/lev_exports.c',
       ],
       'msvs-settings': {
         'VCLinkerTool': {
@@ -155,13 +155,13 @@
       'defines': [ 'BUNDLE=1' ]
     },
     {
-      'target_name': 'vector_luvit',
+      'target_name': 'vector_lev',
       'product_name': 'vector',
-      'product_extension': 'luvit',
+      'product_extension': 'lev',
       'product_prefix': '',
       'type': 'shared_library',
       'dependencies': [
-        'libluvit',
+        'liblev',
       ],
       'sources': [
         'examples/native/vector.c'
@@ -178,41 +178,41 @@
       'type': 'none',
       'copies': [
         {
-          'destination': '<(luvit_prefix)/bin',
+          'destination': '<(lev_prefix)/bin',
           'files': [
-            'out/Debug/luvit'
+            'out/Debug/lev'
           ]
         },
         {
-          'destination': '<(luvit_prefix)/lib/luvit',
+          'destination': '<(lev_prefix)/lib/lev',
           'files': [
-            'lib/luvit/buffer.lua',
-            'lib/luvit/childprocess.lua',
-            'lib/luvit/core.lua',
-            'lib/luvit/dns.lua',
-            'lib/luvit/fiber.lua',
-            'lib/luvit/fs.lua',
-            'lib/luvit/http.lua',
-            'lib/luvit/https.lua',
-            'lib/luvit/json.lua',
-            'lib/luvit/luvit.lua',
-            'lib/luvit/mime.lua',
-            'lib/luvit/module.lua',
-            'lib/luvit/net.lua',
-            'lib/luvit/path.lua',
-            'lib/luvit/querystring.lua',
-            'lib/luvit/repl.lua',
-            'lib/luvit/stack.lua',
-            'lib/luvit/timer.lua',
-            'lib/luvit/tls.lua',
-            'lib/luvit/url.lua',
-            'lib/luvit/utils.lua',
-            'lib/luvit/uv.lua',
-            'lib/luvit/zlib.lua'
+            'lib/lev/buffer.lua',
+            'lib/lev/childprocess.lua',
+            'lib/lev/core.lua',
+            'lib/lev/dns.lua',
+            'lib/lev/fiber.lua',
+            'lib/lev/fs.lua',
+            'lib/lev/http.lua',
+            'lib/lev/https.lua',
+            'lib/lev/json.lua',
+            'lib/lev/lev.lua',
+            'lib/lev/mime.lua',
+            'lib/lev/module.lua',
+            'lib/lev/net.lua',
+            'lib/lev/path.lua',
+            'lib/lev/querystring.lua',
+            'lib/lev/repl.lua',
+            'lib/lev/stack.lua',
+            'lib/lev/timer.lua',
+            'lib/lev/tls.lua',
+            'lib/lev/url.lua',
+            'lib/lev/utils.lua',
+            'lib/lev/uv.lua',
+            'lib/lev/zlib.lua'
           ]
         },
         {
-          'destination': '<(luvit_prefix)/include/luvit/luajit',
+          'destination': '<(lev_prefix)/include/lev/luajit',
           'files': [
             'deps/luajit/src/lua.h',
             'deps/luajit/src/lauxlib.h',
@@ -222,19 +222,19 @@
           ]
         },
         {
-          'destination': '<(luvit_prefix)/include/luvit/http_parser',
+          'destination': '<(lev_prefix)/include/lev/http_parser',
           'files': [
             'deps/http-parser/http_parser.h'
           ]
         },
         {
-          'destination': '<(luvit_prefix)/include/luvit/uv',
+          'destination': '<(lev_prefix)/include/lev/uv',
           'files': [
             'deps/uv/include/'
           ]
         },
         {
-          'destination': '<(luvit_prefix)/include/luvit',
+          'destination': '<(lev_prefix)/include/lev',
           'files': [
             'src/lconstants.h',
             'src/lenv.h',
@@ -259,9 +259,9 @@
             'src/luv_tty.h',
             'src/luv_udp.h',
             'src/luv_zlib.h',
-            'src/luvit.h',
-            'src/luvit_exports.h',
-            'src/luvit_init.h',
+            'src/lev.h',
+            'src/lev_exports.h',
+            'src/lev_init.h',
             'src/lyajl.h',
             'src/utils.h'
           ]
