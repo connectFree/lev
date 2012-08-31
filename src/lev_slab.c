@@ -243,6 +243,7 @@ MemBlock *lev_slab_getBlock(size_t size) {
 
 int lev_slab_incRef(MemBlock *block) {
   block->refcount++;
+  printf("[%p] lev_slab_incRef(r=%d, p=%p)\n", block, block->refcount, block->pool);
   return block->refcount;
 }
 

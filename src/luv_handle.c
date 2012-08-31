@@ -52,16 +52,26 @@ void luv_emit_event(lua_State* L, const char* name, int nargs) {
 
 uv_buf_t luv_on_alloc(uv_handle_t* handle, size_t suggested_size) {
   uv_buf_t buf;
+  size_t remaining;
 
-  /* perform some magic */
-  /* the base buffer is the offset of the slab block + sizeof(MemBlock) */
-  MemBlock *mb = lev_slab_getBlock(8*1024);
-  printf("mb=%p;;bb=%p\n", mb, mb->bytes);
-  buf.base = (char *)(mb->bytes);
-  buf.len = 8*1024;
+  luv_handle_t* lhandle = handle->data;
 
-  lev_slab_incRef( mb );
-  printf("luv_on_alloc\t%p\n", mb);
+  if (!lhandle->mb) {
+    lhandle->mb = lev_slab_getBlock(8*1024);
+    lev_slab_incRef( lhandle->mb );
+  }
+
+  remaining = lhandle->mb->size - lhandle->mb->nbytes;
+  if (remaining < 512) { /* dump current mb for new mb */
+    lev_slab_decRef( lhandle->mb );
+    lhandle->mb = lev_slab_getBlock(8*1024);
+    lev_slab_incRef( lhandle->mb );
+    remaining = lhandle->mb->size - lhandle->mb->nbytes;
+  }
+
+  buf.base = (char *)(lhandle->mb->bytes + lhandle->mb->nbytes);
+  buf.len = remaining;
+
   return buf;
 }
 
@@ -85,6 +95,11 @@ void luv_on_close(uv_handle_t* handle) {
   assert(lhandle->ref == LUA_NOREF);
   /* This handle is no longer valid, clean up memory */
   lhandle->handle = 0;
+
+  if (lhandle->mb) {
+    lev_slab_decRef( lhandle->mb );
+  }
+
   free(handle);
 }
 

@@ -55,11 +55,7 @@ static void luv_on_udp_recv(uv_udp_t* handle,
 
   /* load the lua state and the userdata */
   lua_State *L = luv_handle_get_lua(handle->data);
-
-  /* perform some magic */
-  /* the base buffer is the offset of the slab block + sizeof(MemBlock) */
-  MemBlock *mb = (MemBlock *)(buf.base - sizeof(MemBlock));
-  printf("luv_on_read: %p pool=%p\n", mb, mb->pool);
+  luv_handle_t* lhandle = handle->data;
 
   if (nread == 0) {
     return;
@@ -72,7 +68,10 @@ static void luv_on_udp_recv(uv_udp_t* handle,
     return;
   }
 
-  lua_pushlstring(L, buf.base, nread);
+  /*lua_pushlstring(L, buf.base, nread);*/
+  lev_pushbuffer_from_mb(L, lhandle->mb, nread, lhandle->mb->bytes + lhandle->mb->nbytes); /* automatically incRef's mb */
+  lhandle->mb->nbytes += nread; /* consume nread bytes */
+
   lua_newtable(L);
 
   if (addr->sa_family == AF_INET) {
@@ -93,7 +92,8 @@ static void luv_on_udp_recv(uv_udp_t* handle,
   lua_setfield(L, -2, "size");
   luv_emit_event(L, "message", 2);
 
-  lev_slab_decRef( mb );
+  /* no need to free buf.base */
+  /* lhandle->mb is automatically deref'd when we close the stream */
   /*free(buf.base);*/
 }
 

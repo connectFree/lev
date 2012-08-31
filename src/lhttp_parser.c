@@ -275,8 +275,9 @@ static int lhttp_parser_execute (lua_State *L) {
   size_t length;
   size_t nparsed;
 
-  luaL_checktype(L, 2, LUA_TSTRING);
-  chunk = lua_tolstring(L, 2, &chunk_len);
+  MemSlice *ms = luaL_checkudata(L, 2, "levbuffer");
+  chunk = (const char *)ms->slice;
+  chunk_len = ms->until;
 
   offset = luaL_checkint(L, 3);
   length = luaL_checkint(L, 4);

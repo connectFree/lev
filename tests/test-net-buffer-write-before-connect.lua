@@ -41,7 +41,7 @@ server:listen(PORT, HOST, function(err)
   client:on('data', function(data)
     receivedMessage = true
     server:close()
-    assert(data == msg)
+    assert(tostring(data) == msg)
   end)
   client:on('end', function()
     assert(receivedMessage == true)

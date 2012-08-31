@@ -27,7 +27,7 @@ local s2 = dgram.createSocket('udp4')
 
 s2:on('message', function(msg, rinfo)
   assert(#msg == 5)
-  assert(msg == 'HELLO')
+  assert(tostring(msg) == 'HELLO')
   s2:close()
   s1:close()
 end)

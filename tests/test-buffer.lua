@@ -24,7 +24,7 @@ if (os.type() == "win32") then
 end
 
 require("helper")
-local Buffer = require('buffer').Buffer
+local Buffer = require('cbuffer')
 
 local buf = Buffer:new(4)
 
@@ -52,12 +52,23 @@ assert(buf:readUInt32LE(1) == 0x422304FB)
 assert(buf:readInt32BE(1) == -0x04FBDCBE)
 assert(buf:readInt32LE(1) == 0x422304FB)
 
+-- test Buffer:slice
+local sliced_buf = buf:slice(3,4)
+assert(sliced_buf:readUInt16BE(1) == 0x2342)
+local sliced_sliced_buf = sliced_buf:slice(1,1)
+assert(sliced_sliced_buf:readUInt8(1) == 0x23)
+
 local buf2 = Buffer:new('abcdefghij')
 assert(tostring(buf2) == 'abcdefghij')
 assert(buf2:toString(1, 2) == 'ab')
 assert(buf2:toString(2, 3) == 'bc')
 assert(buf2:toString(3) == 'cdefghij')
 assert(buf2:toString() == 'abcdefghij')
+
+-- test Buffer:find
+assert(buf2:toString(buf2:find("fgh")) == "fghij")
+assert(buf2:find("kristopher") == nil)
+assert(buf2:find("") == nil)
 
 -- test Buffer:upUntil
 assert(buf2:upUntil("") == '')
@@ -121,4 +132,6 @@ concat_buf = nil
 buf2 = nil
 buf = nil
 writebuf = nil
+sliced_buf = nil
+sliced_sliced_buf = nil
 collectgarbage()

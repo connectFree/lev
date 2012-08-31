@@ -45,11 +45,7 @@ end
 local buffer = ''
 
 function repl.evaluateLine(line)
-  if line == "<3\n" then
-    print("I " .. c("Bred") .. "♥" .. c() .. " you too!")
-    return '>'
-  end
-  local chunk  = buffer .. line
+  local chunk  = tostring(buffer .. line)
   local f, err = loadstring('return ' .. chunk, 'REPL') -- first we prefix return
 
   if not f then

@@ -20,15 +20,19 @@ require("helper")
 
 local Tcp = require('uv').Tcp
 local net = require('net')
+local Buffer = require('cbuffer')
+
+local PING_BUF = Buffer:new("\0\1\2\3")
+local PONG_BUF = Buffer:new("\3\2\1\0")
 
 local PORT = process.env.PORT or 10082
 
 local server = net.createServer(function (client)
   client:on("data", function (chunk)
     p('server:client:on("data")', chunk)
-    assert(chunk == "ping")
+    assert(tostring(chunk) == "\0\1\2\3")
 
-    client:write("pong", function (err)
+    client:write(PONG_BUF, function (err)
       p("server:client:write")
       assert(err == nil)
 
@@ -51,13 +55,13 @@ client:on("connect", function ()
   p('client:on("complete")')
   client:readStart()
 
-  client:write("ping", function (err)
+  client:write(PING_BUF, function (err)
     p("client:write")
     assert(err == nil)
 
     client:on("data", function (data)
       p('client:on("data")', data)
-      assert(data == "pong")
+      assert(tostring(data) == "\3\2\1\0")
 
       client:close()
 

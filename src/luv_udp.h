@@ -23,6 +23,7 @@
 #include "uv.h"
 #include "utils.h"
 #include "luv_handle.h"
+#include "lev_buffer.h"
 
 int luv_new_udp (lua_State* L);
 int luv_udp_bind(lua_State* L);

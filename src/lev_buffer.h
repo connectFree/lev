@@ -23,6 +23,9 @@
 #include "utils.h"
 #include "lev_slab.h"
 
+int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned char *slice);
+uv_buf_t lev_buffer_to_uv(lua_State *L, int index);
+MemBlock * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size);
 LUALIB_API int luaopen_levbuffer (lua_State *L);
 
 #endif

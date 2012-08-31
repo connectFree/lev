@@ -43,7 +43,7 @@ server:listen(PORT, HOST, function(err)
     end
     client:on('data', function(data)
       assert(#data == 5)
-      assert(data == 'hello')
+      assert(tostring(data) == 'hello')
 
       client:destroy()
       -- Ensure double destroy doesn't return an error

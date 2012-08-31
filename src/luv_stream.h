@@ -23,6 +23,7 @@
 #include "uv.h"
 #include "utils.h"
 #include "luv_handle.h"
+#include "lev_buffer.h"
 
 void luv_on_connection(uv_stream_t* handle, int status);
 void luv_on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf);
