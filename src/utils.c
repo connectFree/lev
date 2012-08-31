@@ -199,6 +199,7 @@ luv_handle_t* luv_handle_create(lua_State* L, size_t size, const char* type) {
   lhandle->L = L;
   lhandle->ref = LUA_NOREF;
   lhandle->type = type;
+  lhandle->mb = NULL;
   return lhandle;
 }
 

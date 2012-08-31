@@ -20,6 +20,7 @@ require("helper")
 
 local http = require('http')
 local string = require('string')
+local Buffer = require('cbuffer')
 
 local HOST = "127.0.0.1"
 local PORT = process.env.PORT or 10080
@@ -27,8 +28,8 @@ local MB = 1024 * 1024
 local server = nil
 local client = nil
 
-local a = string.rep('a', 1024)
-local data = string.rep(a, 1024)
+local data = Buffer:new(1024*1024)
+data:fill("a")
 
 server = http.createServer(function(request, response)
   p('server:onConnection')
@@ -40,7 +41,7 @@ server = http.createServer(function(request, response)
     postBuffer = postBuffer .. chunk
   end)
   request:on('end', function()
-    assert(postBuffer == data)
+    assert(#postBuffer == #data)
     response:write("Hello")
     response:finish()
     server:close()

@@ -318,7 +318,8 @@ function CryptoStream:_pull()
     local callback = table.remove(self._pendingCallbacks)
 
     if #tmp ~= 0 then
-      local rv = self:_puller(tmp)
+       --X:TODO this is ghetto, we need to make tls support cBuffers
+      local rv = self:_puller(tostring(tmp))
 
       if self.pair.ssl and self.pair.ssl:getError() then
         p('error function')

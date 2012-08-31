@@ -22,6 +22,7 @@
 #include "lauxlib.h"
 #include "uv.h"
 #include "ares.h"
+#include "lev_slab.h"
 
 /* C doesn't have booleans on it's own */
 #ifndef FALSE
@@ -60,6 +61,7 @@ typedef struct {
   lua_State* L;        /* L and ref together form a reference to the userdata */
   int ref;             /* ref is null when refCount is 0 meaning we're weak */
   const char* type;
+  MemBlock *mb;
 } luv_handle_t;
 
 /* Create a new luv_handle.  Input is the lua state and the size of the desired 

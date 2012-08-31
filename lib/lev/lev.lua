@@ -17,6 +17,7 @@ limitations under the License.
 --]]
 
 -- Bootstrap require system
+local cbuffer = require('cbuffer')
 local native = require('uv_native')
 process = {
   execPath = native.execpath(),

@@ -19,6 +19,7 @@ local fs = require('fs')
 local childprocess = require('childprocess')
 local table = require('table')
 local tls = require('tls')
+local Buffer = require('cbuffer')
 
 if require('os').type() == 'win32' then
   return

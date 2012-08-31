@@ -34,18 +34,14 @@ void luv_on_connection(uv_stream_t* handle, int status) {
 void luv_on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf) {
   /* load the lua state and the userdata */
   lua_State* L = luv_handle_get_lua(handle->data);
-
-  /* perform some magic */
-  /* the base buffer is the offset of the slab block + sizeof(MemBlock) */
-  MemBlock *mb = (MemBlock *)(buf.base - sizeof(MemBlock));
-  printf("luv_on_read: %p pool=%p\n", mb, mb->pool);
+  luv_handle_t* lhandle = handle->data;
 
   if (nread >= 0) {
-
-    lua_pushlstring (L, buf.base, nread);
+    /* push new cBuffer */
+    lev_pushbuffer_from_mb(L, lhandle->mb, nread, lhandle->mb->bytes + lhandle->mb->nbytes); /* automatically incRef's mb */
+    lhandle->mb->nbytes += nread; /* consume nread bytes */
     lua_pushinteger (L, nread);
     luv_emit_event(L, "data", 2);
-
   } else {
     uv_err_t err = uv_last_error(luv_get_loop(L));
     if (err.code == UV_EOF) {
@@ -57,7 +53,8 @@ void luv_on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf) {
     }
   }
 
-  lev_slab_decRef( mb );
+  /* no need to free buf.base */
+  /* lhandle->mb is automatically deref'd when we close the stream */
   /*free(buf.base);*/
 }
 
@@ -219,7 +216,13 @@ int luv_write(lua_State* L) {
   uv_stream_t* handle = (uv_stream_t*)luv_checkudata(L, 1, "stream");
   size_t len;
   luv_io_ctx_t *cbs;
-  const char* chunk = luaL_checklstring(L, 2, &len);
+
+  if (lua_isstring(L, 2)) {
+    const char* chunk = luaL_checklstring(L, 2, &len);
+    buf = uv_buf_init((char*)chunk, len);
+  } else {
+    buf = lev_buffer_to_uv(L, 2);
+  }  
 
   uv_write_t* req = (uv_write_t*)malloc(sizeof(uv_write_t));
   cbs = malloc(sizeof(luv_io_ctx_t));
@@ -232,7 +235,6 @@ int luv_write(lua_State* L) {
   req->data = (void*)cbs;
 
   luv_handle_ref(L, handle->data, 1);
-  buf = uv_buf_init((char*)chunk, len);
 
   uv_write(req, handle, &buf, 1, luv_after_write);
   return 0;

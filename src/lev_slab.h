@@ -42,6 +42,12 @@ typedef struct _MemBlock {
     unsigned char bytes[0];
 } MemBlock;
 
+typedef struct _MemSlice {
+    MemBlock *mb; /* our MemBlock */
+    unsigned char *slice;   /* begining of slice */
+    size_t until; /* range of how far we have sliced */
+} MemSlice;
+
 void lev_slab_create(struct lev_slab_allocator * allocator,
                  unsigned int objcount,
                  unsigned int objsize,
