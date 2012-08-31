@@ -26,6 +26,25 @@ end
 require("helper")
 local Buffer = require('cbuffer')
 
+--test union slices/concat
+local ubuf1 = Buffer:new("a");
+local ubuf2 = Buffer:new("b");
+local ubuf3 = Buffer:new("c");
+local ubuf4 = Buffer:new("de");
+local ubuf5 = Buffer:new("fg");
+local ubuf6 = Buffer:new("hij");
+local ubuf7 = Buffer:new("lmnop");
+
+local union_buf = ubuf1 .. ubuf2
+union_buf = union_buf .. ubuf3
+union_buf = union_buf .. ubuf4
+union_buf = union_buf .. ubuf5
+union_buf = union_buf .. ubuf6
+union_buf = union_buf .. ubuf7
+
+assert(tostring(union_buf) == "abcdefghijlmnop")
+
+
 local buf = Buffer:new(4)
 
 buf[1] = 0xFB
@@ -134,4 +153,14 @@ buf = nil
 writebuf = nil
 sliced_buf = nil
 sliced_sliced_buf = nil
+
+ubuf1 = nil
+ubuf2 = nil
+ubuf3 = nil
+ubuf4 = nil
+ubuf5 = nil
+ubuf6 = nil
+ubuf7 = nil
+union_buf = nil
+
 collectgarbage()

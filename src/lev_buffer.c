@@ -90,6 +90,10 @@ static uint16_t __builtin_bswap16( uint16_t a ) {
 
 #define BUFFER_GETOFFSET(L, _idx) _BUFFER_GETOFFSET(L, _idx, 0)
 
+static MemBlock *_static_mb = NULL;
+
+/******************************************************************************/
+
 MemSlice *lev_checkbufobj(lua_State *L, int index) {
   MemSlice *ms = lua_unboxpointerchk(L, index, "levbuffer");
   return ms;
@@ -147,30 +151,42 @@ uv_buf_t lev_buffer_to_uv(lua_State *L, int index) {
   return uv_buf_init((char*)ms->slice, ms->until);
 }
 
-MemBlock * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size) {
+MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size) {
 
-  printf("== lev_buffer_new ==\n");
-  MemBlock *mb = lev_slab_getBlock( size );
+  if (!_static_mb) {
+    _static_mb = lev_slab_getBlock( size );
+  }
 
-  lev_pushbuffer_from_mb(L, mb, size, NULL); /* automatically incRef's mb */
+  if (_static_mb->size - _static_mb->nbytes < size) {
+    lev_slab_decRef( _static_mb );
+    _static_mb = lev_slab_getBlock(size);
+    lev_slab_incRef( _static_mb );
+  }
 
+  lev_pushbuffer_from_mb(
+     L
+    ,_static_mb
+    ,size
+    ,_static_mb->bytes + _static_mb->nbytes
+  ); /* automatically incRef's mb */
 
   if (temp) {
     if (!temp_size) {
       temp_size = size;
     }
     memcpy(
-      mb->bytes
+      _static_mb->bytes + _static_mb->nbytes
       ,temp
       ,(size > temp_size ? temp_size : size)
       );
   } else {
-    memset(mb->bytes, '\0', size);
+    memset(_static_mb->bytes, '\0', size);
   }
 
+  _static_mb->nbytes += size;
 
   /* return the userdata */
-  return mb;
+  return lua_touserdata(L, -1);
 }
 
 /*
@@ -685,7 +701,6 @@ static int levbuffer__concat (lua_State *L) {
   */
 
   size_t new_size;
-  unsigned char *new_buffer;
 
   size_t first_buffer_len;
   unsigned char *first_buffer = NULL;
@@ -725,20 +740,46 @@ static int levbuffer__concat (lua_State *L) {
       break;
   }
 
-  new_size = first_buffer_len + second_buffer_len;
-  MemBlock *new_mb = lev_buffer_new(L, new_size, (const char *)first_buffer, first_buffer_len);
-  new_buffer = (unsigned char *)new_mb->bytes;
+  if (first_type == second_type
+      && first_ms->mb == second_ms->mb
+      && ((
+          first_ms->slice > second_ms->slice
+          && second_ms->slice + second_ms->until == first_ms->slice
+         )
+         || /* or other way around */
+         (
+          second_ms->slice > first_ms->slice
+          && first_ms->slice + first_ms->until == second_ms->slice
+         ))
+      ) {
 
-  /* copy other_buffer to new userdata */
-  memcpy(
-     new_buffer + first_buffer_len /* lev_resizebuffer copies only half of the data, so seek */
-    ,second_buffer
-    ,second_buffer_len
-  );
+    /*
+      cool, we're on the same MemBlock and back-to-back.
+      we should be able to union both objs via a single MemSlice
+    */
 
-  /* Set the type of the userdata as an levbuffer instance */
-  luaL_getmetatable(L, "levbuffer");
-  lua_setmetatable(L, -2);
+    lev_pushbuffer_from_mb(
+         L
+        ,first_ms->mb
+        ,first_ms->until + second_ms->until
+        ,(first_ms->slice > second_ms->slice ? second_ms->slice : first_ms->slice)
+      ); /* automatically incRef's mb */
+    /* userdata type is set automatically */
+  } else { /* not on the same memblock */
+    new_size = first_buffer_len + second_buffer_len;
+    MemSlice *new_ms = lev_buffer_new(L, new_size, (const char *)first_buffer, first_buffer_len);
+
+    /* copy other_buffer to new userdata */
+    memcpy(
+       new_ms->slice + first_buffer_len /* lev_resizebuffer copies only half of the data, so seek */
+      ,second_buffer
+      ,second_buffer_len
+    );
+    /* Set the type of the userdata as an levbuffer instance */
+    luaL_getmetatable(L, "levbuffer");
+    lua_setmetatable(L, -2);
+  }
+
   return 1;
 
 }
