@@ -137,7 +137,7 @@ int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned ch
   ms->slice = (!slice ? mb->bytes : slice);
   ms->until = (!until ? (!mb->nbytes ? mb->size : mb->nbytes) : until);
 
-  printf("lev_pushbuffer_from_mb: mb:%p;s:%p;u:%lu\n", ms->mb, ms->slice, ms->until);
+  /*printf("lev_pushbuffer_from_mb: mb:%p;s:%p;u:%lu\n", ms->mb, ms->slice, ms->until);*/
 
   /* Set the type of the userdata as an levbuffer instance */
   luaL_getmetatable(L, "levbuffer");
@@ -701,6 +701,7 @@ static int levbuffer__concat (lua_State *L) {
   */
 
   size_t new_size;
+  MemSlice *new_ms;
 
   size_t first_buffer_len;
   unsigned char *first_buffer = NULL;
@@ -740,7 +741,9 @@ static int levbuffer__concat (lua_State *L) {
       break;
   }
 
-  if (first_type == second_type
+  int is_bilateral_ms = (first_type == second_type ? 1 : 0);
+
+  if (is_bilateral_ms
       && first_ms->mb == second_ms->mb
       && ((
           first_ms->slice > second_ms->slice
@@ -764,10 +767,33 @@ static int levbuffer__concat (lua_State *L) {
         ,first_ms->until + second_ms->until
         ,(first_ms->slice > second_ms->slice ? second_ms->slice : first_ms->slice)
       ); /* automatically incRef's mb */
+
     /* userdata type is set automatically */
   } else { /* not on the same memblock */
     new_size = first_buffer_len + second_buffer_len;
-    MemSlice *new_ms = lev_buffer_new(L, new_size, (const char *)first_buffer, first_buffer_len);
+
+    if (is_bilateral_ms
+        && first_ms->mb->bytes + first_ms->mb->nbytes - first_ms->until == first_ms->slice
+        && first_ms->mb->size - first_ms->mb->nbytes >= second_buffer_len
+        ) {
+      /*
+        if we are bilateral but not back-to-back
+        and if after first_ms's slice we have
+        space for second_ms, simply copy second_ms
+        to the same memblock.
+      */
+
+      lev_pushbuffer_from_mb(
+           L
+          ,first_ms->mb
+          ,first_ms->until + second_ms->until
+          ,first_ms->slice
+        ); /* automatically incRef's mb */
+      first_ms->mb->nbytes += second_ms->until;
+      new_ms = first_ms;
+    } else {
+      new_ms = lev_buffer_new(L, new_size, (const char *)first_buffer, first_buffer_len);
+    }
 
     /* copy other_buffer to new userdata */
     memcpy(

@@ -233,7 +233,7 @@ MemBlock *lev_slab_getBlock(size_t size) {
   }
 
   MemBlock *block = lev_slab_alloc(pool);
-  printf("[%p] lev_slab_getBlock(p=%p)\n", block, pool);
+  /*printf("[%p] lev_slab_getBlock(p=%p)\n", block, pool);*/
   block->pool = pool;
   block->refcount = 0;
   block->size = blocksize;
@@ -243,7 +243,7 @@ MemBlock *lev_slab_getBlock(size_t size) {
 
 int lev_slab_incRef(MemBlock *block) {
   block->refcount++;
-  printf("[%p] lev_slab_incRef(r=%d, p=%p)\n", block, block->refcount, block->pool);
+  /*printf("[%p] lev_slab_incRef(r=%d, p=%p)\n", block, block->refcount, block->pool);*/
   return block->refcount;
 }
 
@@ -252,7 +252,7 @@ int lev_slab_decRef(MemBlock *block) {
 
   block->refcount--;
 
-  printf("[%p] lev_slab_decRef(r=%d, p=%p)\n", block, block->refcount, block->pool);
+  /*printf("[%p] lev_slab_decRef(r=%d, p=%p)\n", block, block->refcount, block->pool);*/
   
   if (block->refcount == 0) {/* return block to pool */
     lev_slab_free(block->pool, block);
