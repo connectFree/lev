@@ -43,6 +43,8 @@
 #include "lyajl.h"
 #include "lenv.h"
 
+#include "lev_new_base.h"
+
 static int lev_exit(lua_State* L) {
   int exit_code = luaL_checkint(L, 1);
   exit(exit_code);
@@ -192,6 +194,9 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   /* Register lev_buffer */
   lua_pushcfunction(L, luaopen_levbuffer);
   lua_setfield(L, -2, "cbuffer");
+  /* Register levbase */
+  lua_pushcfunction(L, luaopen_levbase);
+  lua_setfield(L, -2, "levbase");
   /* Register uv */
   lua_pushcfunction(L, luaopen_uv_native);
   lua_setfield(L, -2, "uv_native");

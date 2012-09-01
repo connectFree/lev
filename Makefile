@@ -94,6 +94,9 @@ CPPFLAGS += -I${SSLDIR}/openssl-configs/ia32
 endif
 
 LUVLIBS=${BUILDDIR}/utils.o          \
+				${BUILDDIR}/lev_new_base.o   \
+				${BUILDDIR}/lev_new_core.o   \
+				${BUILDDIR}/lev_new_tcp.o    \
         ${BUILDDIR}/lev_slab.o       \
         ${BUILDDIR}/luv_fs.o         \
         ${BUILDDIR}/luv_dns.o        \
