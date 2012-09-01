@@ -1,5 +1,8 @@
 local levbase = require('levbase')
 
+-- use print till p() is ported
+local p = print
+
 local server = levbase.tcp.new()
 server:bind("0.0.0.0", 8080)
 server:listen(function(s, err)
