@@ -98,28 +98,10 @@ LUVLIBS=${BUILDDIR}/utils.o          \
 				${BUILDDIR}/lev_new_core.o   \
 				${BUILDDIR}/lev_new_tcp.o    \
         ${BUILDDIR}/lev_slab.o       \
-        ${BUILDDIR}/luv_fs.o         \
-        ${BUILDDIR}/luv_dns.o        \
         ${BUILDDIR}/luv_debug.o      \
-        ${BUILDDIR}/luv_handle.o     \
-        ${BUILDDIR}/luv_udp.o        \
-        ${BUILDDIR}/luv_fs_watcher.o \
-        ${BUILDDIR}/luv_timer.o      \
-        ${BUILDDIR}/luv_process.o    \
-        ${BUILDDIR}/luv_stream.o     \
-        ${BUILDDIR}/luv_tcp.o        \
-        ${BUILDDIR}/luv_tls.o        \
-        ${BUILDDIR}/luv_tls_conn.o   \
-        ${BUILDDIR}/luv_pipe.o       \
-        ${BUILDDIR}/luv_tty.o        \
-        ${BUILDDIR}/luv_misc.o       \
-        ${BUILDDIR}/luv.o            \
         ${BUILDDIR}/lev_init.o       \
         ${BUILDDIR}/lconstants.o     \
         ${BUILDDIR}/lenv.o           \
-        ${BUILDDIR}/lyajl.o          \
-        ${BUILDDIR}/los.o            \
-        ${BUILDDIR}/luv_zlib.o       \
         ${BUILDDIR}/lhttp_parser.o   \
         ${BUILDDIR}/lev_buffer.o
 
