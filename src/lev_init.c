@@ -225,7 +225,7 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   lua_pushcfunction(L, lev_getcwd);
   lua_setglobal(L, "getcwd");
 
-  lua_pushstring(L, LUVIT_VERSION);
+  lua_pushstring(L, LEV_VERSION);
   lua_setglobal(L, "VERSION");
 
   lua_pushstring(L, UV_VERSION);

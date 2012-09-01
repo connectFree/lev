@@ -31,10 +31,10 @@
             'src/luv_tls_conn.c',
           ],
           'dependencies': [
-            'deps/openssl/openssl.gyp:openssl'
+            'deps/openssl.gyp:openssl'
           ],
           'export_dependent_settings': [
-            'deps/openssl/openssl.gyp:openssl'
+            'deps/openssl.gyp:openssl'
           ],
           'defines': [ 'USE_OPENSSL' ],
         }],
@@ -92,7 +92,9 @@
      ],
      'defines': [
        'LUVIT_OS="<(OS)"',
-       'LUVIT_VERSION="<!(git --git-dir .git describe --tags)"',
+       # TODO: should be versioning ...
+       #'LEV_VERSION="<!(git --git-dir .git describe --tags)"',
+       'LEV_VERSION="0.0.1"',
        'HTTP_VERSION="<!(git --git-dir deps/http-parser/.git describe --tags)"',
        'UV_VERSION="<!(git --git-dir deps/uv/.git describe --all --tags --always --long)"',
        'LUAJIT_VERSION="<!(git --git-dir deps/luajit/.git describe --tags)"',
