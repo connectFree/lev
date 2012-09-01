@@ -22,9 +22,9 @@ def build():
 
 def test():
     if sys.platform == "win32":
-        luvit = os.path.join(root, 'Debug', 'luvit.exe')
+        luvit = os.path.join(root, 'Debug', 'lev.exe')
     else:
-        luvit = os.path.join(root, 'out', 'Debug', 'luvit')
+        luvit = os.path.join(root, 'out', 'Debug', 'lev')
 
     test_dir = os.path.join(root, 'tests')
     old_cwd = os.getcwd()
