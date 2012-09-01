@@ -27,10 +27,18 @@ local PONG_BUF = Buffer:new("\3\2\1\0")
 
 local PORT = process.env.PORT or 10082
 
+local TEST_BUF = Buffer:new("\9\8\7\6")
+
+
 local server = net.createServer(function (client)
   client:on("data", function (chunk)
     p('server:client:on("data")', chunk)
     assert(tostring(chunk) == "\0\1\2\3")
+
+    -- this seems weird to have here, but it helps
+    -- test an edge case with cBuffers
+    local test_res = chunk .. TEST_BUF
+    assert(test_res:inspect() == "<Buffer 00 01 02 03 09 08 07 06 >")
 
     client:write(PONG_BUF, function (err)
       p("server:client:write")

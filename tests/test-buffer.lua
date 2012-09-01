@@ -42,7 +42,10 @@ union_buf = union_buf .. ubuf5
 union_buf = union_buf .. ubuf6
 union_buf = union_buf .. ubuf7
 
-assert(tostring(union_buf) == "abcdefghijlmnop")
+-- test buffer concat with lstrings
+union_buf = union_buf .. "qrstuv"
+
+assert(tostring(union_buf) == "abcdefghijlmnopqrstuv")
 
 
 local buf = Buffer:new(4)
