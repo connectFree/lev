@@ -19,6 +19,7 @@ limitations under the License.
 -- Bootstrap require system
 local cbuffer = require('cbuffer')
 local native = require('uv_native')
+local levbase = require('levbase')
 process = {
   execPath = native.execpath(),
   cwd = getcwd,
@@ -336,7 +337,7 @@ assert(xpcall(function ()
 end, traceback))
 
 -- Start the event loop
-native.run()
+levbase.run()
 
 -- trigger exit handlers and exit cleanly
 process.exit(process.exitCode or 0)

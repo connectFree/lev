@@ -27,21 +27,14 @@
 #include "lev_main.h"
 #include "uv.h"
 #include "utils.h"
-#include "los.h"
-#include "luv.h"
-#include "luv_dns.h"
 #include "luv_debug.h"
-#ifdef USE_OPENSSL
-#include "luv_tls.h"
-#include "lcrypto.h"
-#endif
-#include "luv_zlib.h"
 #include "luv_portability.h"
 #include "lconstants.h"
 #include "lhttp_parser.h"
 #include "lev_buffer.h"
-#include "lyajl.h"
 #include "lenv.h"
+
+#include "lev_new_base.h"
 
 static int lev_exit(lua_State* L) {
   int exit_code = luaL_checkint(L, 1);
@@ -55,50 +48,44 @@ static int lev_print_stderr(lua_State* L) {
   return 0;
 }
 
-
-#ifdef USE_OPENSSL
-
-static uv_rwlock_t* locks;
-
-static unsigned long crypto_id_cb(void) {
-#ifdef _WIN32
-  return (unsigned long) GetCurrentThreadId();
-#else /* !_WIN32 */
-  return (unsigned long) pthread_self();
-#endif /* !_WIN32 */
+static void l_message(const char *msg) {
+  fprintf(stderr, "lev: %s\n", msg);
+  fflush(stderr);
 }
 
-
-static void crypto_lock_init(void) {
-  int i, n;
-
-  n = CRYPTO_num_locks();
-  locks = malloc(sizeof(uv_rwlock_t) * n);
-
-  for (i = 0; i < n; i++)
-    if (uv_rwlock_init(locks + i))
-      abort();
-}
-
-
-static void crypto_lock_cb(int mode, int n, const char* file, int line) {
-  assert((mode & CRYPTO_LOCK) || (mode & CRYPTO_UNLOCK));
-  assert((mode & CRYPTO_READ) || (mode & CRYPTO_WRITE));
-
-  if (mode & CRYPTO_LOCK) {
-    if (mode & CRYPTO_READ)
-      uv_rwlock_rdlock(locks + n);
-    else
-      uv_rwlock_wrlock(locks + n);
-  } else {
-    if (mode & CRYPTO_READ)
-      uv_rwlock_rdunlock(locks + n);
-    else
-      uv_rwlock_wrunlock(locks + n);
+static int report(lua_State *L, int status) {
+  if (status && !lua_isnil(L, -1)) {
+    const char *msg = lua_tostring(L, -1);
+    if (msg == NULL) msg = "(error object is not a string)";
+    l_message( msg);
+    lua_pop(L, 1);
   }
+  return status;
 }
 
-#endif
+
+/* Load add-on module. */
+static int loadjitmodule(lua_State *L)
+{
+  lua_getglobal(L, "require");
+  lua_pushliteral(L, "jit.");
+  lua_pushvalue(L, -3);
+  lua_concat(L, 2);
+  if (lua_pcall(L, 1, 1, 0)) {
+    const char *msg = lua_tostring(L, -1);
+    if (msg && !strncmp(msg, "module ", 7)) {
+    err:
+      l_message("unknown luaJIT command or jit.* modules not installed");
+      return 1;
+    } else {
+      return report(L, 1);
+    }
+  }
+  lua_getfield(L, -1, "start");
+  if (lua_isnil(L, -1)) goto err;
+  lua_remove(L, -2);  /* Drop module table. */
+  return 0;
+}
 
 
 #ifndef PATH_MAX
@@ -120,38 +107,6 @@ static int lev_getcwd(lua_State* L) {
   return 1;
 }
 
-#ifdef USE_OPENSSL
-int lev_init_ssl()
-{
-#if !defined(OPENSSL_NO_COMP)
-  STACK_OF(SSL_COMP)* comp_methods;
-#endif
-
-  /* Initialize OpenSSL */
-  SSL_library_init();
-  OpenSSL_add_all_algorithms();
-  OpenSSL_add_all_digests();
-  SSL_load_error_strings();
-  ERR_load_crypto_strings();
-
-  crypto_lock_init();
-  CRYPTO_set_locking_callback(crypto_lock_cb);
-  CRYPTO_set_id_callback(crypto_id_cb);
-
-  /* Turn off compression. Saves memory - do it in userland. */
-#if !defined(OPENSSL_NO_COMP)
-#if OPENSSL_VERSION_NUMBER < 0x00908000L
-  comp_methods = SSL_COMP_get_compression_method()
-#else
-  comp_methods = SSL_COMP_get_compression_methods();
-#endif
-  sk_SSL_COMP_zero(comp_methods);
-  assert(sk_SSL_COMP_num(comp_methods) == 0);
-#endif
-
-  return 0;
-}
-#endif
 
 int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
 {
@@ -169,41 +124,24 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   lua_getfield(L, -1, "preload");
   lua_remove(L, -2);
 
-#ifdef USE_OPENSSL
-  /* Register tls */
-  lua_pushcfunction(L, luaopen_tls);
-  lua_setfield(L, -2, "_tls");
-  /* Register tls */
-  lua_pushcfunction(L, luaopen_crypto);
-  lua_setfield(L, -2, "_crypto");
-#endif
-  /* Register yajl */
-  lua_pushcfunction(L, luaopen_yajl);
-  lua_setfield(L, -2, "yajl");
   /* Register debug */
   lua_pushcfunction(L, luaopen_debugger);
   lua_setfield(L, -2, "_debug");
-  /* Register os */
-  lua_pushcfunction(L, luaopen_os_binding);
-  lua_setfield(L, -2, "os_binding");
   /* Register http_parser */
   lua_pushcfunction(L, luaopen_http_parser);
   lua_setfield(L, -2, "http_parser");
   /* Register lev_buffer */
   lua_pushcfunction(L, luaopen_levbuffer);
   lua_setfield(L, -2, "cbuffer");
-  /* Register uv */
-  lua_pushcfunction(L, luaopen_uv_native);
-  lua_setfield(L, -2, "uv_native");
+  /* Register levbase */
+  lua_pushcfunction(L, luaopen_levbase);
+  lua_setfield(L, -2, "levbase");
   /* Register env */
   lua_pushcfunction(L, luaopen_env);
   lua_setfield(L, -2, "env");
   /* Register constants */
   lua_pushcfunction(L, luaopen_constants);
   lua_setfield(L, -2, "constants");
-  /* Register zlib */
-  lua_pushcfunction(L, luaopen_zlib_native);
-  lua_setfield(L, -2, "zlib_native");
 
   /* We're done with preload, put it away */
   lua_pop(L, 1);
@@ -237,17 +175,6 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   lua_pushstring(L, HTTP_VERSION);
   lua_setglobal(L, "HTTP_VERSION");
 
-  lua_pushstring(L, YAJL_VERSIONISH);
-  lua_setglobal(L, "YAJL_VERSION");
-
-  lua_pushstring(L, ZLIB_VERSION);
-  lua_setglobal(L, "ZLIB_VERSION");
-
-#ifdef USE_OPENSSL
-  lua_pushstring(L, OPENSSL_VERSION_TEXT);
-  lua_setglobal(L, "OPENSSL_VERSION");
-#endif
-
   /* Hold a reference to the main thread in the registry */
   rc = lua_pushthread(L);
   assert(rc == 1);
@@ -260,6 +187,11 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   uv_ares_init_options(luv_get_loop(L), &channel, &options, 0);
   luv_set_ares_channel(L, channel);
 
+  if (0) {
+    lua_pushliteral(L, "on");
+    loadjitmodule(L);
+  }
+
   return 0;
 }
 
@@ -269,11 +201,16 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   #define SEP "/"
 #endif
 
+int lev_run(lua_State *L) {
+  return luaL_dostring(L, "assert(require('lev'))");
+}
 
+
+/*
 int lev_run(lua_State *L) {
   return luaL_dostring(L, "\
     local path = require('uv_native').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
     package.path = path .. ';' .. package.path\
     assert(require('lev'))");
 }
-
+*/
