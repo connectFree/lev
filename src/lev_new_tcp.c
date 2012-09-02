@@ -89,8 +89,10 @@ static void tcp_after_close(uv_handle_t* handle) {
   UNWRAP(handle);
   if (push_callback(L, self, "on_close")) {
     lua_call(L, 1, 0);/*, -3*/
-    handle_unref(L, self);
+    
   }
+  handle_unref(L, self);
+  /*lua_pushnil(L); lua_setmetatable(L,1);*/
 }
 
 void tcp_after_shutdown(uv_shutdown_t* req, int status) {

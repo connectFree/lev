@@ -659,11 +659,11 @@ static int pmain(lua_State *L)
   _G.debug = utils.debug
 */
 
-
-
   if (script) {
     s->status = handle_script(L, argv, script);
-    uv_run(loop);
+    if (0 == s->status) {
+      uv_run(loop);
+    }
   }
   if (s->status != 0) return 0;
   if ((flags & FLAGS_INTERACTIVE)) {
