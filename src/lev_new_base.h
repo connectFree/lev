@@ -19,6 +19,7 @@
 #define LEVBASE_H_
 
 #include "uv.h"
+#include "utils.h"
 
 #include <stddef.h> /* offsetof */
 

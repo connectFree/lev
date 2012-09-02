@@ -26,6 +26,376 @@
 
 static uv_timer_t gc_timer;
 
+
+#ifndef PATH_MAX
+#define PATH_MAX (8096)
+#endif
+
+#ifndef MAX_TITLE_LENGTH
+#define MAX_TITLE_LENGTH (8192)
+#endif
+
+#ifndef _WIN32
+
+const char *core_signo_string(int signo) {
+#define SIGNO_CASE(e)  case e: return #e;
+  switch (signo) {
+
+#ifdef SIGHUP
+  SIGNO_CASE(SIGHUP);
+#endif
+
+#ifdef SIGINT
+  SIGNO_CASE(SIGINT);
+#endif
+
+#ifdef SIGQUIT
+  SIGNO_CASE(SIGQUIT);
+#endif
+
+#ifdef SIGILL
+  SIGNO_CASE(SIGILL);
+#endif
+
+#ifdef SIGTRAP
+  SIGNO_CASE(SIGTRAP);
+#endif
+
+#ifdef SIGABRT
+  SIGNO_CASE(SIGABRT);
+#endif
+
+#ifdef SIGIOT
+# if SIGABRT != SIGIOT
+  SIGNO_CASE(SIGIOT);
+# endif
+#endif
+
+#ifdef SIGBUS
+  SIGNO_CASE(SIGBUS);
+#endif
+
+#ifdef SIGFPE
+  SIGNO_CASE(SIGFPE);
+#endif
+
+#ifdef SIGKILL
+  SIGNO_CASE(SIGKILL);
+#endif
+
+#ifdef SIGUSR1
+  SIGNO_CASE(SIGUSR1);
+#endif
+
+#ifdef SIGSEGV
+  SIGNO_CASE(SIGSEGV);
+#endif
+
+#ifdef SIGUSR2
+  SIGNO_CASE(SIGUSR2);
+#endif
+
+#ifdef SIGPIPE
+  SIGNO_CASE(SIGPIPE);
+#endif
+
+#ifdef SIGALRM
+  SIGNO_CASE(SIGALRM);
+#endif
+
+#ifdef SIGTERM
+  SIGNO_CASE(SIGTERM);
+#endif
+
+#ifdef SIGCHLD
+  SIGNO_CASE(SIGCHLD);
+#endif
+
+#ifdef SIGSTKFLT
+  SIGNO_CASE(SIGSTKFLT);
+#endif
+
+
+#ifdef SIGCONT
+  SIGNO_CASE(SIGCONT);
+#endif
+
+#ifdef SIGSTOP
+  SIGNO_CASE(SIGSTOP);
+#endif
+
+#ifdef SIGTSTP
+  SIGNO_CASE(SIGTSTP);
+#endif
+
+#ifdef SIGTTIN
+  SIGNO_CASE(SIGTTIN);
+#endif
+
+#ifdef SIGTTOU
+  SIGNO_CASE(SIGTTOU);
+#endif
+
+#ifdef SIGURG
+  SIGNO_CASE(SIGURG);
+#endif
+
+#ifdef SIGXCPU
+  SIGNO_CASE(SIGXCPU);
+#endif
+
+#ifdef SIGXFSZ
+  SIGNO_CASE(SIGXFSZ);
+#endif
+
+#ifdef SIGVTALRM
+  SIGNO_CASE(SIGVTALRM);
+#endif
+
+#ifdef SIGPROF
+  SIGNO_CASE(SIGPROF);
+#endif
+
+#ifdef SIGWINCH
+  SIGNO_CASE(SIGWINCH);
+#endif
+
+#ifdef SIGIO
+  SIGNO_CASE(SIGIO);
+#endif
+
+#ifdef SIGPOLL
+# if SIGPOLL != SIGIO
+  SIGNO_CASE(SIGPOLL);
+# endif
+#endif
+
+#ifdef SIGLOST
+  SIGNO_CASE(SIGLOST);
+#endif
+
+#ifdef SIGPWR
+# if SIGPWR != SIGLOST
+  SIGNO_CASE(SIGPWR);
+# endif
+#endif
+
+#ifdef SIGSYS
+  SIGNO_CASE(SIGSYS);
+#endif
+
+  }
+  return "";
+}
+
+
+static void core_on_signal(struct ev_loop *loop, struct ev_signal *w, int revents) {
+  assert(uv_default_loop()->ev == loop);
+  lua_State* L = (lua_State*)w->data;
+  lua_getglobal(L, "process");
+  lua_getfield(L, -1, "emit");
+  lua_pushvalue(L, -2);
+  lua_remove(L, -3);
+  lua_pushstring(L, core_signo_string(w->signum));
+  lua_pushinteger(L, revents);
+  lua_call(L, 3, 0);
+}
+
+#endif
+
+int core_activate_signal_handler(lua_State* L) {
+#ifndef _WIN32
+  int signal = luaL_checkint(L, 1);
+  struct ev_signal* signal_watcher = (struct ev_signal*)malloc(sizeof(struct ev_signal));
+  signal_watcher->data = L;
+  ev_signal_init (signal_watcher, core_on_signal, signal);
+  struct ev_loop* loop = uv_default_loop()->ev;
+  ev_signal_start (loop, signal_watcher);
+#endif
+  return 0;
+}
+
+int core_update_time(lua_State* L) {
+  uv_update_time(uv_default_loop());
+  return 0;
+}
+
+int core_now(lua_State* L) {
+  double now = (double)uv_now(uv_default_loop());
+  lua_pushnumber(L, now);
+  return 1;
+}
+
+int core_hrtime(lua_State* L) {
+  double now = (double) uv_hrtime() / 1000000.0;
+  lua_pushnumber(L, now);
+  return 1;
+}
+
+int core_get_free_memory(lua_State* L) {
+  lua_pushnumber(L, uv_get_free_memory());
+  return 1;
+}
+
+int core_get_total_memory(lua_State* L) {
+  lua_pushnumber(L, uv_get_total_memory());
+  return 1;
+}
+
+int core_loadavg(lua_State* L) {
+  double avg[3];
+  uv_loadavg(avg);
+  lua_pushnumber(L, avg[0]);
+  lua_pushnumber(L, avg[1]);
+  lua_pushnumber(L, avg[2]);
+  return 3;
+}
+
+int core_uptime(lua_State* L) {
+  double uptime;
+  uv_uptime(&uptime);
+  lua_pushnumber(L, uptime);
+  return 1;
+}
+
+int core_cpu_info(lua_State* L) {
+  uv_cpu_info_t* cpu_infos;
+  int count, i;
+  uv_cpu_info(&cpu_infos, &count);
+  lua_newtable(L);
+
+  for (i = 0; i < count; i++) {
+    lua_newtable(L);
+    lua_pushstring(L, (cpu_infos[i]).model);
+    lua_setfield(L, -2, "model");
+    lua_pushnumber(L, (cpu_infos[i]).speed);
+    lua_setfield(L, -2, "speed");
+    lua_newtable(L);
+    lua_pushnumber(L, (cpu_infos[i]).cpu_times.user);
+    lua_setfield(L, -2, "user");
+    lua_pushnumber(L, (cpu_infos[i]).cpu_times.nice);
+    lua_setfield(L, -2, "nice");
+    lua_pushnumber(L, (cpu_infos[i]).cpu_times.sys);
+    lua_setfield(L, -2, "sys");
+    lua_pushnumber(L, (cpu_infos[i]).cpu_times.idle);
+    lua_setfield(L, -2, "idle");
+    lua_pushnumber(L, (cpu_infos[i]).cpu_times.irq);
+    lua_setfield(L, -2, "irq");
+    lua_setfield(L, -2, "times");
+    lua_rawseti(L, -2, i + 1);
+  }
+
+  uv_free_cpu_info(cpu_infos, count);
+  return 1;
+}
+
+#if 0
+ struct uv_interface_address_s {
+   char* name;
+   int is_internal;
+   union {
+     struct sockaddr_in address4;
+     struct sockaddr_in6 address6;
+   } address;
+ };
+#endif
+
+int core_interface_addresses(lua_State* L) {
+  uv_interface_address_t* interfaces;
+  int count, i;
+  char ip[INET6_ADDRSTRLEN];
+
+  uv_interface_addresses(&interfaces, &count);
+
+  lua_newtable(L);
+
+  for (i = 0; i < count; i++) {
+    const char* family;
+
+    lua_getfield(L, -1, interfaces[i].name);
+    if (!lua_istable(L, -1)) {
+      lua_pop(L, 1);
+      lua_newtable(L);
+      lua_pushvalue(L, -1);
+      lua_setfield(L, -3, interfaces[i].name);
+    }
+    lua_newtable(L);
+    lua_pushboolean(L, interfaces[i].is_internal);
+    lua_setfield(L, -2, "internal");
+
+    if (interfaces[i].address.address4.sin_family == AF_INET) {
+      uv_ip4_name(&interfaces[i].address.address4,ip, sizeof(ip));
+      family = "IPv4";
+    } else if (interfaces[i].address.address4.sin_family == AF_INET6) {
+      uv_ip6_name(&interfaces[i].address.address6, ip, sizeof(ip));
+      family = "IPv6";
+    } else {
+      strncpy(ip, "<unknown sa family>", INET6_ADDRSTRLEN);
+      family = "<unknown>";
+    }
+    lua_pushstring(L, ip);
+    lua_setfield(L, -2, "address");
+    lua_pushstring(L, family);
+    lua_setfield(L, -2, "family");
+    lua_rawseti(L, -2, lua_objlen (L, -2) + 1);
+    lua_pop(L, 1);
+  }
+  uv_free_interface_addresses(interfaces, count);
+  return 1;
+}
+
+int core_execpath(lua_State* L) {
+  size_t size = 2*PATH_MAX;
+  char exec_path[2*PATH_MAX];
+  if (uv_exepath(exec_path, &size)) {
+    uv_err_t err = uv_last_error(uv_default_loop());
+    return luaL_error(L, "uv_exepath: %s", uv_strerror(err));
+  }
+  lua_pushlstring(L, exec_path, size);
+  return 1;
+}
+
+int core_get_process_title(lua_State* L) {
+  char title[8192];
+  uv_err_t err = uv_get_process_title(title, 8192);
+  if (err.code) {
+    return luaL_error(L, "uv_get_process_title: %s: %s", uv_err_name(err), uv_strerror(err));
+  }
+  lua_pushstring(L, title);
+  return 1;
+}
+
+int core_set_process_title(lua_State* L) {
+  const char* title = luaL_checkstring(L, 1);
+  uv_err_t err = uv_set_process_title(title);
+  if (err.code) {
+    return luaL_error(L, "uv_set_process_title: %s: %s", uv_err_name(err), uv_strerror(err));
+  }
+  return 0;
+}
+
+
+int core_handle_type(lua_State* L) {
+  uv_file file = luaL_checkint(L, 1);
+  uv_handle_type type = uv_guess_handle(file);
+  lua_pushstring(L, luv_handle_type_to_string(type));
+  return 1;
+}
+
+extern void uv_print_active_handles(uv_loop_t *loop);
+extern void uv_print_all_handles(uv_loop_t *loop);
+
+int core_print_active_handles(lua_State* L) {
+  uv_print_active_handles(uv_default_loop());
+  return 0;
+}
+
+int core_print_all_handles(lua_State* L) {
+  uv_print_all_handles(uv_default_loop());
+  return 0;
+}
+
+
 static void timer_gc_cb(uv_handle_t* handle) {
   lua_gc((lua_State *)handle->data, LUA_GCCOLLECT, 0);
 }
@@ -51,8 +421,24 @@ static int core_run(lua_State* L) {
 
 
 static luaL_reg functions[] = {
-  { "run", core_run },
-  { NULL, NULL }
+   {"activate_signal_handler", core_activate_signal_handler}
+  ,{"update_time", core_update_time}
+  ,{"now", core_now}
+  ,{"hrtime", core_hrtime}
+  ,{"get_free_memory", core_get_free_memory}
+  ,{"get_total_memory", core_get_total_memory}
+  ,{"loadavg", core_loadavg}
+  ,{"uptime", core_uptime}
+  ,{"cpu_info", core_cpu_info}
+  ,{"interface_addresses", core_interface_addresses}
+  ,{"execpath", core_execpath}
+  ,{"get_process_title", core_get_process_title}
+  ,{"set_process_title", core_set_process_title}
+  ,{"handle_type", core_handle_type}
+  ,{"print_active_handles", core_print_active_handles}
+  ,{"print_all_handles", core_print_all_handles}
+  ,{ "run", core_run }
+  ,{ NULL, NULL }
 };
 
 

@@ -593,6 +593,12 @@ static void timer_gc_cb(uv_handle_t* handle) {
   lua_gc((lua_State *)handle->data, LUA_GCCOLLECT, 0);
 }
 
+#ifdef _WIN32
+  #define SEP "\\\\"
+#else
+  #define SEP "/"
+#endif
+
 static int pmain(lua_State *L)
 {
   uv_loop_t *loop;
@@ -625,6 +631,36 @@ static int pmain(lua_State *L)
   if ((flags & FLAGS_VERSION)) print_version();
   s->status = runargs(L, argv, (script > 0) ? script : s->argc);
   if (s->status != 0) return 0;
+
+  s->status = luaL_dostring(L, "\
+    local path = require('levbase').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
+    package.path = path .. ';' .. package.path\
+    assert(require('lev'))");
+  if (s->status != 0) return 0;
+  /*
+   clear some globals
+   This will break lua code written for other lua runtimes
+  */
+/* 
+  require = require('module').require
+  _G.io = nil
+  _G.os = nil
+  _G.math = nil
+  _G.string = nil
+  _G.coroutine = nil
+  _G.jit = nil
+  _G.bit = nil
+  _G.debug = nil
+  _G.table = nil
+  _G.loadfile = nil
+  _G.dofile = nil
+  _G.print = utils.print
+  _G.p = utils.prettyPrint
+  _G.debug = utils.debug
+*/
+
+
+
   if (script) {
     s->status = handle_script(L, argv, script);
     uv_run(loop);
