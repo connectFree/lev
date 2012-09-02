@@ -26,11 +26,13 @@ struct object_slab {
         unsigned long object_memory[];
 };
 
-const static struct lev_slab_allocator* mem_1k = NULL;
-const static struct lev_slab_allocator* mem_8k = NULL;
-const static struct lev_slab_allocator* mem_16k = NULL;
-const static struct lev_slab_allocator* mem_64k = NULL;
-const static struct lev_slab_allocator* mem_1024k = NULL;
+
+
+const static lev_slab_allocator_t mem_1k;
+const static lev_slab_allocator_t mem_8k;
+const static lev_slab_allocator_t mem_16k;
+const static lev_slab_allocator_t mem_64k;
+const static lev_slab_allocator_t mem_1024k;
 
 #define lev_slab_offsetof(type, member) ((unsigned long)&((type *)0)->member)
 
@@ -40,201 +42,57 @@ static void corrupted_canary(const void * object) {
   abort();
 }
 
-void lev_slab_create(struct lev_slab_allocator * allocator,
-                 unsigned int objcount,
-                 unsigned int objsize,
-                 int canary)
-{
-  pthread_mutex_init(&allocator->global_lock, NULL);
-  allocator->slabs_list.next = &allocator->slabs_list;
-  allocator->slabs_list.prev = &allocator->slabs_list;
 
-  objsize +=   sizeof(void *) - 1;
-  objsize &= ~(sizeof(void *) - 1);
-  canary = canary != 0;
-
-  allocator->object_count = objcount;
-  allocator->object_size  = objsize;
-  allocator->canary_check = canary;
+static void _lev_slab_fill(lev_slab_allocator_t *allocator, size_t blocksize, int min_number) {
+  MemBlock *mb;  
+  while (allocator->pool_count < min_number) {
+      mb = (MemBlock *)malloc(sizeof(MemBlock) + blocksize);
+      allocator->pool[allocator->pool_count++] = mb;
+  }
 }
 
-void * lev_slab_alloc(struct lev_slab_allocator * allocator) {
-  struct linked_list * list;
-  struct object_slab * slab;
-  void * before;
-  void * object;
-
-  pthread_mutex_lock(&allocator->global_lock);
-
-  list = allocator->slabs_list.next;
-  if (list == &allocator->slabs_list) {
-    unsigned int i;
-
-    slab = malloc(
-             (
-               (sizeof(void *) << allocator->canary_check)
-               + allocator->object_size
-             )
-             * allocator->object_count
-             + sizeof(struct object_slab)
-           );
-
-    if (slab == NULL) {
-      object = NULL;
-      goto unlock_finish;
-    }
-
-    allocator->slabs_list.next = &slab->slabs_list;
-    allocator->slabs_list.prev = &slab->slabs_list;
-    slab->slabs_list.next = &allocator->slabs_list;
-    slab->slabs_list.prev = &allocator->slabs_list;
-
-    before = &slab->ready_list;
-    object = slab->object_memory;
-    for (i = 0; i < allocator->object_count; i++) {
-      *((void **)before) = object;
-      before = object;
-      object += allocator->object_size;
-      if (allocator->canary_check != 0) {
-        *((void **)object) = allocator;
-        object += sizeof(void *);
-      }
-      *((void **)object) = slab;
-      object += sizeof(void *);
-    }
-    *((void **)before) = NULL;
-
-    slab->used_objects = 0;
-  } else {
-    slab = (void *)list - lev_slab_offsetof(struct object_slab, slabs_list);
-  }
-
-  slab->used_objects++;
-  object = slab->ready_list;
-  slab->ready_list = *((void **)object);
-
-  if (slab->ready_list == NULL) {
-    slab->slabs_list.next->prev = slab->slabs_list.prev;
-    slab->slabs_list.prev->next = slab->slabs_list.next;
-  }
-
-unlock_finish:
-  pthread_mutex_unlock(&allocator->global_lock);
-
-  return object;
-} /* X:E lev_slab_alloc */
-
-void lev_slab_free(struct lev_slab_allocator * allocator, void * object)
-{
-  void * lookup;
-  struct object_slab * slab;
-  struct object_slab * comp;
-  struct linked_list * next;
-  struct linked_list * prev;
-
-  lookup = object;
-  lookup += allocator->object_size;
-  if (allocator->canary_check != 0) {
-    if (*((void **)lookup) != allocator) {
-      corrupted_canary(object);
-    }
-    lookup += sizeof(void *);
-  }
-  slab = *((void **)lookup);
-
-  pthread_mutex_lock(&allocator->global_lock);
-
-  slab->used_objects--;
-  if (slab->ready_list != NULL) {
-    next = slab->slabs_list.next;
-    prev = slab->slabs_list.prev;
-    if (next == &allocator->slabs_list) {
-      goto insert_obj;
-    }
-    next->prev = prev;
-    prev->next = next;
-  } else {
-    prev = &allocator->slabs_list;
-    next = prev->next;
-    goto insert_slab;
-  }
-
-  for (;;) {
-    comp = NULL;
-    if (next == &allocator->slabs_list) {
-      break;
-    }
-    comp = (void *)next - lev_slab_offsetof(struct object_slab, slabs_list);
-    if (slab->used_objects >= comp->used_objects) {
-      break;
-    }
-    prev = next;
-    next = next->next;
-  }
-
-  if (comp != NULL &&
-      comp->used_objects == 0 &&
-      slab->used_objects == 0
-     ) {
-    goto unlock_finish;
-  }
-    
-
-insert_slab:
-  next->prev = &slab->slabs_list;
-  prev->next = &slab->slabs_list;
-  slab->slabs_list.next = next;
-  slab->slabs_list.prev = prev;
-
-insert_obj:
-  *((void **)object) = slab->ready_list;
-  slab->ready_list = object;
-  slab = NULL;
-
-unlock_finish:
-  pthread_mutex_unlock(&allocator->global_lock);
-
-  if (slab != NULL) {
-    free(slab);
-  }
-} /* X:E lev_slab_free */
+void lev_slab_fill() {
+  _lev_slab_fill((lev_slab_allocator_t*)&mem_1k, 1024, 1024);
+  _lev_slab_fill((lev_slab_allocator_t*)&mem_8k, 8*1024, 128);
+  _lev_slab_fill((lev_slab_allocator_t*)&mem_16k, 16*1024, 32);
+  _lev_slab_fill((lev_slab_allocator_t*)&mem_64k, 64*1024, 2);
+  /*_lev_slab_fill((lev_slab_allocator_t*)&mem_1024k, 1024*1024, 1);*/
+}
 
 MemBlock *lev_slab_getBlock(size_t size) {
-  struct lev_slab_allocator* pool;
+  lev_slab_allocator_t* allocator;
+  MemBlock *block;
   int blocksize;
 
   if (size <= 1024) {
-    pool = (struct lev_slab_allocator*)mem_1k;
+    allocator = (lev_slab_allocator_t*)&mem_1k;
     blocksize = 1024;
   } else if (size <= 8*1024) {
-    pool = (struct lev_slab_allocator*)mem_8k;
+    allocator = (lev_slab_allocator_t*)&mem_8k;
     blocksize = 8*1024;
   } else if (size <= 16*1024) {
-    pool = (struct lev_slab_allocator*)mem_16k;
+    allocator = (lev_slab_allocator_t*)&mem_16k;
     blocksize = 16*1024;
   } else if (size <= 64*1024) {
-    pool = (struct lev_slab_allocator*)mem_64k;
+    allocator = (lev_slab_allocator_t*)&mem_64k;
     blocksize = 64*1024;
   } else if (size <= 1024*1024) {
-    pool = (struct lev_slab_allocator*)mem_1024k;
+    allocator = (lev_slab_allocator_t*)&mem_1024k;
     blocksize = 1024*1024;
   } else {
     return NULL;
   }
 
-  if (!pool) { /* init our pool */
-    pool = malloc(sizeof(struct lev_slab_allocator));
-    lev_slab_create(
-       pool
-      ,1
-      ,sizeof(MemBlock) + blocksize
-      ,1
-      );
+  if (allocator->pool_count) {
+    block = allocator->pool[--allocator->pool_count];
+    /*printf("BLOCK TAKEN FROM POOL %d\n", blocksize);*/
+  } else {
+    /*printf("BLOCK TAKEN FROM MALLOC %d\n", blocksize);*/
+    block = (MemBlock *)malloc(sizeof(MemBlock) + blocksize);
   }
 
-  MemBlock *block = lev_slab_alloc(pool);
   /*printf("[%p] lev_slab_getBlock(p=%p)\n", block, pool);*/
-  block->pool = pool;
+  block->allocator = allocator;
   block->refcount = 0;
   block->size = blocksize;
   block->nbytes = 0;
@@ -243,7 +101,7 @@ MemBlock *lev_slab_getBlock(size_t size) {
 
 int lev_slab_incRef(MemBlock *block) {
   block->refcount++;
-  /*printf("[%p] lev_slab_incRef(r=%d, p=%p)\n", block, block->refcount, block->pool);*/
+  /*printf("[%p] lev_slab_incRef(r=%d, p=%p)\n", block, block->refcount, block->allocator);*/
   return block->refcount;
 }
 
@@ -252,10 +110,11 @@ int lev_slab_decRef(MemBlock *block) {
 
   block->refcount--;
 
-  /*printf("[%p] lev_slab_decRef(r=%d, p=%p)\n", block, block->refcount, block->pool);*/
+  /*printf("[%p] lev_slab_decRef(r=%d, p=%p)\n", block, block->refcount, block->allocator);*/
   
   if (block->refcount == 0) {/* return block to pool */
-    lev_slab_free(block->pool, block);
+    block->allocator->pool[block->allocator->pool_count++] = block;
+    /*printf("BLOCK PUT ON SHELF %lu -> %d\n", block->size, block->allocator->pool_count);*/
   }
 
   return block->refcount;

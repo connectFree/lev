@@ -31,7 +31,6 @@
 #include "luv_portability.h"
 #include "lconstants.h"
 #include "lhttp_parser.h"
-#include "lev_buffer.h"
 #include "lenv.h"
 
 #include "lev_new_base.h"
@@ -130,9 +129,6 @@ int lev_init(lua_State *L, uv_loop_t* loop, int argc, char *argv[])
   /* Register http_parser */
   lua_pushcfunction(L, luaopen_http_parser);
   lua_setfield(L, -2, "http_parser");
-  /* Register lev_buffer */
-  lua_pushcfunction(L, luaopen_levbuffer);
-  lua_setfield(L, -2, "cbuffer");
   /* Register levbase */
   lua_pushcfunction(L, luaopen_levbase);
   lua_setfield(L, -2, "levbase");

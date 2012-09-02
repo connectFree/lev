@@ -18,45 +18,59 @@
 #ifndef _LEV_SLAB_H_
 #define _LEV_SLAB_H_
 
-#include <pthread.h>
 #include "uv.h"
 
+#define SLAB_MAXFREELIST 1024 * 16 * 2
+
+
+/* --[  LEVSTRUCT_REF_ ]-- */
+/* == refCount == */
+/* a count of all pending request to know strength */
+/* == threadref == */
+/* if handle is created in a coroutine(not main thread), threadref is
+   the reference to the coroutine in the Lua registery. 
+   we release the reference when handle closed. 
+   if handle is created in the main thread, threadref is LUA_NOREF.
+   we must hold the coroutine, because in some cases(see issue #319) that the coroutine 
+   referenced by nothing and would collected by gc, then uv's callback touch an 
+   invalid pointer. */
+/* == ref == */
+/* ref is null when refCount is 0 meaning we're weak */
+#define LEVBASE_REF_FIELDS  \
+  int refCount;             \
+  int threadref;            \
+  int ref;            
+
+
 struct linked_list {
-        struct linked_list * next;
-        struct linked_list * prev;
+  struct linked_list * next;
+  struct linked_list * prev;
 };
 
-struct lev_slab_allocator {
-        pthread_mutex_t global_lock;
-        struct linked_list slabs_list;
-        unsigned int object_count;
-        unsigned int object_size;
-        int canary_check;
+typedef struct _lev_slab_allocator lev_slab_allocator_t;
+typedef struct _MemBlock MemBlock;
+
+struct _MemBlock {
+  lev_slab_allocator_t *allocator;
+  int refcount;  /* Number of reference to this block */
+  size_t size;   /* Size of the datablock */
+  size_t nbytes; /* Number of bytes actually in buffer */
+  unsigned char bytes[0];
 };
 
-typedef struct _MemBlock {
-    struct lev_slab_allocator *pool;
-    int refcount;  /* Number of reference to this block */
-    size_t size;   /* Size of the datablock */
-    size_t nbytes; /* Number of bytes actually in buffer */
-    unsigned char bytes[0];
-} MemBlock;
+struct _lev_slab_allocator {
+  MemBlock *pool[SLAB_MAXFREELIST];
+  int pool_count;
+};
 
 typedef struct _MemSlice {
-    MemBlock *mb; /* our MemBlock */
-    unsigned char *slice;   /* begining of slice */
-    size_t until; /* range of how far we have sliced */
+    LEVBASE_REF_FIELDS
+    MemBlock *mb;         /* our MemBlock */
+    unsigned char *slice; /* begining of slice */
+    size_t until;         /* range of how far we have sliced */
 } MemSlice;
 
-void lev_slab_create(struct lev_slab_allocator * allocator,
-                 unsigned int objcount,
-                 unsigned int objsize,
-                 int canary);
-void * lev_slab_alloc(struct lev_slab_allocator * allocator);
-void lev_slab_free(struct lev_slab_allocator * allocator,
-               void * object);
-
-void lev_slab_freePools();
+void lev_slab_fill();
 MemBlock *lev_slab_getBlock(size_t size);
 int lev_slab_incRef(MemBlock *block);
 int lev_slab_decRef(MemBlock *block);

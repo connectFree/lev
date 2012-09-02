@@ -129,6 +129,57 @@ int push_callback(lua_State* L, void* object, const char* name) {
   return 1; /* OK */
 }
 
+void* create_obj_init_ref(lua_State* L, size_t size, const char *class_name) {
+  LevRefStruct_t* self;
+  lua_State* mainthread;
+
+  self = new_object(L, size, class_name);
+
+  self->refCount = 0;
+ 
+  /* if handle create in a coroutine, we need hold the coroutine */
+  mainthread = luv_get_main_thread(L);
+  if (L != mainthread) { 
+    lua_pushthread(L);
+    self->threadref = luaL_ref(L, LUA_REGISTRYINDEX);
+  } else {
+    self->threadref = LUA_NOREF;
+  }
+  self->ref = LUA_NOREF;
+
+  return (void *)self;
+
+}
+
+
+/* This needs to be called when an async function is started on a lhandle. */
+void lev_handle_ref(lua_State* L, LevRefStruct_t* lhandle, int index) {
+  /*printf("handle_ref\t %p:%p\n", lhandle, &lhandle->handle);*/
+  /* If it's inactive, store a ref. */
+  if (!lhandle->refCount) {
+    lua_pushvalue(L, index);
+    lhandle->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    /*printf("makeStrong\t lhandle=%p handle=%p\n", lhandle, &lhandle->handle);*/
+  }
+  lhandle->refCount++;
+}
+
+/* This needs to be called when an async callback fires on a lhandle. */
+void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle) {
+  lhandle->refCount--;
+  assert(lhandle->refCount >= 0);
+  /* If it's now inactive, clear the ref */
+  if (!lhandle->refCount) {
+    luaL_unref(L, LUA_REGISTRYINDEX, lhandle->ref);
+    if (lhandle->threadref != LUA_NOREF) {
+      luaL_unref(L, LUA_REGISTRYINDEX, lhandle->threadref);
+      lhandle->threadref = LUA_NOREF;
+    }
+    lhandle->ref = LUA_NOREF;
+    /*printf("handle_unref\t lhandle=%p handle=%p\n", lhandle, &lhandle->handle);*/
+  }
+}
+
 #ifdef WIN32
 __declspec(dllexport)
 #endif
@@ -138,9 +189,12 @@ int luaopen_levbase(lua_State *L) {
   uv_default_loop()->data = L;
   create_object_registry(L);
 
+  lev_slab_fill();
+
   luaL_register(L, "levbase", functions);
   luaopen_lev_core(L);
   luaopen_lev_tcp(L);
+  luaopen_lev_buffer(L);
 
   return 1;
 }

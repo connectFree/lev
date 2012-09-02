@@ -19,12 +19,13 @@
 #define LEVBASE_H_
 
 #include "uv.h"
-#include "utils.h"
 
 #include <stddef.h> /* offsetof */
 
 #include <lua.h>
 #include <lauxlib.h>
+
+#include "lev_slab.h"
 
 /* from Lua source */
 #define abs_index(L, i) \
@@ -35,9 +36,24 @@
 
 #define ARRAY_SIZE(a) (sizeof((a)) / sizeof((a)[0]))
 
+typedef struct _LevRefStruct {
+  LEVBASE_REF_FIELDS
+} LevRefStruct_t;
+
+void* create_obj_init_ref(lua_State* L, size_t size, const char *class_name);
+void lev_handle_ref(lua_State* L, LevRefStruct_t* lhandle, int index);
+void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle);
+
 int luaopen_levbase(lua_State *L);
 void luaopen_lev_core(lua_State *L);
 void luaopen_lev_tcp(lua_State *L);
+void luaopen_lev_buffer(lua_State *L);
+
+/* buffer helper functions */
+int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned char *slice);
+uv_buf_t lev_buffer_to_uv(lua_State *L, int index);
+MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size);
+
 
 void* new_object(lua_State* L, size_t size, const char* clazz);
 void set_callback(lua_State* L, const char* name, int index);

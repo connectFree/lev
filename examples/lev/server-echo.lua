@@ -10,7 +10,7 @@ server:listen(function(s, err)
   end)
   client:read_start(function(c, nread, buf)
     if buf then
-      p("echoing", buf)
+      p("echoing", buf, buf:inspect())
       c:write(buf)
     end
   end)
