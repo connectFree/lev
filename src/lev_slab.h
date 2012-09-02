@@ -61,6 +61,7 @@ struct _MemBlock {
 struct _lev_slab_allocator {
   MemBlock *pool[SLAB_MAXFREELIST];
   int pool_count;
+  int pool_min;
 };
 
 typedef struct _MemSlice {
