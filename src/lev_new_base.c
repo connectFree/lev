@@ -191,7 +191,7 @@ int luaopen_levbase(lua_State *L) {
 
   lev_slab_fill();
 
-  luaL_register(L, "levbase", functions);
+  luaL_register(L, "lev", functions);
   luaopen_lev_core(L);
   luaopen_lev_tcp(L);
   luaopen_lev_buffer(L);

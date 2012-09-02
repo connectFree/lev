@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 -- Bootstrap require system
-local levbase = require('levbase')
+local lev = require('lev')
 local utils = require('utils')
 _G.getcwd = nil
 _G.argv = nil
@@ -40,7 +40,7 @@ _G.dofile = nil
 _G.print = utils.print
 _G.p = utils.prettyPrint
 _G.debug = utils.debug
-_G.Buffer = levbase.buffer
+_G.Buffer = lev.buffer
 
 -- -- Move the version variables into a table
 -- process.version = VERSION

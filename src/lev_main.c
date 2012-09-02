@@ -542,7 +542,7 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
   lua_setfield(L, -2, "http_parser");
   /* Register levbase */
   lua_pushcfunction(L, luaopen_levbase);
-  lua_setfield(L, -2, "levbase");
+  lua_setfield(L, -2, "lev");
   /* Register env */
   lua_pushcfunction(L, luaopen_env);
   lua_setfield(L, -2, "env");
@@ -629,9 +629,9 @@ static int pmain(lua_State *L)
   if (s->status != 0) return 0;
 
   s->status = luaL_dostring(L, "\
-    local path = require('levbase').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
+    local path = require('lev').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
     package.path = path .. ';' .. package.path\
-    assert(require('lev'))");
+    assert(require('kickstart'))");
   if (s->status != 0) return 0;
   /*
    clear some globals

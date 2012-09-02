@@ -1,6 +1,6 @@
-local levbase = require('levbase')
+local lev = require('lev')
 
-local server = levbase.tcp.new()
+local server = lev.tcp.new()
 server:bind("0.0.0.0", 8080)
 server:listen(function(s, err)
   local client = s:accept()
