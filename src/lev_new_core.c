@@ -25,9 +25,6 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-static uv_timer_t gc_timer;
-
-
 #ifndef PATH_MAX
 #define PATH_MAX (8096)
 #endif
@@ -397,29 +394,6 @@ int core_print_all_handles(lua_State* L) {
 }
 
 
-static void timer_gc_cb(uv_handle_t* handle) {
-  lua_gc((lua_State *)handle->data, LUA_GCCOLLECT, 0);
-}
-
-static int core_run(lua_State* L) {
-  uv_loop_t* loop;
-  int r;
-
-  loop = uv_default_loop();
-  assert(L == loop->data);
-
-  /* register gc timer*/
-  r = uv_timer_init(uv_default_loop(), &gc_timer);
-  gc_timer.data = L;
-  r = uv_timer_start(&gc_timer, (uv_timer_cb)timer_gc_cb, 5000, 5000);
-
-
-  r = uv_run(loop);
-  lua_pushinteger(L, r);
-
-  return 1;
-}
-
 
 static luaL_reg functions[] = {
    {"activate_signal_handler", core_activate_signal_handler}
@@ -438,7 +412,6 @@ static luaL_reg functions[] = {
   ,{"handle_type", core_handle_type}
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}
-  ,{ "run", core_run }
   ,{ NULL, NULL }
 };
 

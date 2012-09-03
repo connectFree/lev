@@ -74,14 +74,14 @@ static uv_buf_t on_alloc(uv_handle_t* handle, size_t suggested_size) {
   size_t remaining;
 
   if (!_static_mb) {
-    _static_mb = lev_slab_getBlock( BUFFER_SIZE );
+    _static_mb = lev_slab_getBlock( suggested_size );
     lev_slab_incRef( _static_mb );
   }
 
   remaining = _static_mb->size - _static_mb->nbytes;
   if (_static_mb->size - _static_mb->nbytes < 512) {
     lev_slab_decRef( _static_mb );
-    _static_mb = lev_slab_getBlock( BUFFER_SIZE );
+    _static_mb = lev_slab_getBlock( suggested_size );
     lev_slab_incRef( _static_mb );
     remaining = _static_mb->size - _static_mb->nbytes;
   }

@@ -585,10 +585,10 @@ struct Smain {
   int status;
 };
 
-static void timer_gc_cb(uv_handle_t* handle) {
+/*static void timer_gc_cb(uv_handle_t* handle) {
   lua_gc((lua_State *)handle->data, LUA_GCCOLLECT, 0);
 }
-
+*/
 #ifdef _WIN32
   #define SEP "\\\\"
 #else
@@ -598,7 +598,7 @@ static void timer_gc_cb(uv_handle_t* handle) {
 static int pmain(lua_State *L)
 {
   uv_loop_t *loop;
-  uv_timer_t gc_timer;
+  /*uv_timer_t gc_timer;*/
   struct Smain *s = (struct Smain *)lua_touserdata(L, 1);
   char **argv = s->argv;
   int script;
@@ -609,10 +609,12 @@ static int pmain(lua_State *L)
   lua_gc(L, LUA_GCSTOP, 0);  /* stop collector during initialization */
   luaL_openlibs(L);  /* open libraries */
   loop = uv_default_loop();
+/*
   uv_timer_init(uv_default_loop(), &gc_timer);
   gc_timer.data = L;
   uv_timer_start(&gc_timer, (uv_timer_cb)timer_gc_cb, 5000, 5000);
-#ifdef LUV_EXPORTS
+*/
+  #ifdef LUV_EXPORTS
   lev__suck_in_symbols();
 #endif
   lua_gc(L, LUA_GCRESTART, -1);
