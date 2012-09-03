@@ -242,11 +242,8 @@ static int tcp_listen(lua_State* L) {
 }
 
 static int tcp_rcb_close(lua_State* L) {
-  tcp_obj* self;
-
-  self = luaL_checkudata(L, 1, "lev.tcp");
+  luaL_checkudata(L, 1, "lev.tcp"); /* we won't use the data, but check if it is actually lev.tcp*/
   set_callback(L, "on_close", 2);
-
   return 0;
 }
 
