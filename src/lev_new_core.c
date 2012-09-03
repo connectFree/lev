@@ -25,6 +25,12 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+#ifndef WIN32
+#include <ctype.h>
+#include <unistd.h>
+#include <sys/utsname.h>
+#endif
+
 #ifndef PATH_MAX
 #define PATH_MAX (8096)
 #endif
@@ -287,6 +293,21 @@ int core_cpu_info(lua_State* L) {
   return 1;
 }
 
+int core_os_type(lua_State* L) {
+#ifdef WIN32
+  lua_pushstring(L, "win32");
+#else
+  struct utsname info;
+  char *p;
+
+  uname(&info);
+  for (p = info.sysname; *p; p++)
+    *p = (char)tolower((unsigned char)*p);
+  lua_pushstring(L, info.sysname);
+#endif
+  return 1;
+}
+
 #if 0
  struct uv_interface_address_s {
    char* name;
@@ -412,6 +433,7 @@ static luaL_reg functions[] = {
   ,{"handle_type", core_handle_type}
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}
+  ,{"os_type", core_os_type}
   ,{ NULL, NULL }
 };
 
