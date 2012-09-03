@@ -374,6 +374,19 @@ int core_execpath(lua_State* L) {
   return 1;
 }
 
+int core_cwd(lua_State* L) {
+  size_t size = 2*PATH_MAX-1;
+  char path[2*PATH_MAX];
+  uv_err_t err;
+
+  err = uv_cwd(path, size);
+  if (err.code != UV_OK) {
+    return luaL_error(L, "uv_cwd: %s", uv_strerror(err));
+  }
+  lua_pushstring(L, path);
+  return 1;
+}
+
 int core_get_process_title(lua_State* L) {
   char title[8192];
   uv_err_t err = uv_get_process_title(title, 8192);
@@ -428,6 +441,7 @@ static luaL_reg functions[] = {
   ,{"cpu_info", core_cpu_info}
   ,{"interface_addresses", core_interface_addresses}
   ,{"execpath", core_execpath}
+  ,{"cwd", core_cwd}
   ,{"get_process_title", core_get_process_title}
   ,{"set_process_title", core_set_process_title}
   ,{"handle_type", core_handle_type}
