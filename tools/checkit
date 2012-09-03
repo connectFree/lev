@@ -1,7 +1,8 @@
-#!/usr/bin/env luvit
+#!/usr/bin/env lev
 
 --[[
 Copyright (c) 2012 Vladimir Dronnikov <dronnikov@gmail.com>
+Copyright (c) 2012 The lev Authors. All Rights Reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -21,11 +22,12 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local Utils = require('utils')
-local Table = require('table')
-local Debug = require('debug')
-local UV = require('uv_native')
-local Path = require('path')
+local utils = require('utils')
+local table = require('table')
+local debug = require('debug')
+local lev = require('lev')
+local os = require('os')
+local path = require('path')
 
 local A = { }
 
@@ -103,7 +105,7 @@ end
 local function is_callable(a)
   -- N.B: anything supporting __call
   -- N.B: __call should itself be callable :)
-  return type(a) == 'function' or (a ~= nil and is_callable((Debug.getmetatable(a) or {}).__call))
+  return type(a) == 'function' or (a ~= nil and is_callable((debug.getmetatable(a) or {}).__call))
 end
 A.is_callable = is_callable
 
@@ -158,13 +160,13 @@ local function run(tests, callback)
     -- compose testing context
     local tried = 0
     local errors = { }
-    local started_at = UV.now()
+    local started_at = lev.now()
     local ctx = {
       -- raw assertions, returning booleans
       h = A,
       -- must be called at the end of test
       done = function ()
-        local elapsed_time = UV.now() - started_at
+        local elapsed_time = lev.now() - started_at
         -- print test summary
         local color = 'green'
         if #errors > 0 then
@@ -172,7 +174,7 @@ local function run(tests, callback)
           exit_code = 1
         end
         local str = ('%s: %d/%d within %.3f seconds'):format(name, tried, tried + #errors, 0.001 * elapsed_time)
-        print(true and Utils.colorize(color, str) or str)
+        print(true and utils.colorize(color, str) or str)
         for i, err in ipairs(errors) do
           print(err)
         end
@@ -190,15 +192,15 @@ local function run(tests, callback)
           tried = tried + 1
         else
           p(...)
-          local info = Debug.getinfo(2)
-          Table.insert(errors, ('%s:%s: assertion "%s" failed'):format(info.short_src, info.currentline, k))
+          local info = debug.getinfo(2)
+          table.insert(errors, ('%s:%s: assertion "%s" failed'):format(info.short_src, info.currentline, k))
         end
       end
     end
     -- run test
     local status, error = pcall(test, ctx)
     if not status then
-      Table.insert(errors, error)
+      table.insert(errors, error)
       ctx.done()
     end
   end
@@ -211,11 +213,11 @@ end
 
 local exit_code = 0
 local function run_suite(files, callback)
-  local file = Table.remove(files)
+  local file = table.remove(files)
   if file == nil then
     callback(exit_code)
   end
-  file = Path.resolve(process.cwd(), file)
+  file = path.join(lev.cwd(), file)
   local status, tests = pcall(require, file)
   --p('S?', file, status, tests)
   if status then
@@ -225,6 +227,7 @@ local function run_suite(files, callback)
       run_suite(files, callback)
     end)
   else
+    -- TODO: fix this.
     debug(tests)
     run_suite(files, callback)
   end
@@ -234,7 +237,8 @@ end
 -- command line arguments should be require()able modules exporting tables of functions
 --
 
-local files = { } ; for _, file in ipairs(process.argv) do Table.insert(files, file) end
+local files = { } ; for _, file in ipairs(arg) do table.insert(files, file) end
 run_suite(files, function (status)
-  process.exit(status)
+  --TODO: check whether we need other function than os.exit.
+  os.exit(status)
 end)
