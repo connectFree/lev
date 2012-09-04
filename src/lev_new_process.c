@@ -51,6 +51,19 @@ static int process_new(lua_State* L) {
   return 1;
 }
 
+static int process_cwd(lua_State* L) {
+  size_t size = 2*PATH_MAX-1;
+  char path[2*PATH_MAX];
+  uv_err_t err;
+
+  err = uv_cwd(path, size);
+  if (err.code != UV_OK) {
+    return luaL_error(L, "uv_cwd: %s", uv_strerror(err));
+  }
+  lua_pushstring(L, path);
+  return 1;
+}
+
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
   { NULL,         NULL            }
@@ -59,6 +72,7 @@ static luaL_reg methods[] = {
 
 static luaL_reg functions[] = {
    { "new", process_new }
+  ,{ "cwd", process_cwd }
   ,{ NULL, NULL }
 };
 
