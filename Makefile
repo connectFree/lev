@@ -237,7 +237,8 @@ bundle/lev: build/lev ${BUILDDIR}/liblev.a
 test: test-lua test-install test-uninstall
 
 test-lua: ${BUILDDIR}/lev
-	cd tests && ../${BUILDDIR}/lev runner.lua
+	# TODO: we need to add more tests here
+	cd tests && ../tools/checkit smoke.lua
 
 ifeq ($(MAKECMDGOALS),test)
 DESTDIR=test_install
