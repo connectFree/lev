@@ -353,6 +353,15 @@ int core_execpath(lua_State* L) {
   return 1;
 }
 
+int core_chdir(lua_State* L) {
+  const char* dir_name = luaL_checkstring(L, 1);
+  uv_err_t err = uv_chdir(dir_name);
+  if (err.code) {
+    return luaL_error(L, "uv_chdir: %s: %s", uv_err_name(err), uv_strerror(err));
+  }
+  return 0;
+}
+
 int core_get_process_title(lua_State* L) {
   char title[8192];
   uv_err_t err = uv_get_process_title(title, 8192);
@@ -393,8 +402,6 @@ int core_print_all_handles(lua_State* L) {
   return 0;
 }
 
-
-
 static luaL_reg functions[] = {
    {"activate_signal_handler", core_activate_signal_handler}
   ,{"update_time", core_update_time}
@@ -407,6 +414,7 @@ static luaL_reg functions[] = {
   ,{"cpu_info", core_cpu_info}
   ,{"interface_addresses", core_interface_addresses}
   ,{"execpath", core_execpath}
+  ,{"chdir", core_chdir}
   ,{"get_process_title", core_get_process_title}
   ,{"set_process_title", core_set_process_title}
   ,{"handle_type", core_handle_type}
