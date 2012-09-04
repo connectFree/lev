@@ -192,9 +192,14 @@ int luaopen_levbase(lua_State *L) {
   lev_slab_fill();
 
   luaL_register(L, "lev", functions);
-  luaopen_lev_core(L);
-  luaopen_lev_tcp(L);
-  luaopen_lev_buffer(L);
+  luaopen_lev_fs(L); /* lev.fs */
+  luaopen_lev_dns(L); /* lev.dns */
+  luaopen_lev_tcp(L); /* lev.tcp */
+  luaopen_lev_udp(L); /* lev.udp */
+  luaopen_lev_core(L); /* lev.core */
+  luaopen_lev_timer(L); /* lev.timer */
+  luaopen_lev_buffer(L); /* lev.buffer */
+  luaopen_lev_process(L); /* lev.process */
 
   return 1;
 }
