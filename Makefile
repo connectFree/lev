@@ -238,7 +238,7 @@ test: test-lua test-install test-uninstall
 
 test-lua: ${BUILDDIR}/lev
 	# TODO: we need to add more tests here
-	cd tests && ../tools/checkit smoke.lua
+	./build/lev ./tools/checkit /tests/smoke.lua
 
 ifeq ($(MAKECMDGOALS),test)
 DESTDIR=test_install
