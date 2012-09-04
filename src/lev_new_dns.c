@@ -63,7 +63,7 @@ static luaL_reg functions[] = {
 };
 
 
-void luaopen_lev_udp(lua_State *L) {
+void luaopen_lev_dns(lua_State *L) {
   luaL_newmetatable(L, "lev.dns");
   luaL_register(L, NULL, methods);
   lua_setfield(L, -1, "__index");

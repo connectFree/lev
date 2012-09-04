@@ -45,9 +45,15 @@ void lev_handle_ref(lua_State* L, LevRefStruct_t* lhandle, int index);
 void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle);
 
 int luaopen_levbase(lua_State *L);
-void luaopen_lev_core(lua_State *L);
-void luaopen_lev_tcp(lua_State *L);
-void luaopen_lev_buffer(lua_State *L);
+
+void luaopen_lev_fs(lua_State *L); /* lev.fs */
+void luaopen_lev_dns(lua_State *L); /* lev.dns */
+void luaopen_lev_tcp(lua_State *L); /* lev.tcp */
+void luaopen_lev_udp(lua_State *L); /* lev.udp */
+void luaopen_lev_core(lua_State *L); /* lev.core */
+void luaopen_lev_timer(lua_State *L); /* lev.timer */
+void luaopen_lev_buffer(lua_State *L); /* lev.buffer */
+void luaopen_lev_process(lua_State *L); /* lev.process */
 
 /* buffer helper functions */
 int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned char *slice);

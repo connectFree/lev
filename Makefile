@@ -98,6 +98,7 @@ LUVLIBS=${BUILDDIR}/utils.o            \
         ${BUILDDIR}/lev_new_tcp.o      \
         ${BUILDDIR}/lev_new_dns.o      \
         ${BUILDDIR}/lev_new_udp.o      \
+        ${BUILDDIR}/lev_new_base.o     \
         ${BUILDDIR}/lev_new_core.o     \
         ${BUILDDIR}/lev_new_timer.o    \
 				${BUILDDIR}/lev_new_buffer.o   \
