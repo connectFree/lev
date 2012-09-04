@@ -70,6 +70,12 @@ static int process_cwd(lua_State* L) {
   return 1;
 }
 
+static int process_pid(lua_State* L) {
+  int pid = getpid();
+  lua_pushinteger(L, pid);
+  return 1;
+}
+
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
   { NULL,         NULL            }
@@ -79,6 +85,7 @@ static luaL_reg methods[] = {
 static luaL_reg functions[] = {
    { "new", process_new }
   ,{ "cwd", process_cwd }
+  ,{ "pid", process_pid }
   ,{ NULL, NULL }
 };
 
