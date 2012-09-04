@@ -53,7 +53,7 @@ static int dns_new(lua_State* L) {
 
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
-  ,{ NULL,         NULL            }
+  { NULL,         NULL            }
 };
 
 

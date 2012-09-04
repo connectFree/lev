@@ -31,7 +31,7 @@
   
 */
 
-static MemBlock *_static_mb = NULL;
+/*static MemBlock *_static_mb = NULL;*/
 
 #define UNWRAP(h) \
   udp_obj* self = container_of((h), udp_obj, handle); \
@@ -39,7 +39,7 @@ static MemBlock *_static_mb = NULL;
 
 typedef struct {
   LEVBASE_REF_FIELDS
-  uv_tcp_t handle;
+  uv_udp_t handle;
   uv_connect_t connect_req; /* TODO alloc on as needed basis */
 } udp_obj;
 
@@ -58,7 +58,7 @@ static int udp_new(lua_State* L) {
 
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
-  ,{ NULL,         NULL            }
+  { NULL,         NULL            }
 };
 
 

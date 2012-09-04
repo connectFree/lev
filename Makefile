@@ -93,15 +93,19 @@ else
 CPPFLAGS += -I${SSLDIR}/openssl-configs/ia32
 endif
 
-LUVLIBS=${BUILDDIR}/utils.o          \
-				${BUILDDIR}/lev_new_base.o   \
-				${BUILDDIR}/lev_new_core.o   \
-				${BUILDDIR}/lev_new_tcp.o    \
-				${BUILDDIR}/lev_new_buffer.o \
-        ${BUILDDIR}/lev_slab.o       \
-        ${BUILDDIR}/luv_debug.o      \
-        ${BUILDDIR}/lconstants.o     \
-        ${BUILDDIR}/lenv.o           \
+LUVLIBS=${BUILDDIR}/utils.o            \
+        ${BUILDDIR}/lev_new_fs.o       \
+        ${BUILDDIR}/lev_new_tcp.o      \
+        ${BUILDDIR}/lev_new_dns.o      \
+        ${BUILDDIR}/lev_new_udp.o      \
+        ${BUILDDIR}/lev_new_core.o     \
+        ${BUILDDIR}/lev_new_timer.o    \
+				${BUILDDIR}/lev_new_buffer.o   \
+        ${BUILDDIR}/lev_new_process.o  \
+        ${BUILDDIR}/lev_slab.o         \
+        ${BUILDDIR}/luv_debug.o        \
+        ${BUILDDIR}/lconstants.o       \
+        ${BUILDDIR}/lenv.o             \
         ${BUILDDIR}/lhttp_parser.o   
 
 DEPS=${LUADIR}/src/libluajit.a \

@@ -27,7 +27,7 @@
 
 /*
 
-  X:TODO Beginning of FS Module...
+  X:TODO Beginning of TIMER Module...
   
 */
 
@@ -39,7 +39,7 @@ typedef struct {
   LEVBASE_REF_FIELDS
 } timer_obj;
 
-static int dns_new(lua_State* L) {
+static int timer_new(lua_State* L) {
   uv_loop_t* loop;
   timer_obj* self;
 
@@ -53,7 +53,7 @@ static int dns_new(lua_State* L) {
 
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
-  ,{ NULL,         NULL            }
+  { NULL,         NULL            }
 };
 
 

@@ -39,7 +39,7 @@ typedef struct {
   LEVBASE_REF_FIELDS
 } fs_obj;
 
-static int dns_new(lua_State* L) {
+static int fs_new(lua_State* L) {
   uv_loop_t* loop;
   fs_obj* self;
 
@@ -53,7 +53,7 @@ static int dns_new(lua_State* L) {
 
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
-  ,{ NULL,         NULL            }
+  { NULL,         NULL            }
 };
 
 
