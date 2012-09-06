@@ -170,14 +170,19 @@ local function run(tests, callback)
   tests = tests or { }
 
   local exit_code = 0
+  local test_cnt = 0
+  local assert_cnt = 0
+  local err_cnt = 0
+  local total_elapsed_time = 0;
 
   -- count tests
   local ntests = 0
   for name, test in pairs(tests) do
     ntests = ntests + 1
   end
+  test_cnt = ntests
   if callback and ntests == 0 then
-    callback(exit_code)
+    callback(exit_code, test_cnt, assert_cnt, err_cnt, total_pass_time)
     return
   end
 
@@ -197,9 +202,12 @@ local function run(tests, callback)
         local colored_checkmark = options.use_color and color_str('green', checkmarks.ok) or checkmarks.ok
         if #errors > 0 then
           colored_checkmark = options.use_color and color_str('red', checkmarks.ng) or checkmarks.ng
+          err_cnt = err_cnt + #errors
           exit_code = 1
         end
-        local str = ('%s %s: %d/%d within %.3f seconds')
+        assert_cnt = assert_cnt + tried + #errors
+        total_elapsed_time = total_elapsed_time + elapsed_time
+        local str = ('%s %s: %d/%d within %.3f ms')
           :format(colored_checkmark, name, tried, tried + #errors, elapsed_time)
         print(str)
         for i = 1, #errors do
@@ -208,7 +216,7 @@ local function run(tests, callback)
         -- report status
         ntests = ntests - 1
         if callback and ntests == 0 then
-          callback(exit_code)
+          callback(exit_code, test_cnt, assert_cnt, err_cnt, total_elapsed_time)
         end
       end,
     }
@@ -218,8 +226,7 @@ local function run(tests, callback)
         if v(...) then
           tried = tried + 1
         else
-          -- FIXME: should pretty print
-          print(...)
+          p(...)
           local info = debug.getinfo(2)
           table.insert(
               errors,
@@ -244,15 +251,24 @@ end
 --
 
 local exit_code = 0
+local test_cnt = 0
+local assert_cnt = 0
+local err_cnt = 0
+local elapsed_time = 0
+
 local function run_suite(files, callback)
   local file = table.remove(files)
   if file == nil then
-    callback(exit_code)
+    callback(exit_code, test_cnt, assert_cnt, err_cnt, elapsed_time)
   end
   local status, tests = pcall(loadfile, file)
   --print('S?', file, status, tests)
   if status then
-    run(tests(), function (err)
+    run(tests(), function (err, ntests, nasserts, nerr, time)
+      test_cnt = test_cnt + ntests
+      assert_cnt = assert_cnt + nasserts
+      err_cnt = err_cnt + nerr
+      elapsed_time = elapsed_time + time
       --print('S!', err)
       if err ~= 0 then exit_code = err end
       run_suite(files, callback)
@@ -269,6 +285,7 @@ end
 --
 
 local files = {...}
-run_suite(files, function (status)
+run_suite(files, function (status, ntests, nasserts, nerr, time)
+  print(('Tests: %d, Asserts: %d, Errors: %d, Time: %.3f ms') :format(ntests, nasserts, nerr, time))
   os.exit(status)
 end)
