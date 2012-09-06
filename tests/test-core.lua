@@ -140,8 +140,9 @@ exports['test core get_process_title'] = function (test)
   test.done()
 end
 
+-- NOTE: this test pass linux only. because uv_set_process_title do not support all platform. 
 exports['test core set_process_title'] = function (test)
-  test.ok(lev.set_process_title('lev_unittest'))
+  test.is_nil(lev.set_process_title('lev_unittest'))
   test.equal(lev.get_process_title(), 'lev_unittest')
 
   test.done()
