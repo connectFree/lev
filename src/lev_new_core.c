@@ -243,10 +243,14 @@ int core_get_total_memory(lua_State* L) {
 int core_loadavg(lua_State* L) {
   double avg[3];
   uv_loadavg(avg);
+  lua_newtable(L);
   lua_pushnumber(L, avg[0]);
+  lua_rawseti(L, -2, 1);
   lua_pushnumber(L, avg[1]);
+  lua_rawseti(L, -2, 2);
   lua_pushnumber(L, avg[2]);
-  return 3;
+  lua_rawseti(L, -2, 3);
+  return 1;
 }
 
 int core_uptime(lua_State* L) {
