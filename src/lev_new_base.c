@@ -126,8 +126,7 @@ int push_callback(lua_State* L, void* object, const char* name) {
   /* STACK: <object> <callback> */
 
   /* STACK: <object> <callback> */
-  lua_pushvalue(L, -2);
-  lua_remove(L, -3);
+  lua_insert(L, -2);
   /* STACK: <callback> <object> */
   return 1; /* OK */
 }
