@@ -25,6 +25,11 @@ local table = require('table')
 local debug = require('debug')
 local os = require('os')
 
+-- TODO: set options by command line args.
+local options = {
+  use_color = true
+}
+
 local function now()
   return lev.hrtime()
 end
@@ -145,6 +150,20 @@ assert(not A.ok(A.is_nil(1)))
 -- runner
 --
 
+local colors = {
+  red = 31,
+  green = 32
+}
+
+local checkmarks = {
+  ok = '✔',
+  ng = '✖'
+}
+
+local color_str = function (type, str)
+  return "\27[" .. colors[type] .. "m" .. str .. "\27[0m"
+end
+
 local function run(tests, callback)
 
   -- sanity
@@ -175,13 +194,13 @@ local function run(tests, callback)
       done = function ()
         local elapsed_time = now() - started_at
         -- print test summary
-        local color = 'green'
+        local colored_checkmark = options.use_color and color_str('green', checkmarks.ok) or checkmarks.ok
         if #errors > 0 then
-          color = 'red'
+          colored_checkmark = options.use_color and color_str('red', checkmarks.ng) or checkmarks.ng
           exit_code = 1
         end
-        local str = ('%s: %d/%d within %.3f seconds')
-          :format(name, tried, tried + #errors, elapsed_time)
+        local str = ('%s %s: %d/%d within %.3f seconds')
+          :format(colored_checkmark, name, tried, tried + #errors, elapsed_time)
         print(str)
         for i = 1, #errors do
           print(errors[i])
