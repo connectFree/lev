@@ -26,8 +26,7 @@ local debug = require('debug')
 local os = require('os')
 
 local function now()
-  -- TODO: need to be of higher precision
-  return os.time()
+  return lev.hrtime()
 end
 
 local A = { }
