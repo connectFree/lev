@@ -32,7 +32,7 @@ exports['test core now'] = function (test)
   local t = lev.now()
 
   test.is_number(t)
-  test.ok(t > 0)
+  test.ok(t >= 0)
 
   test.done()
 end
@@ -42,7 +42,7 @@ exports['test core update_time'] = function (test)
 
   sleep()
   test.is_nil(lev.update_time())
-  test.ok((lev.now() - t1) > 0)
+  test.ok((lev.now() - t1) >= 0)
 
   test.done()
 end
@@ -50,7 +50,7 @@ end
 exports['test core hrtime'] = function (test)
   local t = lev.hrtime()
   test.is_number(t)
-  test.ok(t > 0)
+  test.ok(t >= 0)
 
   test.done()
 end
@@ -58,7 +58,7 @@ end
 exports['test core uptime'] = function (test)
   local t = lev.uptime()
   test.is_number(t)
-  test.ok(t > 0)
+  test.ok(t >= 0)
 
   test.done()
 end
