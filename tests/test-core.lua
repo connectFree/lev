@@ -106,12 +106,14 @@ exports['test core interface_addresses'] = function (test)
 end
 
 exports['test core loadavg'] = function (test)
-  local avg = lev.loadavg()
+  local avg1, avg2, avg3 = lev.loadavg()
 
-  table.ok(#arg > 0)
-  for _, v in pairs(avg) do
-    test.ok(v >= 0)
-  end
+  test.is_number(avg1)
+  test.ok(avg1 >= 0)
+  test.is_number(avg2)
+  test.ok(avg2 >= 0)
+  test.is_number(avg3)
+  test.ok(avg3 >= 0)
 
   test.done()
 end
