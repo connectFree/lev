@@ -108,7 +108,7 @@ end
 exports['test core loadavg'] = function (test)
   local avg = lev.loadavg()
 
-  test.ok(#avg > 0)
+  table.ok(#arg > 0)
   for _, v in pairs(avg) do
     test.ok(v >= 0)
   end
