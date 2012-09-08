@@ -51,218 +51,15 @@ static uv_err_t code_to_uv_error(uv_err_code errcode) {
   return err;
 }
 
-#define IS_ASYNC(req) (req)->data
+#define IS_ASYNC(req) ((req)->cb)
 #define UV_ERR(req) (IS_ASYNC(req) ? code_to_uv_error((req)->errorno) \
                                    : uv_last_error((req)->loop))
 
 /*
- * callback utilities
+ * argument utilities
  */
-
-static int fs_checkcallback(lua_State *L, int index) {
-  luaL_checktype(L, index, LUA_TFUNCTION);
-  lua_pushvalue(L, index);
-  return luaL_ref(L, LUA_REGISTRYINDEX);
-}
-
-static void fs_push_callback(lua_State *L, int ref) {
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-
-  /*
-   * We can safely call luaL_unref() here because now the stack holds the value
-   * so it is not garbage collected.
-   */
-  luaL_unref(L, LUA_REGISTRYINDEX, ref);
-}
-
-/*
- * fs request memory management
- */
-
-static uv_fs_t *alloc_fs_rec() {
-  MemBlock *block = lev_slab_getBlock(sizeof(uv_fs_t));
-  lev_slab_incRef(block);
-  return block->bytes;
-}
-
-static dispose_fs_rec(uv_fs_t *req) {
-  uv_fs_req_cleanup(req);
-  MemBlock* block = container_of(req, MemBlock, bytes);
-  lev_slab_decRef(block);
-}
-
-/*
- * pushing results
- */
-
-static int push_results(lua_State *L, uv_fs_t *req) {
-  if (req->result == -1) {
-    fs_push_uv_error(L, UV_ERR(req));
-    return 1;
-  }
-
-  switch (req->fs_type) {
-  case UV_FS_OPEN:
-    lua_pushnil(L);
-    lua_pushnumber(L, req->result);
-    return 2;
-  default:
-    return 0;
-  }
-}
-
-static void after_async_fs(uv_fs_t *req) {
-  lua_State *L = req->loop->data;
-  int ret_n;
-
-  fs_push_callback(L, req->data);
-  ret_n = push_results(L, req);
-  lua_call(L, ret_n, 0);
-  dispose_fs_rec(req);
-}
-
-static int after_sync_fs(lua_State* L, uv_fs_t *req) {
-  int ret_n = push_results(L, req);
-  dispose_fs_rec(req);
-  return ret_n;
-}
-
-/*
- * fs.exists
- */
-
-static int push_exists_results(lua_State *L, uv_fs_t *req) {
-  lua_pushboolean(L, req->result != -1);
-  return 1;
-}
-
-static void after_async_exists(uv_fs_t *req) {
-  lua_State *L = req->loop->data;
-  int ret_n;
-
-  fs_push_callback(L, req->data);
-  ret_n = push_exists_results(L, req);
-  lua_call(L, ret_n, 0);
-  dispose_fs_rec(req);
-}
-
-static int after_sync_exists(lua_State* L, uv_fs_t *req) {
-  int ret_n = push_exists_results(L, req);
-  dispose_fs_rec(req);
-  return ret_n;
-}
-
-static int fs_exists(lua_State* L) {
-  uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
-  uv_fs_t *req = alloc_fs_rec();
-  int arg_n = lua_gettop(L);
-  int arg_i = 1;
-  const char *path = luaL_checkstring(L, arg_i++);
-  if (arg_i <= arg_n) {
-    req->data = fs_checkcallback(L, arg_i++);
-    cb = after_async_exists;
-  } else {
-    req->data = NULL;
-    cb = NULL;
-  }
-  uv_fs_stat(loop, req, path, cb);
-  return after_sync_exists(L, req);
-}
-
-/*
- * fs.close
- */
-static int fs_close(lua_State* L) {
-  uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
-  uv_fs_t *req = alloc_fs_rec();
-  int arg_n = lua_gettop(L);
-  int arg_i = 1;
-  int fd = luaL_checkint(L, arg_i++);
-  if (arg_i <= arg_n) {
-    req->data = fs_checkcallback(L, arg_i++);
-    cb = after_async_fs;
-  } else {
-    req->data = NULL;
-    cb = NULL;
-  }
-  uv_fs_close(loop, req, fd, cb);
-  return after_sync_fs(L, req);
-}
-
-/*
- * fs.mkdir
- */
-static int fs_mkdir(lua_State* L) {
-  int mode;
-  uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
-  uv_fs_t *req = alloc_fs_rec();
-  int arg_n = lua_gettop(L);
-  int arg_i = 1;
-  const char *path = luaL_checkstring(L, arg_i++);
-  if (arg_i <= arg_n && lua_isnumber(L, arg_i)) {
-    mode = luaL_checkint(L, arg_i++);
-  } else {
-    mode = 0777;
-  }
-  if (arg_i <= arg_n) {
-    req->data = fs_checkcallback(L, arg_i++);
-    cb = after_async_fs;
-  } else {
-    req->data = NULL;
-    cb = NULL;
-  }
-  uv_fs_mkdir(loop, req, path, mode, cb);
-  return after_sync_fs(L, req);
-}
-
-/*
- * fs.rmdir
- */
-static int fs_rmdir(lua_State* L) {
-  uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
-  uv_fs_t *req = alloc_fs_rec();
-  int arg_n = lua_gettop(L);
-  int arg_i = 1;
-  const char *path = luaL_checkstring(L, arg_i++);
-  if (arg_i <= arg_n) {
-    req->data = fs_checkcallback(L, arg_i++);
-    cb = after_async_fs;
-  } else {
-    req->data = NULL;
-    cb = NULL;
-  }
-  uv_fs_rmdir(loop, req, path, cb);
-  return after_sync_fs(L, req);
-}
-
-/*
- * fs.unlink
- */
-static int fs_unlink(lua_State* L) {
-  uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
-  uv_fs_t *req = alloc_fs_rec();
-  int arg_n = lua_gettop(L);
-  int arg_i = 1;
-  const char *path = luaL_checkstring(L, arg_i++);
-  if (arg_i <= arg_n) {
-    req->data = fs_checkcallback(L, arg_i++);
-    cb = after_async_fs;
-  } else {
-    req->data = NULL;
-    cb = NULL;
-  }
-  uv_fs_unlink(loop, req, path, cb);
-  return after_sync_fs(L, req);
-}
-
-/*
- * fs.open
- */
+#define lev_checkbuffer(L, index) \
+    ((MemSlice *)luaL_checkudata((L), (index), "lev.buffer"))
 
 typedef struct mode_mapping_s {
   char *name;
@@ -302,11 +99,349 @@ static int fs_checkflags(lua_State *L, int index) {
   return flags;
 }
 
+/*
+ * callback utilities
+ */
+
+static int fs_checkcallback(lua_State *L, int index) {
+  luaL_checktype(L, index, LUA_TFUNCTION);
+  lua_pushvalue(L, index);
+  return luaL_ref(L, LUA_REGISTRYINDEX);
+}
+
+static void fs_push_callback(lua_State *L, int ref) {
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+  /*
+   * We can safely call luaL_unref() here because now the stack holds the value
+   * so it is not garbage collected.
+   */
+  luaL_unref(L, LUA_REGISTRYINDEX, ref);
+}
+
+/*
+ * fs request memory management
+ */
+
+#define MANAGE_REQ_IN_LUA
+
+#ifdef MANAGE_REQ_IN_LUA
+typedef struct fs_req_holder_s {
+  int ref;
+  uv_fs_t req;
+} fs_req_holder_t;
+#endif
+
+static uv_fs_t *alloc_fs_req(lua_State *L) {
+#ifdef MANAGE_REQ_IN_LUA
+  fs_req_holder_t *holder = lua_newuserdata(L, sizeof(fs_req_holder_t));
+  /* To avoid being gc'ed, we put this to registry. */
+  holder->ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  return &holder->req;
+#else
+  MemBlock *block = lev_slab_getBlock(sizeof(uv_fs_t));
+  lev_slab_incRef(block);
+  return block->bytes;
+#endif
+}
+
+static dispose_fs_req(uv_fs_t *req) {
+  uv_fs_req_cleanup(req);
+#ifdef MANAGE_REQ_IN_LUA
+  fs_req_holder_t *holder = container_of(req, fs_req_holder_t, req);
+  lua_State *L = req->loop->data;
+  luaL_unref(L, LUA_REGISTRYINDEX, holder->ref);
+#else
+  MemBlock* block = container_of(req, MemBlock, bytes);
+  lev_slab_decRef(block);
+#endif
+}
+
+/*
+ * pushing results
+ *
+ * NOTE: write returns err, written_byte_count, which is different from
+ *       Node.js (err, written_byte_count, buffer)
+ */
+static int push_results(lua_State *L, uv_fs_t *req) {
+  if (req->result == -1) {
+    fs_push_uv_error(L, UV_ERR(req));
+    return 1;
+  }
+
+  switch (req->fs_type) {
+  case UV_FS_OPEN:
+  case UV_FS_READ:
+  case UV_FS_WRITE:
+    lua_pushnil(L);
+    lua_pushnumber(L, req->result);
+    return 2;
+  default:
+    return 0;
+  }
+}
+
+static void on_fs_callback(uv_fs_t *req) {
+  lua_State *L = req->loop->data;
+  int ret_n;
+
+  fs_push_callback(L, req->data);
+  ret_n = push_results(L, req);
+  lua_call(L, ret_n, 0);
+  dispose_fs_req(req);
+}
+
+static int fs_post_handling(lua_State* L, uv_fs_t *req) {
+  int ret_n = push_results(L, req);
+  if (!IS_ASYNC(req)) {
+    dispose_fs_req(req);
+  }
+  return ret_n;
+}
+
+/*
+ * fs.exists
+ */
+
+static int push_exists_results(lua_State *L, uv_fs_t *req) {
+  lua_pushboolean(L, req->result != -1);
+  return 1;
+}
+
+static void on_exists_callback(uv_fs_t *req) {
+  lua_State *L = req->loop->data;
+  int ret_n;
+
+  fs_push_callback(L, req->data);
+  ret_n = push_exists_results(L, req);
+  lua_call(L, ret_n, 0);
+  dispose_fs_req(req);
+}
+
+static int exists_post_handling(lua_State* L, uv_fs_t *req) {
+  int ret_n = push_exists_results(L, req);
+  if (!IS_ASYNC(req)) {
+    dispose_fs_req(req);
+  }
+  return ret_n;
+}
+
+static int fs_exists(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_exists_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_stat(loop, req, path, cb);
+  return exists_post_handling(L, req);
+}
+
+/*
+ * fs.close
+ */
+static int fs_close(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_close(loop, req, fd, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.chmod
+ */
+static int fs_chmod(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  int mode = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_chmod(loop, req, path, mode, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.fchmod
+ */
+static int fs_fchmod(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  int mode = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_fchmod(loop, req, fd, mode, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.mkdir
+ */
+static int fs_mkdir(lua_State* L) {
+  int mode;
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n && lua_isnumber(L, arg_i)) {
+    mode = luaL_checkint(L, arg_i++);
+  } else {
+    mode = 0777;
+  }
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_mkdir(loop, req, path, mode, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.read
+ */
+static int fs_read(lua_State* L) {
+  long file_pos;
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  MemSlice *ms = lev_checkbuffer(L, arg_i++);
+  if (arg_i <= arg_n && lua_isnumber(L, arg_i)) {
+    file_pos = luaL_checklong(L, arg_i++);
+  } else {
+    file_pos = -1;
+  }
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_read(loop, req, fd, ms->slice, ms->until, file_pos, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.write
+ */
+static int fs_write(lua_State* L) {
+  long file_pos;
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  MemSlice *ms = lev_checkbuffer(L, arg_i++);
+  if (arg_i <= arg_n && lua_isnumber(L, arg_i)) {
+    file_pos = luaL_checklong(L, arg_i++);
+  } else {
+    file_pos = -1;
+  }
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_write(loop, req, fd, ms->slice, ms->until, file_pos, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.rmdir
+ */
+static int fs_rmdir(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_rmdir(loop, req, path, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.unlink
+ */
+static int fs_unlink(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_unlink(loop, req, path, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.open
+ */
 static int fs_open(lua_State* L) {
   int mode;
   uv_fs_cb cb;
   uv_loop_t *loop = uv_default_loop();
-  uv_fs_t *req = alloc_fs_rec();
+  uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
@@ -318,22 +453,26 @@ static int fs_open(lua_State* L) {
   }
   if (arg_i <= arg_n) {
     req->data = fs_checkcallback(L, arg_i++);
-    cb = after_async_fs;
+    cb = on_fs_callback;
   } else {
     req->data = NULL;
     cb = NULL;
   }
   uv_fs_open(loop, req, path, flags, mode, cb);
-  return after_sync_fs(L, req);
+  return fs_post_handling(L, req);
 }
 
 static luaL_reg functions[] = {
-  { "close",      fs_close        }
+  { "chmod",      fs_chmod        }
+ ,{ "close",      fs_close        }
  ,{ "exists",     fs_exists       }
+ ,{ "fchmod",     fs_fchmod       }
  ,{ "open",       fs_open         }
  ,{ "mkdir",      fs_mkdir        }
+ ,{ "read",       fs_read         }
  ,{ "rmdir",      fs_rmdir        }
  ,{ "unlink",     fs_unlink       }
+ ,{ "write",      fs_write        }
  ,{ NULL,         NULL            }
 };
 
