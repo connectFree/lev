@@ -163,14 +163,7 @@ static dispose_fs_req(uv_fs_t *req) {
     ((uv_statbuf_t *)luaL_checkudata((L), (idx), FS_STAT_TNAME))
 
 static int lev_pushtimespec(lua_State *L, struct timespec *timespec) {
-  lua_createtable(L, 2, 0);
-
-  lua_pushnumber(L, timespec->tv_sec);
-  lua_rawseti(L, -2, 1);
-
-  lua_pushnumber(L, timespec->tv_nsec);
-  lua_rawseti(L, -2, 2);
-
+  lua_pushnumber(L, timespec->tv_sec + timespec->tv_nsec / 1e9);
   return 1;
 }
 
@@ -589,6 +582,29 @@ static int fs_fsync(lua_State* L) {
 }
 
 /*
+ * fs.futime
+ */
+static int fs_futime(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  lua_Number atime = luaL_checknumber(L, arg_i++);
+  lua_Number mtime = luaL_checknumber(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_futime(loop, req, fd, atime, mtime, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.mkdir
  */
 static int fs_mkdir(lua_State* L) {
@@ -891,6 +907,29 @@ static int fs_unlink(lua_State* L) {
 }
 
 /*
+ * fs.utime
+ */
+static int fs_utime(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  lua_Number atime = luaL_checknumber(L, arg_i++);
+  lua_Number mtime = luaL_checknumber(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_utime(loop, req, path, atime, mtime, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.open
  */
 static int fs_open(lua_State* L) {
@@ -929,6 +968,7 @@ static luaL_reg functions[] = {
  ,{ "fstat",      fs_fstat        }
  ,{ "fsync",      fs_fsync        }
  ,{ "ftruncate",  fs_ftruncate    }
+ ,{ "futime",     fs_futime       }
  ,{ "link",       fs_link         }
  ,{ "lstat",      fs_lstat        }
  ,{ "mkdir",      fs_mkdir        }
@@ -939,6 +979,7 @@ static luaL_reg functions[] = {
  ,{ "rmdir",      fs_rmdir        }
  ,{ "stat",       fs_stat         }
  ,{ "symlink",    fs_symlink      }
+ ,{ "utime",      fs_utime        }
  ,{ "unlink",     fs_unlink       }
  ,{ "write",      fs_write        }
  ,{ NULL,         NULL            }
