@@ -87,6 +87,31 @@ exports['fs_sync_write_read'] = function(test)
   test.done()
 end
 
+exports['fs_sync_rename'] = function(test)
+  local lev = require('lev')
+  local fs = lev.fs
+  local path = '_tmp_file1.txt'
+  local new_path = '_tmp_file2.txt'
+  assert(not fs.exists(path))
+  assert(not fs.exists(new_path))
+
+  local err, fd = fs.open(path, 'w+', tonumber('666', 8))
+  test.is_nil(err)
+
+  err = fs.close(fd)
+  test.is_nil(err)
+
+  err = fs.rename(path, new_path)
+  test.is_nil(err)
+  test.ok(not fs.exists(path))
+  test.ok(fs.exists(new_path))
+
+  err = fs.unlink(new_path)
+  test.is_nil(err)
+
+  test.done()
+end
+
 exports['fs_sync_stat'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
@@ -115,6 +140,43 @@ exports['fs_sync_stat'] = function(test)
   test.is_number(stat:ctime()[2])
   test.is_number(stat:mtime()[1])
   test.is_number(stat:mtime()[2])
+
+  test.done()
+end
+
+exports['fs_sync_truncate'] = function(test)
+  local lev = require('lev')
+  local fs = lev.fs
+  local path = '_tmp_file1.txt'
+  assert(not fs.exists(path))
+
+  local err, fd = fs.open(path, 'w+', tonumber('666', 8))
+  test.is_nil(err)
+
+  local byte_count_written
+  local content = 'lev is everything great about Node.\n'
+  local buf = Buffer:new(content)
+  err, byte_count_written = fs.write(fd, buf)
+  test.is_nil(err)
+
+  local stat
+  err, stat = fs.stat(path)
+  test.is_nil(err)
+  test.equal(stat:size(), #content)
+
+  local new_size = 3
+  err = fs.ftruncate(fd, new_size)
+  test.is_nil(err)
+
+  err, stat = fs.stat(path)
+  test.is_nil(err)
+  test.equal(stat:size(), new_size)
+
+  err = fs.close(fd)
+  test.is_nil(err)
+
+  err = fs.unlink(path)
+  test.is_nil(err)
 
   test.done()
 end
