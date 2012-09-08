@@ -580,6 +580,55 @@ static int fs_write(lua_State* L) {
 }
 
 /*
+ * fs.ftruncate
+ */
+static int fs_ftruncate(lua_State* L) {
+  long file_size;
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n && lua_isnumber(L, arg_i)) {
+    file_size = luaL_checklong(L, arg_i++);
+  } else {
+    file_size = -1;
+  }
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_ftruncate(loop, req, fd, file_size, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.rename
+ */
+static int fs_rename(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *old_path = luaL_checkstring(L, arg_i++);
+  const char *new_path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_rename(loop, req, old_path, new_path, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.rmdir
  */
 static int fs_rmdir(lua_State* L) {
@@ -718,10 +767,12 @@ static luaL_reg functions[] = {
  ,{ "exists",     fs_exists       }
  ,{ "fchmod",     fs_fchmod       }
  ,{ "fstat",      fs_fstat        }
+ ,{ "ftruncate",  fs_ftruncate    }
  ,{ "lstat",      fs_lstat        }
  ,{ "mkdir",      fs_mkdir        }
  ,{ "open",       fs_open         }
  ,{ "read",       fs_read         }
+ ,{ "rename",     fs_rename       }
  ,{ "rmdir",      fs_rmdir        }
  ,{ "stat",       fs_stat         }
  ,{ "unlink",     fs_unlink       }
