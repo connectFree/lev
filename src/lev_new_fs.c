@@ -337,6 +337,22 @@ static int push_fs_stat(lua_State *L, uv_statbuf_t *buf) {
   return 1;
 }
 
+static int push_readdir_results(lua_State *L, int entry_count,
+    const char *entries) {
+  const char *p;
+  const char *q;
+  int i;
+  lua_createtable(L, entry_count, 0);
+  for (i = 1, p = entries; i <= entry_count; ++i, p = q + 1) {
+    q = strchr(p, '\0');
+    assert(q != NULL);
+
+    lua_pushlstring(L, p, q - p);
+    lua_rawseti(L, -2, i);
+  }
+  return 1;
+}
+
 static int push_results(lua_State *L, uv_fs_t *req) {
   if (req->result == -1) {
     fs_push_uv_error(L, UV_ERR(req));
@@ -359,6 +375,10 @@ static int push_results(lua_State *L, uv_fs_t *req) {
   case UV_FS_READLINK:
     lua_pushnil(L);
     lua_pushstring(L, req->ptr);
+    return 2;
+  case UV_FS_READDIR:
+    lua_pushnil(L);
+    push_readdir_results(L, req->result, req->ptr);
     return 2;
   default:
     return 0;
@@ -737,6 +757,27 @@ static int fs_link(lua_State* L) {
 }
 
 /*
+ * fs.readdir
+ */
+static int fs_readdir(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_readdir(loop, req, path, 0, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.readlink
  */
 static int fs_readlink(lua_State* L) {
@@ -974,6 +1015,7 @@ static luaL_reg functions[] = {
  ,{ "mkdir",      fs_mkdir        }
  ,{ "open",       fs_open         }
  ,{ "read",       fs_read         }
+ ,{ "readdir",    fs_readdir      }
  ,{ "readlink",   fs_readlink     }
  ,{ "rename",     fs_rename       }
  ,{ "rmdir",      fs_rmdir        }
