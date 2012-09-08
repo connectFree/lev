@@ -543,6 +543,48 @@ static int fs_fchown(lua_State* L) {
 }
 
 /*
+ * fs.fdatasync
+ */
+static int fs_fdatasync(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_fdatasync(loop, req, fd, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.fsync
+ */
+static int fs_fsync(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_fsync(loop, req, fd, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.mkdir
  */
 static int fs_mkdir(lua_State* L) {
@@ -814,7 +856,9 @@ static luaL_reg functions[] = {
  ,{ "exists",     fs_exists       }
  ,{ "fchmod",     fs_fchmod       }
  ,{ "fchown",     fs_fchown       }
+ ,{ "fdatasync",  fs_fdatasync    }
  ,{ "fstat",      fs_fstat        }
+ ,{ "fsync",      fs_fsync        }
  ,{ "ftruncate",  fs_ftruncate    }
  ,{ "lstat",      fs_lstat        }
  ,{ "mkdir",      fs_mkdir        }
