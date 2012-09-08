@@ -123,8 +123,6 @@ static void fs_push_callback(lua_State *L, int ref) {
  * fs request memory management
  */
 
-#define MANAGE_REQ_IN_LUA
-
 #ifdef MANAGE_REQ_IN_LUA
 typedef struct fs_req_holder_s {
   int ref;
