@@ -32,12 +32,12 @@ exports['fs_utime'] = function(test)
   err = fs.futime(fd, atime, mtime)
   test.is_nil(err)
 
-  fs.close(fd)
-
   local stat
-  err, stat = fs.stat(path)
+  err, stat = fs.fstat(fd)
   test.equal(stat:atime(), atime)
   test.equal(stat:mtime(), mtime)
+
+  fs.close(fd)
 
   atime, mtime = 4321, 8765
   err = fs.utime(path, atime, mtime)
