@@ -52,6 +52,41 @@ exports['fs_sync_test'] = function(test)
   test.done()
 end
 
+exports['fs_sync_write_read'] = function(test)
+  local lev = require('lev')
+  local fs = lev.fs
+  local path = '_tmp_file1.txt'
+  local err, fd = fs.open(path, 'w+', tonumber('666', 8))
+  test.is_nil(err)
+  test.ok(fd)
+
+  local content = 'lev is everything great about Node.\n'
+  local write_buf = Buffer:new(content)
+  local byte_count
+  err, byte_count = fs.write(fd, write_buf)
+  test.is_nil(err)
+  test.equal(byte_count, #write_buf)
+  test.equal(write_buf:toString(1, byte_count), content)
+
+  local read_buf = Buffer:new(80)
+  err, byte_count = fs.read(fd, read_buf, 0)
+  test.is_nil(err)
+  test.equal(byte_count, #write_buf)
+
+  -- FIXME: write_buf seems changed after another fs operation.
+  -- test.equal(write_buf:toString(1, byte_count), content)
+
+  test.equal(read_buf:toString(1, byte_count), content)
+
+  err = fs.close(fd)
+  test.is_nil(err)
+
+  err = fs.unlink(path)
+  test.is_nil(err)
+
+  test.done()
+end
+
 exports['fs_async_test'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
