@@ -87,6 +87,17 @@ exports['fs_sync_write_read'] = function(test)
   test.done()
 end
 
+exports['fs_sync_stat'] = function(test)
+  local lev = require('lev')
+  local fs = lev.fs
+  local err, stat = fs.stat('LICENSE.txt')
+  test.is_nil(err)
+  test.ok(stat)
+  p(stat)
+
+  test.done()
+end
+
 exports['fs_async_test'] = function(test)
   local lev = require('lev')
   local fs = lev.fs

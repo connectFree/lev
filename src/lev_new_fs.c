@@ -161,6 +161,61 @@ static dispose_fs_req(uv_fs_t *req) {
  * NOTE: write returns err, written_byte_count, which is different from
  *       Node.js (err, written_byte_count, buffer)
  */
+
+static int push_timespec(lua_State *L, struct timespec *timespec) {
+  lua_createtable(L, 2, 0);
+
+  lua_pushnumber(L, timespec->tv_sec);
+  lua_rawseti(L, -2, 1);
+
+  lua_pushnumber(L, timespec->tv_nsec);
+  lua_rawseti(L, -2, 2);
+
+  return 1;
+}
+
+static int push_stat(lua_State *L, uv_statbuf_t *buf) {
+  lua_createtable(L, 0, 9);
+
+  lua_pushnumber(L, buf->st_dev);
+  lua_setfield(L, -2, "dev");
+
+  lua_pushnumber(L, buf->st_ino);
+  lua_setfield(L, -2, "ino");
+
+  lua_pushnumber(L, buf->st_nlink);
+  lua_setfield(L, -2, "nlink");
+
+  lua_pushnumber(L, buf->st_uid);
+  lua_setfield(L, -2, "uid");
+
+  lua_pushnumber(L, buf->st_gid);
+  lua_setfield(L, -2, "gid");
+
+  lua_pushnumber(L, buf->st_rdev);
+  lua_setfield(L, -2, "rdev");
+
+  lua_pushnumber(L, buf->st_blocks);
+  lua_setfield(L, -2, "blocks");
+
+  push_timespec(L, &buf->st_atime);
+  lua_setfield(L, -2, "atime");
+
+  push_timespec(L, &buf->st_mtime);
+  lua_setfield(L, -2, "mtime");
+
+  push_timespec(L, &buf->st_ctime);
+  lua_setfield(L, -2, "ctime");
+
+  lua_pushnumber(L, buf->st_size);
+  lua_setfield(L, -2, "size");
+
+  lua_pushnumber(L, buf->st_blksize);
+  lua_setfield(L, -2, "blksize");
+
+  return 1;
+}
+
 static int push_results(lua_State *L, uv_fs_t *req) {
   if (req->result == -1) {
     fs_push_uv_error(L, UV_ERR(req));
@@ -173,6 +228,12 @@ static int push_results(lua_State *L, uv_fs_t *req) {
   case UV_FS_WRITE:
     lua_pushnil(L);
     lua_pushnumber(L, req->result);
+    return 2;
+  case UV_FS_LSTAT:
+  case UV_FS_FSTAT:
+  case UV_FS_STAT:
+    lua_pushnil(L);
+    push_stat(L, req->ptr);
     return 2;
   default:
     return 0;
@@ -412,6 +473,69 @@ static int fs_rmdir(lua_State* L) {
 }
 
 /*
+ * fs.fstat
+ */
+static int fs_fstat(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_fstat(loop, req, fd, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.lstat
+ */
+static int fs_lstat(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_lstat(loop, req, path, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.stat
+ */
+static int fs_stat(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_stat(loop, req, path, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.unlink
  */
 static int fs_unlink(lua_State* L) {
@@ -465,10 +589,13 @@ static luaL_reg functions[] = {
  ,{ "close",      fs_close        }
  ,{ "exists",     fs_exists       }
  ,{ "fchmod",     fs_fchmod       }
- ,{ "open",       fs_open         }
+ ,{ "fstat",      fs_fstat        }
+ ,{ "lstat",      fs_lstat        }
  ,{ "mkdir",      fs_mkdir        }
+ ,{ "open",       fs_open         }
  ,{ "read",       fs_read         }
  ,{ "rmdir",      fs_rmdir        }
+ ,{ "stat",       fs_stat         }
  ,{ "unlink",     fs_unlink       }
  ,{ "write",      fs_write        }
  ,{ NULL,         NULL            }
