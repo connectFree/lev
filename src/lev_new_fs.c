@@ -363,6 +363,10 @@ static int push_results(lua_State *L, uv_fs_t *req) {
     lua_pushnil(L);
     push_fs_stat(L, req->ptr);
     return 2;
+  case UV_FS_READLINK:
+    lua_pushnil(L);
+    lua_pushstring(L, req->ptr);
+    return 2;
   default:
     return 0;
   }
@@ -695,6 +699,71 @@ static int fs_ftruncate(lua_State* L) {
 }
 
 /*
+ * fs.link
+ */
+static int fs_link(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  const char *new_path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_link(loop, req, path, new_path, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.readlink
+ */
+static int fs_readlink(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_readlink(loop, req, path, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.symlink
+ */
+static int fs_symlink(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  const char *new_path = luaL_checkstring(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_symlink(loop, req, path, new_path, 0, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.rename
  */
 static int fs_rename(lua_State* L) {
@@ -860,13 +929,16 @@ static luaL_reg functions[] = {
  ,{ "fstat",      fs_fstat        }
  ,{ "fsync",      fs_fsync        }
  ,{ "ftruncate",  fs_ftruncate    }
+ ,{ "link",       fs_link         }
  ,{ "lstat",      fs_lstat        }
  ,{ "mkdir",      fs_mkdir        }
  ,{ "open",       fs_open         }
  ,{ "read",       fs_read         }
+ ,{ "readlink",   fs_readlink     }
  ,{ "rename",     fs_rename       }
  ,{ "rmdir",      fs_rmdir        }
  ,{ "stat",       fs_stat         }
+ ,{ "symlink",    fs_symlink      }
  ,{ "unlink",     fs_unlink       }
  ,{ "write",      fs_write        }
  ,{ NULL,         NULL            }
