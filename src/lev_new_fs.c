@@ -475,6 +475,29 @@ static int fs_chmod(lua_State* L) {
 }
 
 /*
+ * fs.chown
+ */
+static int fs_chown(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  const char *path = luaL_checkstring(L, arg_i++);
+  int uid = luaL_checkint(L, arg_i++);
+  int gid = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_chown(loop, req, path, uid, gid, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
  * fs.fchmod
  */
 static int fs_fchmod(lua_State* L) {
@@ -493,6 +516,29 @@ static int fs_fchmod(lua_State* L) {
     cb = NULL;
   }
   uv_fs_fchmod(loop, req, fd, mode, cb);
+  return fs_post_handling(L, req);
+}
+
+/*
+ * fs.fchown
+ */
+static int fs_fchown(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = uv_default_loop();
+  uv_fs_t *req = alloc_fs_req(L);
+  int arg_n = lua_gettop(L);
+  int arg_i = 1;
+  int fd = luaL_checkint(L, arg_i++);
+  int uid = luaL_checkint(L, arg_i++);
+  int gid = luaL_checkint(L, arg_i++);
+  if (arg_i <= arg_n) {
+    req->data = fs_checkcallback(L, arg_i++);
+    cb = on_fs_callback;
+  } else {
+    req->data = NULL;
+    cb = NULL;
+  }
+  uv_fs_fchown(loop, req, fd, uid, gid, cb);
   return fs_post_handling(L, req);
 }
 
@@ -763,9 +809,11 @@ static int fs_open(lua_State* L) {
 
 static luaL_reg functions[] = {
   { "chmod",      fs_chmod        }
+ ,{ "chown",      fs_chown        }
  ,{ "close",      fs_close        }
  ,{ "exists",     fs_exists       }
  ,{ "fchmod",     fs_fchmod       }
+ ,{ "fchown",     fs_fchown       }
  ,{ "fstat",      fs_fstat        }
  ,{ "ftruncate",  fs_ftruncate    }
  ,{ "lstat",      fs_lstat        }
