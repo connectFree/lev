@@ -202,11 +202,9 @@ static void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t buf,
 
   lua_pushnil(L);
 
-  lua_pushfstring(L, "%d.%d.%d.%d",
-    (unsigned)addr->sa_data[2],
-    (unsigned)addr->sa_data[3],
-    (unsigned)addr->sa_data[4],
-    (unsigned)addr->sa_data[5]);
+  char addr_buf[sizeof "255.255.255.255"];
+  inet_ntop4(addr->sa_data + 2, addr_buf, sizeof(addr_buf));
+  lua_pushstring(L, addr_buf);
 
   port = ((unsigned)addr->sa_data[0] << 8) | ((unsigned)addr->sa_data[1]);
   lua_pushinteger(L, port);
