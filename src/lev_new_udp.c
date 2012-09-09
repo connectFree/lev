@@ -261,12 +261,28 @@ static int udp_rcb_close(lua_State* L) {
   return 0;
 }
 
+static int udp_set_ttl(lua_State* L) {
+  udp_obj* self;
+
+  self = luaL_checkudata(L, 1, "lev.udp");
+  int ttl = luaL_checkint(L, 2);
+  int r = uv_udp_set_ttl(&self->handle, ttl);
+  if (r == -1) {
+    lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
+    return 1;
+  }
+
+  lua_pushnil(L);
+  return 1;
+}
+
 static luaL_reg methods[] = {
    { "bind",       udp_bind        }
   ,{ "send",       udp_send        }
   ,{ "recv_start", udp_recv_start  }
   ,{ "close",      udp_close       }
   ,{ "on_close",   udp_rcb_close   }
+  ,{ "set_ttl",    udp_set_ttl     }
   ,{ NULL,         NULL            }
 };
 
