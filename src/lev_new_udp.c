@@ -31,6 +31,17 @@
   
 */
 
+/* TODO: remove this when maglev_fs pull request is merged. */
+static void lev_push_uv_err(lua_State *L, uv_err_t err) {
+  lua_createtable(L, 0, 2);
+
+  lua_pushstring(L, uv_strerror(err));
+  lua_setfield(L, -2, "message");
+
+  lua_pushnumber(L, err.code);
+  lua_setfield(L, -2, "code");
+}
+
 static MemBlock *_static_mb = NULL;
 
 #define UNWRAP(h) \
@@ -43,7 +54,6 @@ static MemBlock *_static_mb = NULL;
 typedef struct {
   LEVBASE_REF_FIELDS
   uv_udp_t handle;
-  uv_connect_t connect_req; /* TODO alloc on as needed basis */
 } udp_obj;
 
 static int udp_new(lua_State* L) {
@@ -56,7 +66,7 @@ static int udp_new(lua_State* L) {
 
   self = (udp_obj*)create_obj_init_ref(L, sizeof *self, "lev.udp");
   r = uv_udp_init(loop, &self->handle);
-  /* TODO: handle errors */
+  assert(r == 0);
 
   return 1;
 }
@@ -75,8 +85,11 @@ static int udp_bind(lua_State* L) {
   addr = uv_ip4_addr(host, port);
 
   r = uv_udp_bind(&self->handle, addr, 0);
-  /* TODO: handle errors */
-  lua_pushinteger(L, r);
+  if (r == -1) {
+    lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
+    return 1;
+  }
+  lua_pushnil(L);
   lev_handle_ref(L, (LevRefStruct_t*)self, 1);
 
   return 1;
@@ -114,8 +127,11 @@ static int udp_send(lua_State* L) {
   uv_udp_send_t* req = (uv_udp_send_t*)malloc(sizeof(uv_udp_send_t));
   r = uv_udp_send(req, &self->handle, &buf, 1, addr,
     udp_after_send);
-  /* TODO: handle errors */
-  lua_pushinteger(L, r);
+  if (r == -1) {
+    lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
+    return 1;
+  }
+  lua_pushnil(L);
   lev_handle_ref(L, (LevRefStruct_t*)self, 1);
 
   return 1;
@@ -166,7 +182,9 @@ static void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t buf,
     UV_UDP_CLOSE(handle);
 
     if (nread == -1) {
-      /* TODO: handling error */
+      push_callback(L, self, "on_recv");
+      lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
+      lua_call(L, 2, 0);
     }
     return;
   }
@@ -178,9 +196,11 @@ static void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t buf,
    * either... Not sure I like that but it's consistent with `uv_read_stop`.
    */
   r = uv_udp_recv_stop(handle);
-  /* TODO: handle errors */
+  assert(r == 0);
 
   push_callback(L, self, "on_recv");
+
+  lua_pushnil(L);
 
   lua_pushfstring(L, "%d.%d.%d.%d",
     (unsigned)addr->sa_data[2],
@@ -202,7 +222,7 @@ static void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t buf,
     ); /* automatically incRef's mb */
   _static_mb->nbytes += nread; /* consume nread bytes */
 
-  lua_call(L, 5, 0);
+  lua_call(L, 6, 0);
 }
 
 static int udp_recv_start(lua_State* L) {
@@ -213,8 +233,12 @@ static int udp_recv_start(lua_State* L) {
   set_callback(L, "on_recv", 2);
 
   r = uv_udp_recv_start(&self->handle, on_alloc, on_recv);
-  lua_pushinteger(L, r);
+  if (r == -1) {
+    lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
+    return 1;
+  }
 
+  lua_pushnil(L);
   lev_handle_ref(L, (LevRefStruct_t*)self, 1);
 
   return 1;
