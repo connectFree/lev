@@ -15,7 +15,7 @@
  *
  */
 
- #include "lev_new_base.h"
+#include "lev_new_base.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,35 +32,8 @@
 */
 
 /*
- * Error utility functions.
- */
-
-static void fs_push_uv_error(lua_State *L, uv_err_t err) {
-  lua_createtable(L, 0, 2);
-
-  lua_pushstring(L, uv_strerror(err));
-  lua_setfield(L, -2, "message");
-
-  lua_pushnumber(L, err.code);
-  lua_setfield(L, -2, "code");
-}
-
-static uv_err_t code_to_uv_error(uv_err_code errcode) {
-  uv_err_t err;
-  err.code = errcode;
-  return err;
-}
-
-#define IS_ASYNC(req) ((req)->cb)
-#define UV_ERR(req) (IS_ASYNC(req) ? code_to_uv_error((req)->errorno) \
-                                   : uv_last_error((req)->loop))
-
-/*
  * argument utilities
  */
-#define lev_checkbuffer(L, index) \
-    ((MemSlice *)luaL_checkudata((L), (index), "lev.buffer"))
-
 typedef struct mode_mapping_s {
   char *name;
   int flags;
@@ -355,7 +328,7 @@ static int push_readdir_results(lua_State *L, int entry_count,
 
 static int push_results(lua_State *L, uv_fs_t *req) {
   if (req->result == -1) {
-    fs_push_uv_error(L, UV_ERR(req));
+    lev_push_uv_err(L, LEV_UV_ERR_FROM_REQ(req));
     return 1;
   }
 
@@ -397,7 +370,7 @@ static void on_fs_callback(uv_fs_t *req) {
 
 static int fs_post_handling(lua_State* L, uv_fs_t *req) {
   int ret_n = push_results(L, req);
-  if (!IS_ASYNC(req)) {
+  if (!LEV_IS_ASYNC_REQ(req)) {
     dispose_fs_req(req);
   }
   return ret_n;
@@ -424,7 +397,7 @@ static void on_exists_callback(uv_fs_t *req) {
 
 static int exists_post_handling(lua_State* L, uv_fs_t *req) {
   int ret_n = push_exists_results(L, req);
-  if (!IS_ASYNC(req)) {
+  if (!LEV_IS_ASYNC_REQ(req)) {
     dispose_fs_req(req);
   }
   return ret_n;

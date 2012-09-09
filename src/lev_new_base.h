@@ -61,7 +61,8 @@ void luaopen_lev_process(lua_State *L); /* lev.process */
 int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned char *slice);
 uv_buf_t lev_buffer_to_uv(lua_State *L, int index);
 MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size);
-
+#define lev_checkbuffer(L, index) \
+    ((MemSlice *)luaL_checkudata((L), (index), "lev.buffer"))
 
 void* new_object(lua_State* L, size_t size, const char* clazz);
 void set_callback(lua_State* L, const char* name, int index);
@@ -69,5 +70,15 @@ void clear_callback(lua_State* L, const char* name, void* object);
 void push_registry(lua_State* L);
 void push_object(lua_State* L, void* object);
 int push_callback(lua_State* L, void* object, const char* name);
+
+/* error helper function */
+void lev_push_uv_err(lua_State *L, uv_err_t err);
+uv_err_t lev_code_to_uv_err(uv_err_code errcode);
+
+/* request helper macros */
+#define LEV_IS_ASYNC_REQ(req) ((req)->cb)
+#define LEV_UV_ERR_FROM_REQ(req) \
+    (LEV_IS_ASYNC_REQ(req) ? lev_code_to_uv_err((req)->errorno) \
+                           : uv_last_error((req)->loop))
 
 #endif /* LEVBASE_H_ */
