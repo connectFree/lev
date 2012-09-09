@@ -41,7 +41,7 @@ static void fs_push_uv_error(lua_State *L, uv_err_t err) {
   lua_pushstring(L, uv_strerror(err));
   lua_setfield(L, -2, "message");
 
-  lua_pushstring(L, uv_err_name(err));
+  lua_pushnumber(L, err.code);
   lua_setfield(L, -2, "code");
 }
 
