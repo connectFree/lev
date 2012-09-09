@@ -1028,6 +1028,9 @@ static luaL_reg functions[] = {
 };
 
 void luaopen_lev_fs(lua_State *L) {
+  /* We put callback function reference identifiers to void * */
+  assert(sizeof(void *) >= sizeof(int));
+
   luaopen_lev_fs_stat(L);
 
   lua_createtable(L, 0, ARRAY_SIZE(functions) - 1);
