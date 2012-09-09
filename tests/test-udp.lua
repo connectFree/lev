@@ -83,4 +83,22 @@ exports['udp_bind_error'] = function(test)
   test.done()
 end
 
+exports['udp_set_ttl'] = function(test)
+  local lev = require('lev')
+  local PORT = 10082
+
+  local server = lev.udp.new()
+  local err = server:bind("127.0.0.1", PORT)
+  test.is_nil(err)
+  err = server:set_ttl(64)
+  test.is_nil(err)
+
+  err = server:set_ttl(256)
+  test.equal(err.code, 18 --[[EINVAL]])
+
+  server:close()
+
+  test.done()
+end
+
 return exports
