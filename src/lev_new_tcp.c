@@ -270,13 +270,11 @@ static int tcp_listen(lua_State* L) {
 
   self = luaL_checkudata(L, 1, "lev.tcp");
 
-  if (lua_isnumber(L, 2)) {
-    backlog = luaL_checkinteger(L, 2);
-    set_callback(L, "on_connection", 3);
-  }
-  else {
+  set_callback(L, "on_connection", 2);
+
+  backlog = lua_tointeger(L, 3);
+  if (!backlog) {
     backlog = 128;
-    set_callback(L, "on_connection", 2);
   }
 
   r = uv_listen((uv_stream_t*)&self->handle, backlog, on_connection);

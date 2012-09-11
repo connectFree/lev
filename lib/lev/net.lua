@@ -33,7 +33,7 @@ net.createServer = function(host, port, callback)
     ,function(rpkt, err)
       if err then return callback(nil, err) end
       local server = ltcp.new( rpkt._cmsg.fd )
-      server:listen(callback)
+      server:listen(callback, 511)
     end)
 end
 
