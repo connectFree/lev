@@ -33,6 +33,7 @@ _G.mbox = {}
 
 local queue = {}
 local callbacks = {}
+local callbacks_bc = {}
 
 local req_id = 1
 
@@ -43,7 +44,14 @@ local ipc__process_packet = function(c, packet, packet_len, buf, fd, type)
   end
   local cmd = packet.cmd:toString()
   if cmd == "broadcast" then
-    p(_G.WorkerID, packet)
+    if not packet['key'] then return end -- must have key for broadcast
+    local pkt_key = packet['key']:toString()
+    if callbacks_bc[ pkt_key ] then
+
+      for i=1,#callbacks_bc[ pkt_key ] do
+        callbacks_bc[ pkt_key ][i]( packet )
+      end
+    end
   elseif cmd == "reply" then
     local idstr = packet['id']:toString()
     -- make sure we have a callback
@@ -98,9 +106,14 @@ local send_msg = function( pkt )
   req_id = req_id + 1
 end
 
+_G.mbox.recvBroadcast = function( key, callback)
+  if not callbacks_bc[ key ] then callbacks_bc[ key ] = {} end
+  table.insert(callbacks_bc[ key ], callback)
+end -- X:E _G.mbox.recvBroadcast
+
 _G.mbox.sendBroadcast = function( package, key )
   send_msg( {cmd='broadcast', id=tostring(req_id), from=_G.WorkerID, key=key, p=package} )
-end -- X:E _G.sendBroadcast
+end -- X:E _G.mbox.sendBroadcast
 
 _G.mbox.toMaster = function( cmd, package, callback )
   local idstr = tostring(req_id)
@@ -108,6 +121,6 @@ _G.mbox.toMaster = function( cmd, package, callback )
     callbacks[ idstr ] = callback
   end
   send_msg( {cmd=cmd, id=idstr, from=_G.WorkerID, p=package} )
-end
+end -- X:E _G.mbox.toMaster
 
 p(_G.WorkerID, "WORKER END")
