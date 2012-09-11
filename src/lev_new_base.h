@@ -51,6 +51,8 @@ void luaopen_lev_dns(lua_State *L); /* lev.dns */
 void luaopen_lev_tcp(lua_State *L); /* lev.tcp */
 void luaopen_lev_udp(lua_State *L); /* lev.udp */
 void luaopen_lev_core(lua_State *L); /* lev.core */
+void luaopen_lev_pipe(lua_State *L); /* lev.pipe */
+void luaopen_lev_mpack(lua_State *L); /* lev.mpack */
 void luaopen_lev_timer(lua_State *L); /* lev.timer */
 void luaopen_lev_buffer(lua_State *L); /* lev.buffer */
 void luaopen_lev_process(lua_State *L); /* lev.process */

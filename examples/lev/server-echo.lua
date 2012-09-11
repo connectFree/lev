@@ -1,19 +1,23 @@
-local lev = require('lev')
+local tcp = lev.tcp
 
-local server = lev.tcp.new()
+local client__on_read = function(c, nread, buf)
+  if buf then
+    p("echoing", buf, buf:inspect())
+    c:write(buf)
+  end
+end
+
+local client__on_close = function(c)
+  p("client closed", c)
+end
+
+local server = tcp.new()
 server:bind("0.0.0.0", 8080)
 server:listen(function(s, err)
   local client = s:accept()
   p("accepted client", client)
-  client:on_close(function(c)
-    p("client closed", c)
-  end)
-  client:read_start(function(c, nread, buf)
-    if buf then
-      p("echoing", buf, buf:inspect())
-      c:write(buf)
-    end
-  end)
+  client:on_close(client__on_close)
+  client:read_start(client__on_read)
 end)
 
 

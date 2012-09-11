@@ -16,33 +16,26 @@ limitations under the License.
 
 --]]
 
--- Bootstrap require system
 local lev = require('lev')
-local env = require('env')
-local utils = require('utils')
+local ltcp = lev.tcp
+local table = require('table')
 
-_G.getcwd = nil
-_G.argv = nil
+local net = {}
 
--- clear some globals
--- This will break lua code written for other lua runtimes
-_G.process = io
-_G.io = nil
-_G.os = nil
-_G.math = nil
-_G.string = nil
-_G.coroutine = nil
-_G.jit = nil
-_G.bit = nil
-_G.debug = nil
-_G.table = nil
-_G.print = utils.print
-_G.p = utils.prettyPrint
-_G.debug = utils.debug
-_G.Buffer = lev.buffer
+net.createTCPConnection = function(host, port, callback)
 
-_G.WorkerID = env.get("LEV_WORKER_ID")
+end
 
-p("KICKSTART END")
+net.createServer = function(host, port, callback)
+  mbox.toMaster(
+     "bind"
+    ,{type='tcp', address=host, port=port}
+    ,function(rpkt, err)
+      if err then return callback(nil, err) end
+      local server = ltcp.new()
+      server:fd_set(rpkt._cmsg.fd)
+      server:listen(callback)
+    end)
+end
 
-
+return net

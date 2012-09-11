@@ -107,7 +107,10 @@ int push_callback(lua_State* L, void* object, const char* name) {
 
   /* Get the callback table. */
   lua_getfenv(L, -1);
-
+/*
+  printf("push_callback: %s (%d)\n", name, lua_type(L, (-1)) );
+  luv_lua_debug_stackdump(L, "push_callback");
+*/
   assert(lua_istable(L, -1));
 
   /* Look up callback. */
@@ -197,6 +200,8 @@ int luaopen_levbase(lua_State *L) {
   luaopen_lev_tcp(L); /* lev.tcp */
   luaopen_lev_udp(L); /* lev.udp */
   luaopen_lev_core(L); /* lev.core */
+  luaopen_lev_pipe(L); /* lev.pipe */
+  luaopen_lev_mpack(L); /* lev.mpack */
   luaopen_lev_timer(L); /* lev.timer */
   luaopen_lev_buffer(L); /* lev.buffer */
   luaopen_lev_process(L); /* lev.process */
