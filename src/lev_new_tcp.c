@@ -141,12 +141,19 @@ static void on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf) {
 static int tcp_new(lua_State* L) {
   uv_loop_t* loop;
   tcp_obj* self;
+  int use_this_fd;
+
+  use_this_fd = lua_tointeger(L, 1);
 
   loop = uv_default_loop();
   assert(L == loop->data);
 
   self = (tcp_obj*)create_obj_init_ref(L, sizeof *self, "lev.tcp");
   uv_tcp_init(loop, &self->handle);
+
+  if (use_this_fd) {
+    self->handle.fd = use_this_fd;
+  }
 
   return 1;
 }
@@ -357,6 +364,17 @@ static int tcp_write(lua_State* L) {
   return 0;
 }
 
+static int tcp_nodelay(lua_State* L) {
+  tcp_obj* self;
+
+  self = luaL_checkudata(L, 1, "lev.tcp");
+
+  uv_tcp_nodelay((uv_tcp_t*)&self->handle, luaL_checkint(L, 2));
+
+  return 0;
+}
+
+
 
 static luaL_reg methods[] = {
    { "accept",     tcp_accept      }
@@ -370,6 +388,7 @@ static luaL_reg methods[] = {
   ,{ "write",      tcp_write       }
   ,{ "fd_get",     tcp_fd_get      }
   ,{ "fd_set",     tcp_fd_set      }
+  ,{ "nodelay",    tcp_nodelay     }
   ,{ NULL,         NULL            }
 };
 

@@ -41,7 +41,7 @@ local client__process_packet = function(c, packet, packet_len, buf)
     local bind_id = packet['p']['type']:toString() .. '|' .. packet['p']['address']:toString() .. '|' .. packet['p']['port']
     if not bind_pool[ bind_id ] then
       if packet['p']['type']:toString() == 'tcp' then
-        bind_pool[ bind_id ] = net_tcp:new()
+        bind_pool[ bind_id ] = net_tcp.new()
         bind_pool[ bind_id ]:bind(packet['p']['address']:toString(), packet['p']['port'])
       else
         p("INVALID TYPE FOR BIND")
