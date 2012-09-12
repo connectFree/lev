@@ -101,7 +101,7 @@ static int udp_send(lua_State* L) {
   port = luaL_checkint(L, 3);
 
   if (lua_isstring(L, 4)) {
-    int len;
+    size_t len;
     const char* chunk = luaL_checklstring(L, 4, &len);
     buf = uv_buf_init((char*)chunk, len);
   } else {
