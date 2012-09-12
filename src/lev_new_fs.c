@@ -339,7 +339,12 @@ static void on_fs_callback(uv_fs_t *req) {
   push_callback_no_obj(L, holder, CALLBACK_NAME);
   ret_n = push_results(L, req);
   lua_call(L, ret_n, 0);
+
+  uv_fs_req_cleanup(req);
+  lev_handle_unref(L, (LevRefStruct_t *)holder);
+/*
   dispose_fs_req(req);
+*/
 }
 
 static int fs_post_handling(lua_State* L, uv_fs_t *req) {
@@ -900,9 +905,15 @@ static int fs_open(lua_State* L) {
   int mode;
   uv_fs_cb cb;
   uv_loop_t *loop = luv_get_loop(L);
-  uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
-  int arg_i = 1;
+
+  fs_req_holder *holder = (fs_req_holder *)create_obj_init_ref(L,
+      sizeof(fs_req_holder), "lev.fs");
+  /* NOTE: set_call needs "object" to be stack at index 1 */
+  lua_insert(L, 1);
+  uv_fs_t *req = &holder->req;
+
+  int arg_i = 2;
   const char *path = luaL_checkstring(L, arg_i++);
   int flags = fs_checkflags(L, arg_i++);
   if (arg_i <= arg_n && lua_isnumber(L, arg_i)) {
@@ -911,13 +922,23 @@ static int fs_open(lua_State* L) {
     mode = 0666;
   }
   if (arg_i <= arg_n) {
+luv_lua_debug_stackdump(L, "fs_open before set_callback");
     set_callback(L, CALLBACK_NAME, arg_i++);
+luv_lua_debug_stackdump(L, "fs_open after set_callback");
+    lev_handle_ref(L, (LevRefStruct_t *)holder, -1);
+luv_lua_debug_stackdump(L, "fs_open after handle_ref");
     cb = on_fs_callback;
   } else {
+    /* NOTE: remove "object" */
+    lua_remove(L, 1);
     cb = NULL;
   }
   uv_fs_open(loop, req, path, flags, mode, cb);
-  return fs_post_handling(L, req);
+  int ret_n = push_results(L, req);
+  if (!LEV_IS_ASYNC_REQ(req)) {
+    uv_fs_req_cleanup(req);
+  }
+  return ret_n;
 }
 
 static luaL_reg functions[] = {
