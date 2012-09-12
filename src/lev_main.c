@@ -637,15 +637,25 @@ void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
 }
 
 
-void spawn_helper(const char*pipe_fn
+static int count_argv(char **argv) {
+  int n = 0;
+  for (;*argv; argv++) {
+    n++;
+  }
+  return n;
+}
+
+static void spawn_helper(const char*pipe_fn
                   ,lev_worker* lworker
-                  ,const char* script_file
+                  ,const char **argv
                   ) {
   uv_process_options_t options;
   size_t exepath_size;
   char exepath[1024];
   char env_temp[1024];
-  char* args[3];
+  int argc;
+  char **args;
+  int i;
   int r;
   uv_stdio_container_t stdio[3];
 
@@ -653,10 +663,14 @@ void spawn_helper(const char*pipe_fn
   r = uv_exepath(exepath, &exepath_size);
   assert(r == 0);
 
+  argc = count_argv(argv);
+  args = (char **)malloc((argc + 1) * sizeof(char *));
   exepath[exepath_size] = '\0';
   args[0] = exepath;
-  args[1] = (char*)script_file;
-  args[2] = NULL;
+  for (i = 0; i < argc; i++) {
+    args[i + 1] = argv[i];
+  }
+  args[argc + 1] = NULL;
 
   memset(&options, 0, sizeof(options));
   options.exit_cb = worker__on_exit;
@@ -682,6 +696,7 @@ void spawn_helper(const char*pipe_fn
   r = uv_spawn(uv_default_loop(), &lworker->process, options);
   free( worker_env[0] );
   free( worker_env[1] );
+  free( args );
   assert(r == 0);
 }
 
@@ -756,7 +771,7 @@ static int pmain(lua_State *L) {
       
       spawn_helper(pipe_fn
                    ,_worker
-                   ,argv[ script ]
+                   ,&argv[ script ]
                    );
 
       /* X:E pipes */
