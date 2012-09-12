@@ -38,9 +38,10 @@
 
 typedef struct {
   LEVBASE_REF_FIELDS
-  int callback_ref;
   uv_fs_t req;
 } fs_req_holder;
+
+#define CALLBACK_NAME "_cb"
 
 /*
  * fs request memory management
@@ -49,7 +50,8 @@ typedef struct {
 static uv_fs_t *alloc_fs_req(lua_State *L) {
   fs_req_holder *holder = (fs_req_holder *)create_obj_init_ref(L,
       sizeof(fs_req_holder), "lev.fs");
-  lev_handle_ref(L, (LevRefStruct_t *)holder, 1);
+  lev_handle_ref(L, (LevRefStruct_t *)holder, -1);
+  lua_pop(L, 1);
   return &holder->req;
 }
 
@@ -99,26 +101,6 @@ static int fs_checkflags(lua_State *L, int index) {
     return luaL_argerror(L, index, "Invalid flags");
   }
   return flags;
-}
-
-/*
- * callback utilities
- */
-
-static int fs_checkcallback(lua_State *L, int index) {
-  luaL_checktype(L, index, LUA_TFUNCTION);
-  lua_pushvalue(L, index);
-  return luaL_ref(L, LUA_REGISTRYINDEX);
-}
-
-static void fs_push_callback(lua_State *L, int ref) {
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-
-  /*
-   * We can safely call luaL_unref() here because now the stack holds the value
-   * so it is not garbage collected.
-   */
-  luaL_unref(L, LUA_REGISTRYINDEX, ref);
 }
 
 /******************************************************************************/
@@ -354,7 +336,7 @@ static void on_fs_callback(uv_fs_t *req) {
   UNWRAP(req);
   int ret_n;
 
-  fs_push_callback(L, holder->callback_ref);
+  push_callback_no_obj(L, holder, CALLBACK_NAME);
   ret_n = push_results(L, req);
   lua_call(L, ret_n, 0);
   dispose_fs_req(req);
@@ -381,7 +363,7 @@ static void on_exists_callback(uv_fs_t *req) {
   UNWRAP(req);
   int ret_n;
 
-  fs_push_callback(L, holder->callback_ref);
+  push_callback_no_obj(L, holder, CALLBACK_NAME);
   ret_n = push_exists_results(L, req);
   lua_call(L, ret_n, 0);
   dispose_fs_req(req);
@@ -397,14 +379,13 @@ static int exists_post_handling(lua_State* L, uv_fs_t *req) {
 
 static int fs_exists(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_exists_callback;
   } else {
     cb = NULL;
@@ -418,14 +399,13 @@ static int fs_exists(lua_State* L) {
  */
 static int fs_close(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   int fd = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -439,15 +419,14 @@ static int fs_close(lua_State* L) {
  */
 static int fs_chmod(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   int mode = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -461,7 +440,7 @@ static int fs_chmod(lua_State* L) {
  */
 static int fs_chown(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -469,8 +448,7 @@ static int fs_chown(lua_State* L) {
   int uid = luaL_checkint(L, arg_i++);
   int gid = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -484,15 +462,14 @@ static int fs_chown(lua_State* L) {
  */
 static int fs_fchmod(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   int fd = luaL_checkint(L, arg_i++);
   int mode = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -506,7 +483,7 @@ static int fs_fchmod(lua_State* L) {
  */
 static int fs_fchown(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -514,8 +491,7 @@ static int fs_fchown(lua_State* L) {
   int uid = luaL_checkint(L, arg_i++);
   int gid = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -529,14 +505,13 @@ static int fs_fchown(lua_State* L) {
  */
 static int fs_fdatasync(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   int fd = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -550,14 +525,13 @@ static int fs_fdatasync(lua_State* L) {
  */
 static int fs_fsync(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   int fd = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -571,7 +545,7 @@ static int fs_fsync(lua_State* L) {
  */
 static int fs_futime(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -579,8 +553,7 @@ static int fs_futime(lua_State* L) {
   lua_Number atime = luaL_checknumber(L, arg_i++);
   lua_Number mtime = luaL_checknumber(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -595,7 +568,7 @@ static int fs_futime(lua_State* L) {
 static int fs_mkdir(lua_State* L) {
   int mode;
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -606,8 +579,7 @@ static int fs_mkdir(lua_State* L) {
     mode = 0777;
   }
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -622,7 +594,7 @@ static int fs_mkdir(lua_State* L) {
 static int fs_read(lua_State* L) {
   long file_pos;
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -634,8 +606,7 @@ static int fs_read(lua_State* L) {
     file_pos = -1;
   }
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -650,7 +621,7 @@ static int fs_read(lua_State* L) {
 static int fs_write(lua_State* L) {
   long file_pos;
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -662,8 +633,7 @@ static int fs_write(lua_State* L) {
     file_pos = -1;
   }
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -678,7 +648,7 @@ static int fs_write(lua_State* L) {
 static int fs_ftruncate(lua_State* L) {
   long file_size;
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -689,8 +659,7 @@ static int fs_ftruncate(lua_State* L) {
     file_size = -1;
   }
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -704,15 +673,14 @@ static int fs_ftruncate(lua_State* L) {
  */
 static int fs_link(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   const char *new_path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -726,14 +694,13 @@ static int fs_link(lua_State* L) {
  */
 static int fs_readdir(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -747,14 +714,13 @@ static int fs_readdir(lua_State* L) {
  */
 static int fs_readlink(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -768,15 +734,14 @@ static int fs_readlink(lua_State* L) {
  */
 static int fs_symlink(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   const char *new_path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -790,15 +755,14 @@ static int fs_symlink(lua_State* L) {
  */
 static int fs_rename(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *old_path = luaL_checkstring(L, arg_i++);
   const char *new_path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -812,14 +776,13 @@ static int fs_rename(lua_State* L) {
  */
 static int fs_rmdir(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -833,14 +796,13 @@ static int fs_rmdir(lua_State* L) {
  */
 static int fs_fstat(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   int fd = luaL_checkint(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -854,14 +816,13 @@ static int fs_fstat(lua_State* L) {
  */
 static int fs_lstat(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -875,14 +836,13 @@ static int fs_lstat(lua_State* L) {
  */
 static int fs_stat(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -896,14 +856,13 @@ static int fs_stat(lua_State* L) {
  */
 static int fs_unlink(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
   const char *path = luaL_checkstring(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -917,7 +876,7 @@ static int fs_unlink(lua_State* L) {
  */
 static int fs_utime(lua_State* L) {
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -925,8 +884,7 @@ static int fs_utime(lua_State* L) {
   lua_Number atime = luaL_checknumber(L, arg_i++);
   lua_Number mtime = luaL_checknumber(L, arg_i++);
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;
@@ -941,7 +899,7 @@ static int fs_utime(lua_State* L) {
 static int fs_open(lua_State* L) {
   int mode;
   uv_fs_cb cb;
-  uv_loop_t *loop = uv_default_loop();
+  uv_loop_t *loop = luv_get_loop(L);
   uv_fs_t *req = alloc_fs_req(L);
   int arg_n = lua_gettop(L);
   int arg_i = 1;
@@ -953,8 +911,7 @@ static int fs_open(lua_State* L) {
     mode = 0666;
   }
   if (arg_i <= arg_n) {
-    fs_req_holder* holder = container_of(req, fs_req_holder, req);
-    holder->callback_ref = fs_checkcallback(L, arg_i++);
+    set_callback(L, CALLBACK_NAME, arg_i++);
     cb = on_fs_callback;
   } else {
     cb = NULL;

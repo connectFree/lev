@@ -69,7 +69,12 @@ void set_callback(lua_State* L, const char* name, int index);
 void clear_callback(lua_State* L, const char* name, void* object);
 void push_registry(lua_State* L);
 void push_object(lua_State* L, void* object);
-int push_callback(lua_State* L, void* object, const char* name);
+
+int _push_callback(lua_State* L, void* object, const char* name, int pop_object);
+/* push regular callback (with object */
+#define push_callback(L, object, name)  _push_callback(L, object, name, 0)
+/* push callback without object */
+#define push_callback_no_obj(L, object, name)  _push_callback(L, object, name, 1)
 
 /* error helper function */
 void lev_push_uv_err(lua_State *L, uv_err_t err);
