@@ -68,6 +68,23 @@
 static lua_State *globalL = NULL;
 static const char *progname = LUA_PROGNAME;
 
+#define MAX_WORKERS 64
+
+typedef struct ipc_client {
+  uv_pipe_t handle;
+  struct ipc_client *n;
+} ipc_client_t;
+
+ipc_client_t *ipcClientHead = NULL;
+
+
+typedef struct _lev_worker {
+  char uuid[64];
+  uv_process_t process;
+} lev_worker;
+
+static int core_count = 1;
+
 #if !LJ_TARGET_CONSOLE
 static void lstop(lua_State *L, lua_Debug *ar)
 {
@@ -92,6 +109,7 @@ static void print_usage(void)
   fprintf(stderr,
   "usage: %s [options]... [script [args]...].\n"
   "Available options are:\n"
+  "  -c cores  Use upto these many " LUA_QL("cores") " \n"
   "  -e chunk  Execute string " LUA_QL("chunk") ".\n"
   "  -l name   Require library " LUA_QL("name") ".\n"
   "  -b ...    Save or list bytecode.\n"
@@ -439,50 +457,62 @@ static int collectargs(char **argv, int *flags)
 {
   int i;
   for (i = 1; argv[i] != NULL; i++) {
-    if (argv[i][0] != '-')  /* Not an option? */
+    if (argv[i][0] != '-') { /* Not an option? */
       return i;
+    }
     switch (argv[i][1]) {  /* Check option. */
-    case '-':
-      notail(argv[i]);
-      return (argv[i+1] != NULL ? i+1 : 0);
-    case '\0':
-      return i;
-    case 'i':
-      notail(argv[i]);
-      *flags |= FLAGS_INTERACTIVE;
-      /* fallthrough */
-    case 'v':
-      notail(argv[i]);
-      *flags |= FLAGS_VERSION;
-      break;
-    case 'e':
-      *flags |= FLAGS_EXEC;
-    case 'j':  /* LuaJIT extension */
-    case 'l':
-      *flags |= FLAGS_OPTION;
-      if (argv[i][2] == '\0') {
-  i++;
-  if (argv[i] == NULL) return -1;
-      }
-      break;
-    case 'O': break;  /* LuaJIT extension */
-    case 'b':  /* LuaJIT extension */
-      if (*flags) return -1;
-      *flags |= FLAGS_EXEC;
-      return 0;
-    default: return -1;  /* invalid option */
+      case '-':
+        notail(argv[i]);
+        return (argv[i+1] != NULL ? i+1 : 0);
+      case '\0':
+        return i;
+      case 'i':
+        notail(argv[i]);
+        *flags |= FLAGS_INTERACTIVE;
+        /* fallthrough */
+      case 'v':
+        notail(argv[i]);
+        *flags |= FLAGS_VERSION;
+        break;
+      case 'e':
+        *flags |= FLAGS_EXEC;
+      case 'j':  /* LuaJIT extension */
+      case 'c':
+      case 'l':
+        *flags |= FLAGS_OPTION;
+        if (argv[i][2] == '\0') {
+          i++;
+          if (argv[i] == NULL) {
+            return -1;
+          }
+        }
+        break;
+      case 'O': break;  /* LuaJIT extension */
+      case 'b':  /* LuaJIT extension */
+        if (*flags) {
+          return -1;
+        }
+        *flags |= FLAGS_EXEC;
+        return 0;
+      default: return -1;  /* invalid option */
     }
   }
   return 0;
 }
 
-static int runargs(lua_State *L, char **argv, int n)
-{
+static int runargs(lua_State *L, char **argv, int n) {
   int i;
   for (i = 1; i < n; i++) {
     if (argv[i] == NULL) continue;
     lua_assert(argv[i][0] == '-');
     switch (argv[i][1]) {  /* option */
+    case 'c': {
+      const char *core_number = argv[i] + 2;
+      if (*core_number == '\0') core_number = argv[++i];
+      lua_assert(core_number != NULL);
+      core_count = atoi(core_number);
+      break;
+      }
     case 'e': {
       const char *chunk = argv[i] + 2;
       if (*chunk == '\0') chunk = argv[++i];
@@ -595,8 +625,88 @@ struct Smain {
   #define SEP "/"
 #endif
 
-static int pmain(lua_State *L)
-{
+static int uv_workers_count = 0;
+
+void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
+    fprintf(stderr, "Core exited with status %d, signal %d\n", exit_status, term_signal);
+    uv_close((uv_handle_t*) req, NULL);
+    free( req->data );
+    if (--uv_workers_count == 0) {
+      exit(0); /* this should be cleaner */
+    }
+}
+
+
+static int count_argv(char **argv) {
+  int n = 0;
+  for (;*argv; argv++) {
+    n++;
+  }
+  return n;
+}
+
+static void spawn_helper(const char*pipe_fn
+                  ,lev_worker* lworker
+                  ,const char **argv
+                  ) {
+  uv_process_options_t options;
+  size_t exepath_size;
+  char exepath[1024];
+  char env_temp[1024];
+  int argc;
+  char **args;
+  int i;
+  int r;
+  uv_stdio_container_t stdio[3];
+
+  exepath_size = sizeof(exepath);
+  r = uv_exepath(exepath, &exepath_size);
+  assert(r == 0);
+
+  argc = count_argv(argv);
+  args = (char **)malloc((argc + 1) * sizeof(char *));
+  exepath[exepath_size] = '\0';
+  args[0] = exepath;
+  for (i = 0; i < argc; i++) {
+    args[i + 1] = argv[i];
+  }
+  args[argc + 1] = NULL;
+
+  memset(&options, 0, sizeof(options));
+  options.exit_cb = worker__on_exit;
+  options.file = exepath;
+  options.args = args;
+
+  char *worker_env[3];
+  sprintf(env_temp, "LEV_WORKER_ID=%s", lworker->uuid);
+  worker_env[0] = strdup(env_temp);
+  sprintf(env_temp, "LEV_IPC_FILENAME=%s", pipe_fn);
+  worker_env[1] = strdup(env_temp);
+  worker_env[2] = NULL; /* terminate */
+  options.env = worker_env; 
+
+  options.stdio = stdio;
+  options.stdio[0].flags = UV_IGNORE;
+  options.stdio[1].flags = UV_INHERIT_FD;
+  options.stdio[1].data.fd = 1;
+  options.stdio[2].flags = UV_INHERIT_FD;
+  options.stdio[2].data.fd = 2;
+  options.stdio_count = 3;
+
+  r = uv_spawn(uv_default_loop(), &lworker->process, options);
+  free( worker_env[0] );
+  free( worker_env[1] );
+  free( args );
+  assert(r == 0);
+}
+
+/*
+static int runmaster(lua_State *L, uv_loop_t* loop, const char *pipe_fn) {
+  return 0;
+}
+*/
+
+static int pmain(lua_State *L) {
   uv_loop_t *loop;
   /*uv_timer_t gc_timer;*/
   struct Smain *s = (struct Smain *)lua_touserdata(L, 1);
@@ -630,39 +740,70 @@ static int pmain(lua_State *L)
   s->status = runargs(L, argv, (script > 0) ? script : s->argc);
   if (s->status != 0) return 0;
 
-  s->status = luaL_dostring(L, "\
-    local path = require('lev').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
-    package.path = path .. ';' .. package.path\
-    assert(require('kickstart'))");
-  if (s->status != 0) return 0;
-  /*
-   clear some globals
-   This will break lua code written for other lua runtimes
-  */
-/* 
-  require = require('module').require
-  _G.io = nil
-  _G.os = nil
-  _G.math = nil
-  _G.string = nil
-  _G.coroutine = nil
-  _G.jit = nil
-  _G.bit = nil
-  _G.debug = nil
-  _G.table = nil
-  _G.loadfile = nil
-  _G.dofile = nil
-  _G.print = utils.print
-  _G.p = utils.prettyPrint
-  _G.debug = utils.debug
-*/
-
-  if (script) {
-    s->status = handle_script(L, argv, script);
-    if (0 == s->status) {
-      uv_run(loop);
-    }
+  if (!script) {/* we must have a script to run */
+    return 0;
   }
+
+  if (NULL == getenv("LEV_WORKER_ID")) {
+    /* we will fork here * core_count */
+
+    char *pipe_fn = tempnam("/tmp", "lev_"); /* can we come-up with something better? */
+    setenv("LEV_IPC_FILENAME", pipe_fn, 1);
+
+    s->status = luaL_dostring(L, "\
+      local path = require('lev').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
+      package.path = path .. ';' .. package.path\
+      assert(require('kickstart'))\
+      assert(require('_master'))");
+    if (s->status != 0) return 0;
+
+
+    while (uv_workers_count < MAX_WORKERS
+           && uv_workers_count < core_count
+          ) {
+
+      /* X:S pipes; mario would be proud. */
+      lev_worker* _worker = (lev_worker*)malloc(sizeof(lev_worker));
+      _worker->process.data = _worker;
+      memset(_worker, 0, sizeof(lev_worker));
+
+      sprintf(_worker->uuid, "%d", uv_workers_count+1);
+      
+      spawn_helper(pipe_fn
+                   ,_worker
+                   ,&argv[ script ]
+                   );
+
+      /* X:E pipes */
+
+      uv_workers_count++;
+    } /* X:E while */
+
+  } else {/* we are a worker */
+    fprintf(stderr, "*lev core started: %d\n", getpid());
+
+    s->status = luaL_dostring(L, "\
+      local path = require('lev').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
+      package.path = path .. ';' .. package.path\
+      assert(require('kickstart'))\
+      assert(require('_worker'))");
+    if (s->status != 0) return 0;
+
+    /* start the madness */
+
+    s->status = handle_script(L, argv, script);
+
+
+  }
+
+  if (0 == s->status) {
+    uv_run(loop);
+  }
+  /* 
+     X:TODO: When FLAGS_INTERACTIVE is set,
+     default to single-core mode and drop into shell 
+  */
+  return 0;/* skip interactivity */
   if (s->status != 0) return 0;
   if ((flags & FLAGS_INTERACTIVE)) {
     print_jit_status(L);
@@ -673,7 +814,7 @@ static int pmain(lua_State *L)
       print_jit_status(L);
       dotty(L);
     } else {
-      dofile(L, NULL);  /* executes stdin as a file */
+      dofile(L, NULL); 
     }
   }
   return 0;

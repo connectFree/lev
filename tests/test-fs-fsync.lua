@@ -16,25 +16,38 @@ limitations under the License.
 
 --]]
 
-local lev = require('lev')
-local ltcp = lev.tcp
-local table = require('table')
+local exports = {}
 
-local net = {}
+exports['fs_fsync'] = function(test)
+  local lev = require('lev')
+  local fs = lev.fs
 
-net.createTCPConnection = function(host, port, callback)
+  local path = '_test_tmp1.txt'
+  fs.open(path, 'a', tonumber('666', 8), function(err, fd)
+    test.is_nil(err)
 
-end
+    local err = fs.fdatasync(fd)
+    test.is_nil(err)
 
-net.createServer = function(host, port, callback)
-  mbox.toMaster(
-     "bind"
-    ,{type='tcp', address=host, port=port}
-    ,function(rpkt, err)
-      if err then return callback(nil, err) end
-      local server = ltcp.new( rpkt._cmsg.fd )
-      server:listen(callback, 511)
+    err = fs.fsync(fd)
+    test.is_nil(err)
+
+    fs.fdatasync(fd, function(err)
+      test.is_nil(err)
+
+      fs.fsync(fd, function(err)
+        test.is_nil(err)
+
+        err = fs.close(fd)
+        test.is_nil(err)
+
+        err = fs.unlink(path)
+        test.is_nil(err)
+
+        test.done()
+      end)
     end)
+  end)
 end
 
-return net
+return exports

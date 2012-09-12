@@ -16,25 +16,31 @@ limitations under the License.
 
 --]]
 
-local lev = require('lev')
-local ltcp = lev.tcp
-local table = require('table')
+local exports = {}
 
-local net = {}
+exports['fs_sync_rename'] = function(test)
+  local lev = require('lev')
+  local fs = lev.fs
+  local path = '_tmp_file1.txt'
+  local new_path = '_tmp_file2.txt'
+  assert(not fs.exists(path))
+  assert(not fs.exists(new_path))
 
-net.createTCPConnection = function(host, port, callback)
+  local err, fd = fs.open(path, 'w+', tonumber('666', 8))
+  test.is_nil(err)
 
+  err = fs.close(fd)
+  test.is_nil(err)
+
+  err = fs.rename(path, new_path)
+  test.is_nil(err)
+  test.ok(not fs.exists(path))
+  test.ok(fs.exists(new_path))
+
+  err = fs.unlink(new_path)
+  test.is_nil(err)
+
+  test.done()
 end
 
-net.createServer = function(host, port, callback)
-  mbox.toMaster(
-     "bind"
-    ,{type='tcp', address=host, port=port}
-    ,function(rpkt, err)
-      if err then return callback(nil, err) end
-      local server = ltcp.new( rpkt._cmsg.fd )
-      server:listen(callback, 511)
-    end)
-end
-
-return net
+return exports

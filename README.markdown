@@ -1,21 +1,24 @@
 # Welcome to lev -- Lua for Event-Based IO
 
-Forked from the Luvit project, lev focuses on making Event-Based IO as fast
-as possible using libuv and adding a fast buffer object on top of Mike Pall's LuaJIT.
+> _`lev` is everything great about `Node`, without the "BS" of JS._  
+― [kristopher tate](https://github.com/kristate), lev founder
 
-All IO will depend on this fast buffer object,
-making moving data from pipe-to-pipe as effortlessly as possible.
+Here are some initial reasons to jump on board:
 
-Unlike Python, Lua traditionally does not have a core-library.
-We believe that this lack of a core-library will allow us easily incorporate fast IO.
+### `lev` is faster than `node`, `python`, `ruby` and many others.
+**why:** `lev` can easily reach over 10,000 requests per core per machine and scales near-linearly  
+**how:** `lev` allows developers to work with IO streams without the raw data ever touching the VM. A special slab allocator and trash-stack handles memory availability while our cBuffer object integrates nicely with the VM. Multi CPU/Core support is built-in from the start.
 
-We have just begun initial development in late August of 2012.
-At the moment development is being lead from Japan.
+### `lev` uses less memory than `node`, `python`, `ruby` and many others.
+**why:** At start-up, `lev` only allocates around 2MB and after benchmarking HTTP a little over 3MB  
+**how:** `lev` is based on the very compact Lua language. A special Buffer object was also written in C to help quickly allocate and work with streams.
+
+### `lev` makes integrating great C-Libraries a breeze!
+**why:** `lev` is based on Lua which has a very simple and compact C ABI  
+**how:** Use FFI or write a wrapper in C. Porting to `lev` should be simpler than others such as `python`, `node` or `ruby`.
+
 
 Join us on IRC at #levdev on freenode.net
-
-Many thanks to the initial luvit team,
-those who have worked on libuv and of course Mike Pall for LuaJIT.
 
 
 ### Building from git
@@ -23,24 +26,6 @@ those who have worked on libuv and of course Mike Pall for LuaJIT.
 Grab a copy of the source code:
 
 `git clone https://github.com/connectFree/lev.git --recursive`
-
-NOTE: the gyp build system is not maintained right now.
-
-To use the gyp build system run:
-
-```
-cd lev
-./configure
-make -C out
-tools/build.py test
-./out/Debug/lev
-```
-
-To install with the gyp build system run:
-
-```
-sudo make -C out install
-```
 
 
 To use the Makefile build system (for embedded systems without python)

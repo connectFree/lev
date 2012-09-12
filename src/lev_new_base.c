@@ -107,7 +107,10 @@ int push_callback(lua_State* L, void* object, const char* name) {
 
   /* Get the callback table. */
   lua_getfenv(L, -1);
-
+/*
+  printf("push_callback: %s (%d)\n", name, lua_type(L, (-1)) );
+  luv_lua_debug_stackdump(L, "push_callback");
+*/
   assert(lua_istable(L, -1));
 
   /* Look up callback. */
@@ -123,8 +126,7 @@ int push_callback(lua_State* L, void* object, const char* name) {
   /* STACK: <object> <callback> */
 
   /* STACK: <object> <callback> */
-  lua_pushvalue(L, -2);
-  lua_remove(L, -3);
+  lua_insert(L, -2);
   /* STACK: <callback> <object> */
   return 1; /* OK */
 }
@@ -180,6 +182,26 @@ void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle) {
   }
 }
 
+/*
+ * Error helper functions.
+ */
+
+void lev_push_uv_err(lua_State *L, uv_err_t err) {
+  lua_createtable(L, 0, 2);
+
+  lua_pushstring(L, uv_strerror(err));
+  lua_setfield(L, -2, "message");
+
+  lua_pushnumber(L, err.code);
+  lua_setfield(L, -2, "code");
+}
+
+uv_err_t lev_code_to_uv_err(uv_err_code errcode) {
+  uv_err_t err;
+  err.code = errcode;
+  return err;
+}
+
 #ifdef WIN32
 __declspec(dllexport)
 #endif
@@ -197,6 +219,8 @@ int luaopen_levbase(lua_State *L) {
   luaopen_lev_tcp(L); /* lev.tcp */
   luaopen_lev_udp(L); /* lev.udp */
   luaopen_lev_core(L); /* lev.core */
+  luaopen_lev_pipe(L); /* lev.pipe */
+  luaopen_lev_mpack(L); /* lev.mpack */
   luaopen_lev_timer(L); /* lev.timer */
   luaopen_lev_buffer(L); /* lev.buffer */
   luaopen_lev_process(L); /* lev.process */

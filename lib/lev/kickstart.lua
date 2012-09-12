@@ -1,6 +1,6 @@
 --[[
 
-Copyright 2012 The Luvit Authors. All Rights Reserved.
+Copyright 2012 The lev Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,21 +18,24 @@ limitations under the License.
 
 -- Bootstrap require system
 local lev = require('lev')
+local env = require('env')
 local utils = require('utils')
+local callbox = require('callbox')
+local constants = require('constants')
+
 _G.getcwd = nil
 _G.argv = nil
---require = require('module').require
 
 -- clear some globals
 -- This will break lua code written for other lua runtimes
-_G.process = io
+_G.process = callbox:new()
+for k,v in pairs(io) do _G.process[k] = v end
 _G.io = nil
 _G.os = nil
 _G.math = nil
 _G.string = nil
 _G.coroutine = nil
 _G.jit = nil
-_G.bit = nil
 _G.debug = nil
 _G.table = nil
 _G.print = utils.print
@@ -40,22 +43,7 @@ _G.p = utils.prettyPrint
 _G.debug = utils.debug
 _G.Buffer = lev.buffer
 
--- -- Move the version variables into a table
--- process.version = VERSION
--- process.versions = {
---   lev = VERSION,
---   uv = native.VERSION_MAJOR .. "." .. native.VERSION_MINOR .. "-" .. UV_VERSION,
---   luajit = LUAJIT_VERSION,
---   yajl = YAJL_VERSION,
---   zlib = ZLIB_VERSION,
---   http_parser = HTTP_VERSION,
---   openssl = OPENSSL_VERSION,
--- }
--- _G.VERSION = nil
--- _G.YAJL_VERSION = nil
--- _G.LUAJIT_VERSION = nil
--- _G.UV_VERSION = nil
--- _G.HTTP_VERSION = nil
--- _G.ZLIB_VERSION = nil
--- _G.OPENSSL_VERSION = nil
+_G.WorkerID = env.get("LEV_WORKER_ID")
+
+lev.activate_signal_handler( constants.SIGPIPE )
 
