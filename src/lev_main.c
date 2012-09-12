@@ -639,13 +639,15 @@ void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
 
 void spawn_helper(const char*pipe_fn
                   ,lev_worker* lworker
-                  ,const char* script_file
+                  ,int script_loc
+                  ,const char **argv
                   ) {
   uv_process_options_t options;
   size_t exepath_size;
   char exepath[1024];
   char env_temp[1024];
-  char* args[3];
+  char* args[64]; /* we shouldn't need more than 64 args */
+  int n;
   int r;
   uv_stdio_container_t stdio[3];
 
@@ -655,8 +657,10 @@ void spawn_helper(const char*pipe_fn
 
   exepath[exepath_size] = '\0';
   args[0] = exepath;
-  args[1] = (char*)script_file;
-  args[2] = NULL;
+  for (n=0;n<64&&argv[script_loc];) {
+    args[++n] = (char *)argv[script_loc++];
+  }
+  args[n+1] = NULL;
 
   memset(&options, 0, sizeof(options));
   options.exit_cb = worker__on_exit;
@@ -756,7 +760,8 @@ static int pmain(lua_State *L) {
       
       spawn_helper(pipe_fn
                    ,_worker
-                   ,argv[ script ]
+                   ,script 
+                   ,(const char **)argv
                    );
 
       /* X:E pipes */
