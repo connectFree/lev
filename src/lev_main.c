@@ -115,6 +115,7 @@ static void print_usage(void)
   "  -b ...    Save or list bytecode.\n"
   "  -j cmd    Perform LuaJIT control command.\n"
   "  -O[opt]   Control LuaJIT optimizations.\n"
+  "  -g        Run a single worker under GDB.\n"
   "  -i        Enter interactive mode after executing " LUA_QL("script") ".\n"
   "  -v        Show version information.\n"
   "  --        Stop handling options.\n"
@@ -449,9 +450,10 @@ static int dobytecode(lua_State *L, char **argv)
 #define notail(x) {if ((x)[2] != '\0') return -1;}
 
 #define FLAGS_INTERACTIVE 1
-#define FLAGS_VERSION   2
-#define FLAGS_EXEC    4
-#define FLAGS_OPTION    8
+#define FLAGS_VERSION     2
+#define FLAGS_EXEC        4
+#define FLAGS_OPTION      8
+#define FLAGS_GDB         16
 
 static int collectargs(char **argv, int *flags)
 {
@@ -473,6 +475,9 @@ static int collectargs(char **argv, int *flags)
       case 'v':
         notail(argv[i]);
         *flags |= FLAGS_VERSION;
+        break;
+      case 'g':
+        *flags |= FLAGS_GDB;
         break;
       case 'e':
         *flags |= FLAGS_EXEC;
@@ -641,30 +646,41 @@ void spawn_helper(const char*pipe_fn
                   ,lev_worker* lworker
                   ,int script_loc
                   ,const char **argv
+                  ,int flags
                   ) {
   uv_process_options_t options;
   size_t exepath_size;
   char exepath[1024];
   char env_temp[1024];
-  char* args[64]; /* we shouldn't need more than 64 args */
+  char* args[256]; /* we shouldn't need more than 256 args */
   int n;
   int r;
   uv_stdio_container_t stdio[3];
+
+  memset(&options, 0, sizeof(options));
 
   exepath_size = sizeof(exepath);
   r = uv_exepath(exepath, &exepath_size);
   assert(r == 0);
 
   exepath[exepath_size] = '\0';
-  args[0] = exepath;
-  for (n=0;n<64&&argv[script_loc];) {
+
+  n = 0;
+  if ((flags & FLAGS_GDB)) {
+    args[n] = "gdb";
+    args[++n] = "--args";
+    options.file = "gdb";
+    n++;
+  } else {
+    options.file = exepath;
+  }
+  args[n] = exepath;
+  for (;n<256&&argv[script_loc];) {
     args[++n] = (char *)argv[script_loc++];
   }
   args[n+1] = NULL;
 
-  memset(&options, 0, sizeof(options));
   options.exit_cb = worker__on_exit;
-  options.file = exepath;
   options.args = args;
 
   char *worker_env[3];
@@ -676,7 +692,13 @@ void spawn_helper(const char*pipe_fn
   options.env = worker_env; 
 
   options.stdio = stdio;
-  options.stdio[0].flags = UV_IGNORE;
+  if ((flags & FLAGS_GDB)) {
+    options.stdio[0].flags = UV_INHERIT_FD;
+    options.stdio[1].data.fd = 0;
+  } else {
+    options.stdio[0].flags = UV_IGNORE;
+  }
+  
   options.stdio[1].flags = UV_INHERIT_FD;
   options.stdio[1].data.fd = 1;
   options.stdio[2].flags = UV_INHERIT_FD;
@@ -725,7 +747,9 @@ static int pmain(lua_State *L) {
     s->status = 1;
     return 0;
   }
-  if ((flags & FLAGS_VERSION)) print_version();
+  if ((flags & FLAGS_VERSION)) {
+    print_version();
+  }
   s->status = runargs(L, argv, (script > 0) ? script : s->argc);
   if (s->status != 0) return 0;
 
@@ -746,6 +770,9 @@ static int pmain(lua_State *L) {
       assert(require('_master'))");
     if (s->status != 0) return 0;
 
+    if ((flags & FLAGS_GDB)) {
+      core_count = 1; /* force to one worker */
+    }
 
     while (uv_workers_count < MAX_WORKERS
            && uv_workers_count < core_count
@@ -757,11 +784,11 @@ static int pmain(lua_State *L) {
       memset(_worker, 0, sizeof(lev_worker));
 
       sprintf(_worker->uuid, "%d", uv_workers_count+1);
-      
       spawn_helper(pipe_fn
                    ,_worker
                    ,script 
                    ,(const char **)argv
+                   ,flags
                    );
 
       /* X:E pipes */
