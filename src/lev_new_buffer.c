@@ -635,6 +635,18 @@ static int buffer__gc (lua_State *L) {
   return 0;
 }
 
+/* __eq(buffer1, buffer2) */
+static int buffer__eq (lua_State *L) {
+  MemSlice *ms1 = luaL_checkudata(L, 1, "lev.buffer");
+  MemSlice *ms2 = luaL_checkudata(L, 2, "lev.buffer");
+  if (ms1->until != ms2->until) {
+    lua_pushboolean(L, 0);
+  } else {
+    lua_pushboolean(L, memcmp(ms1->slice, ms2->slice, ms1->until) == 0 ? 1 : 0 );
+  }
+  return 1;
+}
+
 /* __len(buffer) */
 static int buffer__len (lua_State *L) {
   MemSlice *ms = luaL_checkudata(L, 1, "lev.buffer");
@@ -847,6 +859,9 @@ static luaL_reg methods[] = {
   ,{"find", buffer_find}
   ,{"slice", buffer_slice}
 
+  /* convenience */
+  ,{"s", buffer_tostring}
+
   /* binary helpers */
   ,{"readUInt8", buffer__index} /* same as __index */
   ,{"readInt8", buffer_readInt8}
@@ -867,6 +882,7 @@ static luaL_reg methods[] = {
 
    /* meta */
   ,{"__gc", buffer__gc}
+  ,{"__eq", buffer__eq}
   ,{"__len", buffer__len}
   ,{"__index", buffer__index}
   ,{"__pairs", buffer__pairs}
