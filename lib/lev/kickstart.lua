@@ -20,20 +20,21 @@ limitations under the License.
 local lev = require('lev')
 local env = require('env')
 local utils = require('utils')
+local callbox = require('callbox')
 
 _G.getcwd = nil
 _G.argv = nil
 
 -- clear some globals
 -- This will break lua code written for other lua runtimes
-_G.process = io
+_G.process = callbox:new()
+for k,v in pairs(io) do _G.process[k] = v end
 _G.io = nil
 _G.os = nil
 _G.math = nil
 _G.string = nil
 _G.coroutine = nil
 _G.jit = nil
-_G.bit = nil
 _G.debug = nil
 _G.table = nil
 _G.print = utils.print
