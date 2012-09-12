@@ -191,7 +191,7 @@ static void core_on_signal(struct ev_loop *loop, struct ev_signal *w, int revent
   assert(uv_default_loop()->ev == loop);
   lua_State* L = (lua_State*)w->data;
   lua_getglobal(L, "process");
-  lua_getfield(L, -1, "emit");
+  lua_getfield(L, -1, "call");
   lua_pushvalue(L, -2);
   lua_remove(L, -3);
   lua_pushstring(L, core_signo_string(w->signum));
