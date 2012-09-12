@@ -38,7 +38,7 @@ static MemBlock *_static_mb = NULL;
   lua_State* L = self->handle.loop->data;
 
 #define UV_UDP_CLOSE(handle)                          \
-    uv_close(handle, udp_after_close);
+    uv_close((uv_handle_t *)handle, udp_after_close);
 
 typedef struct {
   LEVBASE_REF_FIELDS
