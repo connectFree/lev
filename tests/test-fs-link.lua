@@ -37,7 +37,7 @@ exports['fs_link'] = function(test)
   local stat1, stat2
   err, stat1 = fs.stat(path1)
   err, stat2 = fs.stat(path2)
-  test.equal(stat2:ino(), stat1:ino())
+  test.equal(stat2.ino, stat1.ino)
 
   fs.unlink(path2)
 

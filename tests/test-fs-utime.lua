@@ -34,7 +34,7 @@ exports['fs_utime'] = function(test)
 
   local stat
   err, stat = fs.fstat(fd)
-  test.equal(stat:atime(), atime)
+  test.equal(stat.atime, atime)
   -- Disable this test because it fails on Travis.
   --test.equal(stat:mtime(), mtime)
 
@@ -45,8 +45,8 @@ exports['fs_utime'] = function(test)
   test.is_nil(err)
 
   err, stat = fs.stat(path)
-  test.equal(stat:atime(), atime)
-  test.equal(stat:mtime(), mtime)
+  test.equal(stat.atime, atime)
+  test.equal(stat.mtime, mtime)
 
   fs.unlink(path)
 

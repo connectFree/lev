@@ -115,184 +115,32 @@ static int fs_checkflags(lua_State *L, int index) {
   return flags;
 }
 
-/******************************************************************************/
+#define SET_FIELD(name, type, val) \
+  lua_push##type(L, val);          \
+  lua_setfield(L, -2, #name)
 
-#define FS_STAT_TNAME "lev.fs.stat"
-#define lev_checkfsstat(L, idx) \
-    ((uv_statbuf_t *)luaL_checkudata((L), (idx), FS_STAT_TNAME))
-
-static int lev_pushtimespec(lua_State *L, struct timespec *timespec) {
-  lua_pushnumber(L, timespec->tv_sec + timespec->tv_nsec / 1e9);
-  return 1;
-}
-
-static int fs_stat_atime(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lev_pushtimespec(L, &buf->st_atime);
-  return 1;
-}
-
-static int fs_stat_ctime(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lev_pushtimespec(L, &buf->st_ctime);
-  return 1;
-}
-
-static int fs_stat_mtime(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lev_pushtimespec(L, &buf->st_mtime);
-  return 1;
-}
-
-
-static int fs_stat_is_block_device(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushboolean(L, (buf->st_mode & S_IFMT) == S_IFBLK);
-  return 1;
-}
-
-static int fs_stat_is_character_device(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushboolean(L, (buf->st_mode & S_IFMT) == S_IFCHR);
-  return 1;
-}
-
-static int fs_stat_is_directory(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushboolean(L, (buf->st_mode & S_IFMT) == S_IFDIR);
-  return 1;
-}
-
-static int fs_stat_is_fifo(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushboolean(L, (buf->st_mode & S_IFMT) == S_IFIFO);
-  return 1;
-}
-
-static int fs_stat_is_file(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushboolean(L, (buf->st_mode & S_IFMT) == S_IFREG);
-  return 1;
-}
-
-static int fs_stat_is_socket(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushboolean(L, (buf->st_mode & S_IFMT) == S_IFSOCK);
-  return 1;
-}
-
-static int fs_stat_is_symbolic_link(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushboolean(L, (buf->st_mode & S_IFMT) == S_IFLNK);
-  return 1;
-}
-
-static int fs_stat_blksize(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_blksize);
-  return 1;
-}
-
-static int fs_stat_blocks(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_blocks);
-  return 1;
-}
-
-static int fs_stat_dev(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_dev);
-  return 1;
-}
-
-static int fs_stat_gid(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_gid);
-  return 1;
-}
-
-static int fs_stat_ino(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_ino);
-  return 1;
-}
-
-static int fs_stat_mode(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_mode);
-  return 1;
-}
-
-static int fs_stat_nlink(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_nlink);
-  return 1;
-}
-
-static int fs_stat_rdev(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_rdev);
-  return 1;
-}
-
-static int fs_stat_size(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_size);
-  return 1;
-}
-
-static int fs_stat_uid(lua_State *L) {
-  uv_statbuf_t *buf = lev_checkfsstat(L, 1);
-  lua_pushnumber(L, buf->st_uid);
-  return 1;
-}
-
-static luaL_reg fs_stat_methods[] = {
-   {"atime", fs_stat_atime}
-  ,{"blksize", fs_stat_blksize}
-  ,{"blocks", fs_stat_blocks}
-  ,{"ctime", fs_stat_ctime}
-  ,{"dev", fs_stat_dev}
-  ,{"gid", fs_stat_gid}
-  ,{"ino", fs_stat_ino}
-  ,{"is_block_device", fs_stat_is_block_device}
-  ,{"is_character_device", fs_stat_is_character_device}
-  ,{"is_directory", fs_stat_is_directory}
-  ,{"is_fifo", fs_stat_is_fifo}
-  ,{"is_file", fs_stat_is_file}
-  ,{"is_socket", fs_stat_is_socket}
-  ,{"is_symbolic_link", fs_stat_is_symbolic_link}
-  ,{"mode", fs_stat_mode}
-  ,{"mtime", fs_stat_mtime}
-  ,{"nlink", fs_stat_nlink}
-  ,{"rdev", fs_stat_rdev}
-  ,{"size", fs_stat_size}
-  ,{"uid", fs_stat_uid}
-  ,{NULL, NULL}
-};
-
-int luaopen_lev_fs_stat(lua_State *L) {
-  luaL_newmetatable(L, FS_STAT_TNAME);
-  luaL_register(L, NULL, fs_stat_methods);
-  lua_setfield(L, -1, "__index");
-
-  return 1;
-}
-
-/******************************************************************************/
-
-/*
- * pushing results
- *
- * NOTE: write returns err, written_byte_count, which is different from
- *       Node.js (err, written_byte_count, buffer)
- */
-
-static int push_fs_stat(lua_State *L, uv_statbuf_t *buf) {
-  uv_statbuf_t *userdata = lua_newuserdata(L, sizeof(uv_statbuf_t));
-  *userdata = *buf;
-  luaL_getmetatable(L, FS_STAT_TNAME);
-  lua_setmetatable(L, -2);
+static int push_fs_stat(lua_State *L, uv_statbuf_t *s) {
+  lua_newtable(L);
+  SET_FIELD(dev, number, s->st_dev);
+  SET_FIELD(ino, number, s->st_ino);
+  SET_FIELD(mode, number, s->st_mode);
+  SET_FIELD(nlink, number, s->st_nlink);
+  SET_FIELD(gid, number, s->st_gid);
+  SET_FIELD(uid, number, s->st_uid);
+  SET_FIELD(rdev, number, s->st_rdev);
+  SET_FIELD(size, number, s->st_size);
+  SET_FIELD(blksize, number, s->st_blksize);
+  SET_FIELD(blocks, number, s->st_blocks);
+  SET_FIELD(atime, number, s->st_atime);
+  SET_FIELD(mtime, number, s->st_mtime);
+  SET_FIELD(ctime, number, s->st_ctime);
+  SET_FIELD(isFile, boolean, S_ISREG(s->st_mode));
+  SET_FIELD(isDirectory, boolean, S_ISDIR(s->st_mode));
+  SET_FIELD(isCharacterDevice, boolean, S_ISCHR(s->st_mode));
+  SET_FIELD(isBlockDevice, boolean, S_ISBLK(s->st_mode));
+  SET_FIELD(isFIFO, boolean, S_ISFIFO(s->st_mode));
+  SET_FIELD(isSymbolicLink, boolean, S_ISLNK(s->st_mode));
+  SET_FIELD(isSocket, boolean, S_ISSOCK(s->st_mode));
   return 1;
 }
 
@@ -312,6 +160,12 @@ static int push_readdir_results(lua_State *L, int entry_count,
   return 1;
 }
 
+/*
+ * pushing results
+ *
+ * NOTE: write returns err, written_byte_count, which is different from
+ *       Node.js (err, written_byte_count, buffer)
+ */
 static int push_results(lua_State *L, uv_fs_t *req) {
   if (req->result == -1) {
     lev_push_uv_err(L, LEV_UV_ERR_FROM_REQ(req));
@@ -729,11 +583,6 @@ static luaL_reg functions[] = {
 };
 
 void luaopen_lev_fs(lua_State *L) {
-  /* We put callback function reference identifiers to void * */
-  assert(sizeof(void *) >= sizeof(int));
-
-  luaopen_lev_fs_stat(L);
-
   lua_createtable(L, 0, ARRAY_SIZE(functions) - 1);
   luaL_register(L, NULL, functions);
   lua_setfield(L, -2, "fs");
