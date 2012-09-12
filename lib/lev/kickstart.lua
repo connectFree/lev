@@ -21,6 +21,7 @@ local lev = require('lev')
 local env = require('env')
 local utils = require('utils')
 local callbox = require('callbox')
+local constants = require('constants')
 
 _G.getcwd = nil
 _G.argv = nil
@@ -43,4 +44,6 @@ _G.debug = utils.debug
 _G.Buffer = lev.buffer
 
 _G.WorkerID = env.get("LEV_WORKER_ID")
+
+lev.activate_signal_handler( constants.SIGPIPE )
 
