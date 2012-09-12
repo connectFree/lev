@@ -630,7 +630,10 @@ static int uv_workers_count = 0;
 void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
     fprintf(stderr, "Core exited with status %d, signal %d\n", exit_status, term_signal);
     uv_close((uv_handle_t*) req, NULL);
-    /*free(req);*/
+    free( req->data );
+    if (--uv_workers_count == 0) {
+      exit(0); /* this should be cleaner */
+    }
 }
 
 
@@ -677,6 +680,8 @@ void spawn_helper(const char*pipe_fn
   options.stdio_count = 3;
 
   r = uv_spawn(uv_default_loop(), &lworker->process, options);
+  free( worker_env[0] );
+  free( worker_env[1] );
   assert(r == 0);
 }
 
@@ -744,6 +749,7 @@ static int pmain(lua_State *L) {
 
       /* X:S pipes; mario would be proud. */
       lev_worker* _worker = (lev_worker*)malloc(sizeof(lev_worker));
+      _worker->process.data = _worker;
       memset(_worker, 0, sizeof(lev_worker));
 
       sprintf(_worker->uuid, "%d", uv_workers_count+1);
