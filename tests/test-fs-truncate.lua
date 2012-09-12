@@ -36,7 +36,7 @@ exports['fs_sync_truncate'] = function(test)
   local stat
   err, stat = fs.stat(path)
   test.is_nil(err)
-  test.equal(stat:size(), #content)
+  test.equal(stat.size, #content)
 
   local new_size = 3
   err = fs.ftruncate(fd, new_size)
@@ -44,7 +44,7 @@ exports['fs_sync_truncate'] = function(test)
 
   err, stat = fs.stat(path)
   test.is_nil(err)
-  test.equal(stat:size(), new_size)
+  test.equal(stat.size, new_size)
 
   err = fs.close(fd)
   test.is_nil(err)
