@@ -1,4 +1,5 @@
-VERSION=$(shell git describe --tags)
+# TODO: shoube be versioning ...
+VERSION=0.0.1
 LUADIR=deps/luajit
 LUAJIT_VERSION=$(shell git --git-dir ${LUADIR}/.git describe --tags)
 YAJLDIR=deps/yajl
@@ -176,7 +177,7 @@ ${BUILDDIR}/%.o: src/%.c ${DEPS}
 		-DHTTP_VERSION=\"${HTTP_VERSION}\" \
 		-DUV_VERSION=\"${UV_VERSION}\" \
 		-DYAJL_VERSIONISH=\"${YAJL_VERSION}\" \
-		-DLUVIT_VERSION=\"${VERSION}\" \
+		-DLEV_VERSION=\"${VERSION}\" \
 		-DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
 
 ${BUILDDIR}/liblev.a: ${CRYPTODIR}/Makefile ${LUVLIBS} ${DEPS}
@@ -270,7 +271,7 @@ dist_build:
             -e 's/^UV_VERSION=.*/UV_VERSION=${UV_VERSION}/' \
             -e 's/^HTTP_VERSION=.*/HTTP_VERSION=${HTTP_VERSION}/' \
             -e 's/^YAJL_VERSION=.*/YAJL_VERSION=${YAJL_VERSION}/' < Makefile > Makefile.dist
-	sed -e 's/LUVIT_VERSION=".*/LUVIT_VERSION=\"${VERSION}\"'\'',/' \
+	sed -e 's/LEV_VERSION=".*/LEV_VERSION=\"${VERSION}\"'\'',/' \
             -e 's/LUAJIT_VERSION=".*/LUAJIT_VERSION=\"${LUAJIT_VERSION}\"'\'',/' \
             -e 's/UV_VERSION=".*/UV_VERSION=\"${UV_VERSION}\"'\'',/' \
             -e 's/HTTP_VERSION=".*/HTTP_VERSION=\"${HTTP_VERSION}\"'\'',/' \
