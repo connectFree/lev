@@ -16,8 +16,6 @@ limitations under the License.
 
 --]]
 
-p(_G.WorkerID, "WORKER START")
-
 -- Bootstrap require system
 local lev = require('lev')
 local env = require('env')
@@ -122,5 +120,3 @@ _G.mbox.toMaster = function( cmd, package, callback )
   end
   send_msg( {cmd=cmd, id=idstr, from=_G.WorkerID, p=package} )
 end -- X:E _G.mbox.toMaster
-
-p(_G.WorkerID, "WORKER END")

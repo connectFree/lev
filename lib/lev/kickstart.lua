@@ -43,6 +43,3 @@ _G.Buffer = lev.buffer
 
 _G.WorkerID = env.get("LEV_WORKER_ID")
 
-p("KICKSTART END")
-
-

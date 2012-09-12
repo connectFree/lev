@@ -25,8 +25,6 @@ local pipe = lev.pipe
 local mp = lev.mpack
 local net_tcp = lev.tcp
 
-p("MASTER STARTED")
-
 local bind_pool = {}
 local worker_pool = {}
 local worker_pool_by_id = {}
@@ -92,5 +90,3 @@ master_ipc:listen(function(s, err)
   client:read_start(client__on_read)
   worker_pool[ client ] = {}
 end)
-
-p("MASTER END")
