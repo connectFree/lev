@@ -38,7 +38,7 @@ static MemBlock *_static_mb = NULL;
   lua_State* L = self->handle.loop->data;
 
 #define UV_UDP_CLOSE(handle)                          \
-    uv_close(handle, udp_after_close);
+    uv_close((uv_handle_t *)handle, udp_after_close);
 
 typedef struct {
   LEVBASE_REF_FIELDS
@@ -101,7 +101,7 @@ static int udp_send(lua_State* L) {
   port = luaL_checkint(L, 3);
 
   if (lua_isstring(L, 4)) {
-    int len;
+    size_t len;
     const char* chunk = luaL_checklstring(L, 4, &len);
     buf = uv_buf_init((char*)chunk, len);
   } else {
