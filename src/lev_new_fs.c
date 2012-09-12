@@ -402,6 +402,7 @@ static int fs_exists(lua_State* L) {
 /*
  * fs.close
  */
+/*
 static int fs_close(lua_State* L) {
   uv_fs_cb cb;
   uv_loop_t *loop = luv_get_loop(L);
@@ -417,6 +418,42 @@ static int fs_close(lua_State* L) {
   }
   uv_fs_close(loop, req, fd, cb);
   return fs_post_handling(L, req);
+}
+*/
+static int fs_close(lua_State* L) {
+  uv_fs_cb cb;
+  uv_loop_t *loop = luv_get_loop(L);
+
+  fs_req_holder *holder = (fs_req_holder *)create_obj_init_ref(L,
+      sizeof(fs_req_holder), "lev.fs");
+  /* NOTE: set_call needs "object" to be stack at index 1 */
+  lua_insert(L, 1);
+  uv_fs_t *req = &holder->req;
+
+  /* NOTE: index is added by 1 because of holder above. */
+  int fd = luaL_checkint(L, 2);
+  if (lua_isfunction(L, 3)) {
+    set_callback(L, CALLBACK_NAME, 3);
+    lev_handle_ref(L, (LevRefStruct_t *)holder, -1);
+    cb = on_fs_callback;
+  } else {
+    cb = NULL;
+  }
+  /* NOTE: remove "object" */
+  lua_remove(L, 1);
+
+  uv_fs_close(loop, req, fd, cb);
+  if (req->result == -1) {
+    lev_push_uv_err(L, LEV_UV_ERR_FROM_REQ(req));
+    return 1;
+  }
+  if (!cb) {
+    int ret_n = push_results(L, req);
+    uv_fs_req_cleanup(req);
+    return ret_n;
+  } else {
+    return 0;
+  }
 }
 
 /*
@@ -902,10 +939,8 @@ static int fs_utime(lua_State* L) {
  * fs.open
  */
 static int fs_open(lua_State* L) {
-  int mode;
   uv_fs_cb cb;
   uv_loop_t *loop = luv_get_loop(L);
-  int arg_n = lua_gettop(L);
 
   fs_req_holder *holder = (fs_req_holder *)create_obj_init_ref(L,
       sizeof(fs_req_holder), "lev.fs");
@@ -913,32 +948,32 @@ static int fs_open(lua_State* L) {
   lua_insert(L, 1);
   uv_fs_t *req = &holder->req;
 
-  int arg_i = 2;
-  const char *path = luaL_checkstring(L, arg_i++);
-  int flags = fs_checkflags(L, arg_i++);
-  if (arg_i <= arg_n && lua_isnumber(L, arg_i)) {
-    mode = luaL_checkint(L, arg_i++);
-  } else {
-    mode = 0666;
-  }
-  if (arg_i <= arg_n) {
-luv_lua_debug_stackdump(L, "fs_open before set_callback");
-    set_callback(L, CALLBACK_NAME, arg_i++);
-luv_lua_debug_stackdump(L, "fs_open after set_callback");
+  /* NOTE: index is added by 1 because of holder above. */
+  const char *path = luaL_checkstring(L, 2);
+  int flags = fs_checkflags(L, 3);
+  int mode = luaL_optint(L, 4, 0666);
+  if (lua_isfunction(L, 5)) {
+    set_callback(L, CALLBACK_NAME, 5);
     lev_handle_ref(L, (LevRefStruct_t *)holder, -1);
-luv_lua_debug_stackdump(L, "fs_open after handle_ref");
     cb = on_fs_callback;
   } else {
-    /* NOTE: remove "object" */
-    lua_remove(L, 1);
     cb = NULL;
   }
+  /* NOTE: remove "object" */
+  lua_remove(L, 1);
+
   uv_fs_open(loop, req, path, flags, mode, cb);
-  int ret_n = push_results(L, req);
-  if (!LEV_IS_ASYNC_REQ(req)) {
-    uv_fs_req_cleanup(req);
+  if (req->result == -1) {
+    lev_push_uv_err(L, LEV_UV_ERR_FROM_REQ(req));
+    return 1;
   }
-  return ret_n;
+  if (!cb) {
+    int ret_n = push_results(L, req);
+    uv_fs_req_cleanup(req);
+    return ret_n;
+  } else {
+    return 0;
+  }
 }
 
 static luaL_reg functions[] = {
