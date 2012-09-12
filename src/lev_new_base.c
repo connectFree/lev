@@ -101,7 +101,7 @@ void push_object(lua_State* L, void* object) {
   /* STACK: <object> */
 }
 
-int push_callback(lua_State* L, void* object, const char* name) {
+int _push_callback(lua_State* L, void* object, const char* name, int pop_object) {
 
   push_object(L, object);
 
@@ -128,6 +128,12 @@ int push_callback(lua_State* L, void* object, const char* name) {
   /* STACK: <object> <callback> */
   lua_insert(L, -2);
   /* STACK: <callback> <object> */
+
+  if (pop_object) {
+    lua_pop(L, 1);
+    /* STACK: <callback> */
+  }
+
   return 1; /* OK */
 }
 
