@@ -126,8 +126,7 @@ int push_callback(lua_State* L, void* object, const char* name) {
   /* STACK: <object> <callback> */
 
   /* STACK: <object> <callback> */
-  lua_pushvalue(L, -2);
-  lua_remove(L, -3);
+  lua_insert(L, -2);
   /* STACK: <callback> <object> */
   return 1; /* OK */
 }
@@ -181,6 +180,26 @@ void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle) {
     lhandle->ref = LUA_NOREF;
     /*printf("handle_unref\t lhandle=%p handle=%p\n", lhandle, &lhandle->handle);*/
   }
+}
+
+/*
+ * Error helper functions.
+ */
+
+void lev_push_uv_err(lua_State *L, uv_err_t err) {
+  lua_createtable(L, 0, 2);
+
+  lua_pushstring(L, uv_strerror(err));
+  lua_setfield(L, -2, "message");
+
+  lua_pushnumber(L, err.code);
+  lua_setfield(L, -2, "code");
+}
+
+uv_err_t lev_code_to_uv_err(uv_err_code errcode) {
+  uv_err_t err;
+  err.code = errcode;
+  return err;
 }
 
 #ifdef WIN32
