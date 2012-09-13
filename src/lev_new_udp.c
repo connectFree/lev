@@ -31,17 +31,6 @@
   
 */
 
-/* TODO: remove this when maglev_fs pull request is merged. */
-static void lev_push_uv_err(lua_State *L, uv_err_t err) {
-  lua_createtable(L, 0, 2);
-
-  lua_pushstring(L, uv_strerror(err));
-  lua_setfield(L, -2, "message");
-
-  lua_pushnumber(L, err.code);
-  lua_setfield(L, -2, "code");
-}
-
 static MemBlock *_static_mb = NULL;
 
 #define UNWRAP(h) \
