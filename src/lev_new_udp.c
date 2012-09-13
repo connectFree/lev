@@ -198,7 +198,7 @@ static void udp_after_close(uv_handle_t* handle) {
 
 static int push_sockaddr(lua_State *L, struct sockaddr *addr) {
   char addr_buf[sizeof "255.255.255.255"];
-  inet_ntop4(addr->sa_data + 2, addr_buf, sizeof(addr_buf));
+  uv_inet_ntop(PF_INET, addr->sa_data + 2, addr_buf, sizeof(addr_buf));
   lua_pushstring(L, addr_buf);
 
   int port = ((unsigned)addr->sa_data[0] << 8) | ((unsigned)addr->sa_data[1]);
@@ -210,7 +210,6 @@ static int push_sockaddr(lua_State *L, struct sockaddr *addr) {
 static void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t buf,
     struct sockaddr* addr, unsigned flags) {
   int r;
-  int port;
 
   UNWRAP(handle);
 
