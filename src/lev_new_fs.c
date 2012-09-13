@@ -55,7 +55,7 @@ typedef struct fs_req_holder_s {
 #define FSR__SET_OPT_CB(index, c_callback) \
   if (lua_isfunction(L, (index))) {                               \
     set_callback(L, FSR__CBNAME, (index));                        \
-    lev_handle_ref(L, (LevRefStruct_t *)holder, -1);              \
+    lev_handle_ref(L, (LevRefStruct_t *)holder, 1);               \
     cb = (c_callback);                                            \
   }
 
