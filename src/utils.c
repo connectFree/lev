@@ -273,19 +273,6 @@ lua_State* luv_handle_get_lua(luv_handle_t* lhandle) {
 }
 
 
-void luv_set_ares_channel(lua_State *L, ares_channel channel) {
-  lua_pushlightuserdata(L, channel);
-  lua_setfield(L, LUA_REGISTRYINDEX, "ares_channel");
-}
-
-ares_channel luv_get_ares_channel(lua_State *L) {
-  ares_channel channel;
-  lua_getfield(L, LUA_REGISTRYINDEX, "ares_channel");
-  channel = lua_touserdata(L, -1);
-  lua_pop(L, 1);
-  return channel;
-}
-
 lua_State* luv_get_main_thread(lua_State *L) {
   lua_State *main_thread;
   lua_getfield(L, LUA_REGISTRYINDEX, "main_thread");

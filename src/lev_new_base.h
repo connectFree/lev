@@ -86,4 +86,8 @@ uv_err_t lev_code_to_uv_err(uv_err_code errcode);
     (LEV_IS_ASYNC_REQ(req) ? lev_code_to_uv_err((req)->errorno) \
                            : uv_last_error((req)->loop))
 
+#define LEV_SET_FIELD(name, type, val) \
+  lua_push##type(L, val);              \
+  lua_setfield(L, -2, #name)
+
 #endif /* LEVBASE_H_ */
