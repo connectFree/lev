@@ -135,8 +135,7 @@ static int timer_again(lua_State* L) {
 }
 
 static luaL_reg methods[] = {
-  { "__gc",       timer_close     }
- ,{ "again",      timer_again     }
+  { "again",      timer_again     }
  ,{ "close",      timer_close     }
  ,{ "start",      timer_start     }
  ,{ "stop",       timer_stop      }
