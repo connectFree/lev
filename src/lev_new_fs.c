@@ -32,29 +32,29 @@
 */
 
 
-typedef struct {
+typedef struct fs_req_holder_s {
   LEVBASE_REF_FIELDS
   uv_fs_t req;
-} fs_req_holder;
+} fs_req_holder_t;
 
 #define UNWRAP(r) \
-  fs_req_holder* holder = container_of((r), fs_req_holder, req); \
+  fs_req_holder_t* holder = container_of((r), fs_req_holder_t, req); \
   lua_State* L = (r)->loop->data;
 
 #define FSR__CBNAME "_cb"
 
 #define FSR__SETUP \
-  uv_fs_cb cb = NULL;                                             \
-  uv_loop_t *loop = luv_get_loop(L);                              \
-  fs_req_holder *holder = (fs_req_holder *)create_obj_init_ref(L, \
-      sizeof(fs_req_holder), "lev.fs");                           \
-  /* NOTE: set_call needs "object" to be stack at index 1 */      \
-  lua_insert(L, 1);                                               \
+  uv_fs_cb cb = NULL;                                                 \
+  uv_loop_t *loop = luv_get_loop(L);                                  \
+  fs_req_holder_t *holder = (fs_req_holder_t *)create_obj_init_ref(L, \
+      sizeof(fs_req_holder_t), "lev.fs");                             \
+  /* NOTE: set_call needs "object" to be stack at index 1 */          \
+  lua_insert(L, 1);                                                   \
   uv_fs_t *req = &holder->req;
 
 #define FSR__SET_OPT_CB(index, c_callback) \
   if (lua_isfunction(L, (index))) {                               \
-    set_callback(L, FSR__CBNAME, (index));                      \
+    set_callback(L, FSR__CBNAME, (index));                        \
     lev_handle_ref(L, (LevRefStruct_t *)holder, -1);              \
     cb = (c_callback);                                            \
   }
