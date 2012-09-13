@@ -380,6 +380,7 @@ int core_handle_type(lua_State* L) {
   return 1;
 }
 
+/* TODO: should be support debug modeule
 extern void uv_print_active_handles(uv_loop_t *loop);
 extern void uv_print_all_handles(uv_loop_t *loop);
 
@@ -392,7 +393,7 @@ int core_print_all_handles(lua_State* L) {
   uv_print_all_handles(lev_get_loop(L));
   return 0;
 }
-
+*/
 
 
 static luaL_reg functions[] = {
@@ -410,8 +411,10 @@ static luaL_reg functions[] = {
   ,{"get_process_title", core_get_process_title}
   ,{"set_process_title", core_set_process_title}
   ,{"handle_type", core_handle_type}
+  /* TODO: should be support debug module.
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}
+  */
   ,{ NULL, NULL }
 };
 
