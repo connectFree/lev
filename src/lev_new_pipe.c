@@ -174,7 +174,7 @@ static int pipe_new(lua_State* L) {
 
   is_ipc = lua_tointeger(L, 1);
 
-  loop = uv_default_loop();
+  loop = lev_get_loop(L);
   assert(L == loop->data);
 
   self = (pipe_obj*)create_obj_init_ref(L, sizeof *self, "lev.pipe");

@@ -164,19 +164,6 @@ const char* luv_handle_type_to_string(uv_handle_type type) {
   }
 }
 
-void luv_set_loop(lua_State *L, uv_loop_t *loop) {
-  lua_pushlightuserdata(L, loop);
-  lua_setfield(L, LUA_REGISTRYINDEX, "loop");
-}
-
-uv_loop_t* luv_get_loop(lua_State *L) {
-  uv_loop_t *loop;
-  lua_getfield(L, LUA_REGISTRYINDEX, "loop");
-  loop = lua_touserdata(L, -1);
-  lua_pop(L, 1);
-  return loop;
-}
-
 
 /* Initialize a new lhandle and push the new userdata on the stack. */
 luv_handle_t* luv_handle_create(lua_State* L, size_t size, const char* type) {

@@ -52,7 +52,7 @@ static int process_new(lua_State* L) {
   uv_loop_t* loop;
   process_obj* self;
 
-  loop = uv_default_loop();
+  loop = lev_get_loop(L);
   assert(L == loop->data);
 
   self = (process_obj*)create_obj_init_ref(L, sizeof *self, "lev.process");

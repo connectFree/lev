@@ -45,7 +45,7 @@ static int timer_new(lua_State* L) {
   timer_obj* self;
   int r;
 
-  loop = luv_get_loop(L);
+  loop = lev_get_loop(L);
   assert(L == loop->data);
 
   self = (timer_obj*)create_obj_init_ref(L, sizeof *self, "lev.timer");
@@ -127,7 +127,7 @@ static int timer_again(lua_State* L) {
   self = luaL_checkudata(L, 1, "lev.timer");
   r = uv_timer_again(&self->handle);
   if (r == -1) {
-    lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
+    lev_push_uv_err(L, uv_last_error(lev_get_loop(L)));
     return 1;
   }
 
