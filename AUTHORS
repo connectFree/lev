@@ -1,4 +1,7 @@
-* kristopher tate
-* hiroaki nakamura
+# Authors ordered by first contribution.
+* kristopher tate <kris.tate@gmail.com>
+* hiroaki nakamura <hnakamur@gmail.com>
+* Vladimir Dronnikov <dronnikov@gmail.com>
+* kazuya kawaguchi <kawakazu80@gmail.com> 
 
-Many thanks to the initial luvit team, those who have worked on libuv and of course Mike Pall for LuaJIT.
+* Many thanks to the initial luvit team, those who have worked on libuv and of course Mike Pall for LuaJIT.
