@@ -55,7 +55,7 @@ static int timer_new(lua_State* L) {
   return 1;
 }
 
-static void timer_on_close(uv_timer_t *handle) {
+static void timer_on_close(uv_handle_t *handle) {
   UNWRAP(handle);
   if (push_callback(L, self, "on_close")) {
     lua_call(L, 1, 0);/*, -3*/
@@ -78,7 +78,7 @@ static int timer_close(lua_State* L) {
   r = uv_timer_stop(handle);
   assert(r == 0);
 
-  uv_close(handle, timer_on_close);
+  uv_close((uv_handle_t *)handle, timer_on_close);
 
   return 0;
 }
@@ -120,18 +120,6 @@ static int timer_stop(lua_State* L) {
   return 0;
 }
 
-/* TODO: Remove code duplication to fs_push_uv_error after maglev_fs is merged.
- */
-static void push_uv_error(lua_State *L, uv_err_t err) {
-  lua_createtable(L, 0, 2);
-
-  lua_pushstring(L, uv_strerror(err));
-  lua_setfield(L, -2, "message");
-
-  lua_pushnumber(L, err.code);
-  lua_setfield(L, -2, "code");
-}
-
 static int timer_again(lua_State* L) {
   timer_obj *self;
   int r;
@@ -139,7 +127,7 @@ static int timer_again(lua_State* L) {
   self = luaL_checkudata(L, 1, "lev.timer");
   r = uv_timer_again(&self->handle);
   if (r == -1) {
-    push_uv_error(L, uv_last_error(luv_get_loop(L)));
+    lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
     return 1;
   }
 
