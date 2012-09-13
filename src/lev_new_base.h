@@ -76,6 +76,10 @@ int _push_callback(lua_State* L, void* object, const char* name, int pop_object)
 /* push callback without object */
 #define push_callback_no_obj(L, object, name)  _push_callback(L, object, name, 1)
 
+/* Loop register/retrive functions */
+void lev_set_loop(lua_State *L, uv_loop_t *loop);
+uv_loop_t* lev_get_loop(lua_State *L);
+
 /* error helper function */
 void lev_push_uv_err(lua_State *L, uv_err_t err);
 uv_err_t lev_code_to_uv_err(uv_err_code errcode);

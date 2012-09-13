@@ -564,6 +564,9 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
   rc = ares_library_init(ARES_LIB_INIT_ALL);
   assert(rc == ARES_SUCCESS);
 
+  /* Store the loop within the registry */
+  lev_set_loop(L, loop);
+
   /* Pull up the preload table */
   lua_getglobal(L, "package");
   lua_getfield(L, -1, "preload");
@@ -593,11 +596,8 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
   assert(rc == 1);
   lua_setfield(L, LUA_REGISTRYINDEX, "main_thread");
 
-  /* Store the loop within the registry */
-  luv_set_loop(L, loop);
-
   /* Store the ARES Channel */
-  uv_ares_init_options(luv_get_loop(L), &channel, &options, 0);
+  uv_ares_init_options(lev_get_loop(L), &channel, &options, 0);
   luv_set_ares_channel(L, channel);
 
 
