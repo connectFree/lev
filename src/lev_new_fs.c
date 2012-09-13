@@ -115,32 +115,28 @@ static int fs_checkflags(lua_State *L, int index) {
   return flags;
 }
 
-#define SET_FIELD(name, type, val) \
-  lua_push##type(L, val);          \
-  lua_setfield(L, -2, #name)
-
 static int push_fs_stat(lua_State *L, uv_statbuf_t *s) {
   lua_newtable(L);
-  SET_FIELD(dev, number, s->st_dev);
-  SET_FIELD(ino, number, s->st_ino);
-  SET_FIELD(mode, number, s->st_mode);
-  SET_FIELD(nlink, number, s->st_nlink);
-  SET_FIELD(gid, number, s->st_gid);
-  SET_FIELD(uid, number, s->st_uid);
-  SET_FIELD(rdev, number, s->st_rdev);
-  SET_FIELD(size, number, s->st_size);
-  SET_FIELD(blksize, number, s->st_blksize);
-  SET_FIELD(blocks, number, s->st_blocks);
-  SET_FIELD(atime, number, s->st_atime);
-  SET_FIELD(mtime, number, s->st_mtime);
-  SET_FIELD(ctime, number, s->st_ctime);
-  SET_FIELD(isFile, boolean, S_ISREG(s->st_mode));
-  SET_FIELD(isDirectory, boolean, S_ISDIR(s->st_mode));
-  SET_FIELD(isCharacterDevice, boolean, S_ISCHR(s->st_mode));
-  SET_FIELD(isBlockDevice, boolean, S_ISBLK(s->st_mode));
-  SET_FIELD(isFIFO, boolean, S_ISFIFO(s->st_mode));
-  SET_FIELD(isSymbolicLink, boolean, S_ISLNK(s->st_mode));
-  SET_FIELD(isSocket, boolean, S_ISSOCK(s->st_mode));
+  LEV_SET_FIELD(dev, number, s->st_dev);
+  LEV_SET_FIELD(ino, number, s->st_ino);
+  LEV_SET_FIELD(mode, number, s->st_mode);
+  LEV_SET_FIELD(nlink, number, s->st_nlink);
+  LEV_SET_FIELD(gid, number, s->st_gid);
+  LEV_SET_FIELD(uid, number, s->st_uid);
+  LEV_SET_FIELD(rdev, number, s->st_rdev);
+  LEV_SET_FIELD(size, number, s->st_size);
+  LEV_SET_FIELD(blksize, number, s->st_blksize);
+  LEV_SET_FIELD(blocks, number, s->st_blocks);
+  LEV_SET_FIELD(atime, number, s->st_atime);
+  LEV_SET_FIELD(mtime, number, s->st_mtime);
+  LEV_SET_FIELD(ctime, number, s->st_ctime);
+  LEV_SET_FIELD(isFile, boolean, S_ISREG(s->st_mode));
+  LEV_SET_FIELD(isDirectory, boolean, S_ISDIR(s->st_mode));
+  LEV_SET_FIELD(isCharacterDevice, boolean, S_ISCHR(s->st_mode));
+  LEV_SET_FIELD(isBlockDevice, boolean, S_ISBLK(s->st_mode));
+  LEV_SET_FIELD(isFIFO, boolean, S_ISFIFO(s->st_mode));
+  LEV_SET_FIELD(isSymbolicLink, boolean, S_ISLNK(s->st_mode));
+  LEV_SET_FIELD(isSocket, boolean, S_ISSOCK(s->st_mode));
   return 1;
 }
 
