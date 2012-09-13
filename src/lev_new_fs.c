@@ -45,7 +45,7 @@ typedef struct fs_req_holder_s {
 
 #define FSR__SETUP \
   uv_fs_cb cb = NULL;                                                 \
-  uv_loop_t *loop = luv_get_loop(L);                                  \
+  uv_loop_t *loop = lev_get_loop(L);                                  \
   fs_req_holder_t *holder = (fs_req_holder_t *)create_obj_init_ref(L, \
       sizeof(fs_req_holder_t), "lev.fs");                             \
   /* NOTE: set_call needs "object" to be stack at index 1 */          \

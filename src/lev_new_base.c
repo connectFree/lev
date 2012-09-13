@@ -189,6 +189,23 @@ void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle) {
 }
 
 /*
+ * Loop register/retrive functions.
+ */
+
+void lev_set_loop(lua_State *L, uv_loop_t *loop) {
+  lua_pushlightuserdata(L, loop);
+  lua_setfield(L, LUA_REGISTRYINDEX, "loop");
+}
+
+uv_loop_t* lev_get_loop(lua_State *L) {
+  uv_loop_t *loop;
+  lua_getfield(L, LUA_REGISTRYINDEX, "loop");
+  loop = lua_touserdata(L, -1);
+  lua_pop(L, 1);
+  return loop;
+}
+
+/*
  * Error helper functions.
  */
 

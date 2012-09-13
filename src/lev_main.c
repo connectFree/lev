@@ -594,10 +594,10 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
   lua_setfield(L, LUA_REGISTRYINDEX, "main_thread");
 
   /* Store the loop within the registry */
-  luv_set_loop(L, loop);
+  lev_set_loop(L, loop);
 
   /* Store the ARES Channel */
-  uv_ares_init_options(luv_get_loop(L), &channel, &options, 0);
+  uv_ares_init_options(lev_get_loop(L), &channel, &options, 0);
   luv_set_ares_channel(L, channel);
 
 
