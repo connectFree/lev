@@ -91,7 +91,7 @@ exports['udp_bind_error'] = function(test)
   test.is_nil(err)
 
   local err = server:bind("127.0.0.1", PORT)
-  test.equal(err.code, 8 --[[EALREADY]])
+  test.equal(err, 'EALREADY')
 
   server:close()
   test.done()
@@ -130,7 +130,7 @@ exports['udp_set_ttl'] = function(test)
   end
 
   err = server:set_ttl(256)
-  test.equal(err.code, 18 --[[EINVAL]])
+  test.equal(err, 'EINVAL')
 
   server:close()
 
@@ -197,7 +197,7 @@ exports['udp_set_multicast_ttl'] = function(test)
   end
 
   err = server:set_multicast_ttl(256)
-  test.equal(err.code, 18 --[[EINVAL]])
+  test.equal(err, 'EINVAL')
 
   server:close()
 

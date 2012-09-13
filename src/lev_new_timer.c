@@ -127,7 +127,7 @@ static int timer_again(lua_State* L) {
   self = luaL_checkudata(L, 1, "lev.timer");
   r = uv_timer_again(&self->handle);
   if (r == -1) {
-    lev_push_uv_err(L, uv_last_error(lev_get_loop(L)));
+    lev_push_uv_errname(L, LEV_UV_ERRCODE_IN_LOOP(L));
     return 1;
   }
 

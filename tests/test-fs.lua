@@ -31,14 +31,14 @@ exports['fs_sync_test'] = function(test)
   test.is_nil(err)
 
   err, fd = fs.open('non_existing_file', 'r', tonumber('666', 8))
-  test.equal(err.code, 34 --[[ENOENT]])
+  test.equal(err, 'ENOENT')
   test.is_nil(fd)
 
   err = fs.mkdir('_tmp_dir1_', tonumber('750', 8))
   test.is_nil(err)
 
   err = fs.mkdir('_tmp_dir1_', tonumber('750', 8))
-  test.equal(err.code, 47 --[[EEXIST]])
+  test.equal(err, 'EEXIST')
 
   is_exists = fs.exists('_tmp_dir1_')
   test.ok(is_exists)
@@ -62,7 +62,7 @@ exports['fs_async_test'] = function(test)
     fs.close(fd, function(err)
       test.is_nil(err)
       fs.open('non_existing_file', 'r', tonumber('666', 8), function(err, fd)
-        test.equal(err.code, 34 --[[ENOENT]])
+        test.equal(err, 'ENOENT')
         test.is_nil(fd)
 
         test.done()

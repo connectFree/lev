@@ -63,7 +63,7 @@ typedef struct fs_req_holder_s {
   /* NOTE: remove "object" */                                     \
   lua_remove(L, 1);                                               \
   if (req->result == -1) {                                        \
-    lev_push_uv_err(L, LEV_UV_ERR_FROM_REQ(req));                 \
+    lev_push_uv_errname(L, LEV_UV_ERRCODE_FROM_REQ(req));         \
     return 1;                                                     \
   }                                                               \
   if (cb) {                                                       \
@@ -164,7 +164,7 @@ static int push_readdir_results(lua_State *L, int entry_count,
  */
 static int push_results(lua_State *L, uv_fs_t *req) {
   if (req->result == -1) {
-    lev_push_uv_err(L, LEV_UV_ERR_FROM_REQ(req));
+    lev_push_uv_errname(L, LEV_UV_ERRCODE_FROM_REQ(req));
     return 1;
   }
 
