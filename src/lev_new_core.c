@@ -207,19 +207,19 @@ int core_activate_signal_handler(lua_State* L) {
   struct ev_signal* signal_watcher = (struct ev_signal*)malloc(sizeof(struct ev_signal));
   signal_watcher->data = L;
   ev_signal_init (signal_watcher, core_on_signal, signal);
-  struct ev_loop* loop = uv_default_loop()->ev;
+  struct ev_loop* loop = lev_get_loop(L)->ev;
   ev_signal_start (loop, signal_watcher);
 #endif
   return 0;
 }
 
 int core_update_time(lua_State* L) {
-  uv_update_time(uv_default_loop());
+  uv_update_time(lev_get_loop(L));
   return 0;
 }
 
 int core_now(lua_State* L) {
-  double now = (double)uv_now(uv_default_loop());
+  double now = (double)uv_now(lev_get_loop(L));
   lua_pushnumber(L, now);
   return 1;
 }
@@ -346,7 +346,7 @@ int core_execpath(lua_State* L) {
   size_t size = 2*PATH_MAX;
   char exec_path[2*PATH_MAX];
   if (uv_exepath(exec_path, &size)) {
-    uv_err_t err = uv_last_error(uv_default_loop());
+    uv_err_t err = uv_last_error(lev_get_loop(L));
     return luaL_error(L, "uv_exepath: %s", uv_strerror(err));
   }
   lua_pushlstring(L, exec_path, size);
@@ -384,12 +384,12 @@ extern void uv_print_active_handles(uv_loop_t *loop);
 extern void uv_print_all_handles(uv_loop_t *loop);
 
 int core_print_active_handles(lua_State* L) {
-  uv_print_active_handles(uv_default_loop());
+  uv_print_active_handles(lev_get_loop(L));
   return 0;
 }
 
 int core_print_all_handles(lua_State* L) {
-  uv_print_all_handles(uv_default_loop());
+  uv_print_all_handles(lev_get_loop(L));
   return 0;
 }
 

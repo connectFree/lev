@@ -43,7 +43,7 @@ static int dns_new(lua_State* L) {
   uv_loop_t* loop;
   dns_obj* self;
 
-  loop = uv_default_loop();
+  loop = lev_get_loop(L);
   assert(L == loop->data);
 
   self = (dns_obj*)create_obj_init_ref(L, sizeof *self, "lev.dns");

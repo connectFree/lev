@@ -145,7 +145,7 @@ static int tcp_new(lua_State* L) {
 
   use_this_fd = lua_tointeger(L, 1);
 
-  loop = uv_default_loop();
+  loop = lev_get_loop(L);
   assert(L == loop->data);
 
   self = (tcp_obj*)create_obj_init_ref(L, sizeof *self, "lev.tcp");
