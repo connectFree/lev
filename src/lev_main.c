@@ -622,7 +622,20 @@ struct Smain {
 static int uv_workers_count = 0;
 
 void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
-    fprintf(stderr, "Core exited with status %d, signal %d\n", exit_status, term_signal);
+    fprintf(stderr, "*lev: a core has exited with status %d, signal %d\n", exit_status, term_signal);
+    if (SIGSEGV == term_signal) {/* we just segfaulted */
+      fprintf(stderr, "\n\n\n");
+      fprintf(stderr, "/****************************************************\\\n");
+      fprintf(stderr, "|*  A segfault has occurred on one of lev's workers *|\n");
+      fprintf(stderr, "|*  <Please diagnose the problem using the -g flag> *|\n");
+      fprintf(stderr, "|*  In the event that lev project code has faulted, *|\n");
+      fprintf(stderr, "|*  please report the error via the website below:  *|\n");
+      fprintf(stderr, "|*                                                  *|\n");
+      fprintf(stderr, "|*     https://github.com/connectFree/lev/issues    *|\n");
+      fprintf(stderr, "|*                                                  *|\n");
+      fprintf(stderr, "\\*******************[Thank-You!]*********************/\n");
+      fprintf(stderr, "\n\n\n");
+    }
     uv_close((uv_handle_t*) req, NULL);
     free( req->data );
     if (--uv_workers_count == 0) {
