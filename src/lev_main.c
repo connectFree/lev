@@ -556,13 +556,6 @@ static int runargs(lua_State *L, char **argv, int n) {
 
 static int handle_luainit(lua_State *L, uv_loop_t* loop) {
   int rc;
-  ares_channel channel;
-  struct ares_options options;
-
-  memset(&options, 0, sizeof(options));
-
-  rc = ares_library_init(ARES_LIB_INIT_ALL);
-  assert(rc == ARES_SUCCESS);
 
   /* Pull up the preload table */
   lua_getglobal(L, "package");
@@ -595,10 +588,6 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
 
   /* Store the loop within the registry */
   luv_set_loop(L, loop);
-
-  /* Store the ARES Channel */
-  uv_ares_init_options(luv_get_loop(L), &channel, &options, 0);
-  luv_set_ares_channel(L, channel);
 
 
 #if LJ_TARGET_CONSOLE
