@@ -37,23 +37,110 @@
 
 typedef struct {
   LEVBASE_REF_FIELDS
+  uv_timer_t handle;
 } timer_obj;
 
 static int timer_new(lua_State* L) {
   uv_loop_t* loop;
   timer_obj* self;
+  int r;
 
-  loop = uv_default_loop();
+  loop = luv_get_loop(L);
   assert(L == loop->data);
 
   self = (timer_obj*)create_obj_init_ref(L, sizeof *self, "lev.timer");
+  r = uv_timer_init(loop, &self->handle);
+  assert(r == 0);
 
   return 1;
 }
 
+static void timer_on_close(uv_handle_t *handle) {
+  UNWRAP(handle);
+  if (push_callback(L, self, "on_close")) {
+    lua_call(L, 1, 0);/*, -3*/
+    
+  }
+  lev_handle_unref(L, (LevRefStruct_t*)self);
+}
+
+static int timer_close(lua_State* L) {
+  timer_obj *self;
+  uv_timer_t *handle;
+  int r;
+
+  self = luaL_checkudata(L, 1, "lev.timer");
+
+  if (lua_isfunction(L, 2))
+    set_callback(L, "on_close", 2);
+
+  handle = &self->handle;
+  r = uv_timer_stop(handle);
+  assert(r == 0);
+
+  uv_close((uv_handle_t *)handle, timer_on_close);
+
+  return 0;
+}
+
+static void on_timer(uv_timer_t *handle, int status) {
+  UNWRAP(handle);
+  push_callback(L, self, "on_timer");
+  lua_pushinteger(L, status);
+  lua_call(L, 2, 0);/*, -4*/
+}
+
+static int timer_start(lua_State* L) {
+  timer_obj *self;
+  long timeout;
+  long repeat;
+  int r;
+
+  self = luaL_checkudata(L, 1, "lev.timer");
+  set_callback(L, "on_timer", 2);
+  timeout = luaL_optlong(L, 3, 0);
+  repeat = luaL_optlong(L, 4, 0);
+
+  r = uv_timer_start(&self->handle, on_timer, timeout, repeat);
+  assert(r == 0);
+
+  lev_handle_ref(L, (LevRefStruct_t*)self, 1);
+
+  return 0;
+}
+
+static int timer_stop(lua_State* L) {
+  timer_obj *self;
+  int r;
+
+  self = luaL_checkudata(L, 1, "lev.timer");
+  r = uv_timer_stop(&self->handle);
+  assert(r == 0);
+
+  return 0;
+}
+
+static int timer_again(lua_State* L) {
+  timer_obj *self;
+  int r;
+
+  self = luaL_checkudata(L, 1, "lev.timer");
+  r = uv_timer_again(&self->handle);
+  if (r == -1) {
+    lev_push_uv_err(L, uv_last_error(luv_get_loop(L)));
+    return 1;
+  }
+
+  return 0;
+}
+
 static luaL_reg methods[] = {
-   /*{ "method_name",     ...      }*/
-  { NULL,         NULL            }
+  { "__gc",       timer_close     }
+ ,{ "again",      timer_again     }
+ ,{ "close",      timer_close     }
+ ,{ "start",      timer_start     }
+ ,{ "stop",       timer_stop      }
+ ,{ NULL,         NULL            }
 };
 
 
