@@ -43,11 +43,15 @@ exports['getaddrinfo_ipv4'] = function(test)
     test.is_nil(err)
     test.is_table(names)
     if lev.process.platform == 'linux' then
-      test.equal(#names, 2)
+      -- NOTE: #names = 2 on Scientific Linux 6.3
+      --       #names = 1 on Ubuntu 12.04
+      -- Maybe it is because SL6.3 machine is a KVM host which have
+      -- four network interfaces: br0, eth0, lo, virbr0.
+      test.ok(#names >= 1)
       test.equal(names[1].host, "127.0.0.1")
       test.equal(names[1].family, dns.PF_INET)
-      test.equal(names[2].host, "127.0.0.1")
-      test.equal(names[2].family, dns.PF_INET)
+      --test.equal(names[2].host, "127.0.0.1")
+      --test.equal(names[2].family, dns.PF_INET)
     elseif lev.process.platform == 'darwin' then
       test.equal(#names, 1)
       test.equal(names[1].host, "127.0.0.1")
