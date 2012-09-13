@@ -55,7 +55,7 @@ typedef struct fs_req_holder_s {
 #define FSR__SET_OPT_CB(index, c_callback) \
   if (lua_isfunction(L, (index))) {                               \
     set_callback(L, FSR__CBNAME, (index));                        \
-    lev_handle_ref(L, (LevRefStruct_t *)holder, -1);              \
+    lev_handle_ref(L, (LevRefStruct_t *)holder, 1);               \
     cb = (c_callback);                                            \
   }
 
@@ -233,9 +233,12 @@ static int fs_exists(lua_State* L) {
   const char *path = luaL_checkstring(L, 2);
   FSR__SET_OPT_CB(3, on_exists_callback)
   uv_fs_stat(loop, req, path, cb);
+  lua_pushboolean(L, req->result != -1);
+  if (!cb) {
+    uv_fs_req_cleanup(req);
+  }
   /* NOTE: remove "object" */
   lua_remove(L, 1);
-  lua_pushboolean(L, req->result != -1);
   return 1;
 }
 
