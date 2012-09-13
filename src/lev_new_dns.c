@@ -31,65 +31,50 @@
   
 */
 
-/*
- * getaddrinfo request memory management
- */
-typedef struct getaddrinfo_req_holder_s {
-  int ref;
-  int callback_ref;
+typedef struct dns_req_holder_s {
+  LEVBASE_REF_FIELDS
   int getnameinfo_flags;
   uv_getaddrinfo_t req;
-} getaddrinfo_req_holder_t;
+} dns_req_holder_t;
 
-static uv_getaddrinfo_t *alloc_getaddrinfo_req(lua_State *L) {
-  getaddrinfo_req_holder_t *holder =
-    lua_newuserdata(L, sizeof(getaddrinfo_req_holder_t));
-  /* To avoid being gc'ed, we put this to registry. */
-  holder->ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  return &holder->req;
-}
+#define UNWRAP(r) \
+  dns_req_holder_t* holder = container_of((r), dns_req_holder_t, req); \
+  lua_State* L = (r)->loop->data;
 
-static void dispose_getaddrinfo_req(uv_getaddrinfo_t *req) {
-  getaddrinfo_req_holder_t *holder =
-    container_of(req, getaddrinfo_req_holder_t, req);
-  lua_State *L = req->loop->data;
-  luaL_unref(L, LUA_REGISTRYINDEX, holder->ref);
-}
+#define DNSR__CBNAME "_cb"
 
-/*
- * callback utilities
- *
- * TODO: remove duplicated code once udp module is merged.
- */
+#define DNSR__SETUP \
+  uv_getaddrinfo_cb cb = NULL;                                          \
+  uv_loop_t *loop = luv_get_loop(L);                                    \
+  dns_req_holder_t *holder = (dns_req_holder_t *)create_obj_init_ref(L, \
+      sizeof(dns_req_holder_t), "lev.dns");                             \
+  /* NOTE: set_call needs "object" to be stack at index 1 */            \
+  lua_insert(L, 1);                                                     \
+  uv_getaddrinfo_t *req = &holder->req;
 
-static int getaddrinfo_checkcallback(lua_State *L, int index) {
-  luaL_checktype(L, index, LUA_TFUNCTION);
-  lua_pushvalue(L, index);
-  return luaL_ref(L, LUA_REGISTRYINDEX);
-}
+#define DNSR__SET_CB(index, c_callback) \
+  set_callback(L, DNSR__CBNAME, (index));                       \
+  lev_handle_ref(L, (LevRefStruct_t *)holder, -1);              \
+  cb = (c_callback);                                            \
 
-static void getaddrinfo_push_callback(lua_State *L, int ref) {
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-
-  /*
-   * We can safely call luaL_unref() here because now the stack holds the value
-   * so it is not garbage collected.
-   */
-  luaL_unref(L, LUA_REGISTRYINDEX, ref);
-}
+#define DNSR__TEARDOWN \
+  /* NOTE: remove "object" */                                   \
+  lua_remove(L, 1);                                             \
+  if (r) {                                                      \
+    lev_push_uv_err(L, lev_code_to_uv_err(r));                  \
+    return 1;                                                   \
+  }                                                             \
+  return 0;
 
 static void on_getaddrinfo_callback(uv_getaddrinfo_t *req, int status,
     struct addrinfo *res) {
-  uv_loop_t *loop = req->loop;
-  lua_State *L = loop->data;
+  UNWRAP(req)
   int arg_n;
 
-  getaddrinfo_req_holder_t *holder =
-    container_of(req, getaddrinfo_req_holder_t, req);
-  getaddrinfo_push_callback(L, holder->callback_ref);
+  push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status == -1) {
     arg_n = 1;
-    lev_push_uv_err(L, uv_last_error(loop));
+    lev_push_uv_err(L, uv_last_error(req->loop));
   } else {
     arg_n = 2;
     lua_pushnil(L);
@@ -125,29 +110,27 @@ static void on_getaddrinfo_callback(uv_getaddrinfo_t *req, int status,
     }
   }
   lua_call(L, arg_n, 0);
-  dispose_getaddrinfo_req(req);
+
   uv_freeaddrinfo(res);
+  lev_handle_unref(L, (LevRefStruct_t *)holder);
 }
 
 static int dns_getaddrinfo(lua_State* L) {
-  uv_getaddrinfo_cb cb = on_getaddrinfo_callback;
-  uv_loop_t *loop = luv_get_loop(L);
-  uv_getaddrinfo_t *req = alloc_getaddrinfo_req(L);
-  getaddrinfo_req_holder_t *holder =
-    container_of(req, getaddrinfo_req_holder_t, req);
-  const char *host = luaL_optstring(L, 1, NULL);
-  const char *serv = luaL_optstring(L, 2, NULL);
+  DNSR__SETUP
+  /* NOTE: index is added by 1 because of holder above. */
+  const char *host = luaL_optstring(L, 2, NULL);
+  const char *serv = luaL_optstring(L, 3, NULL);
 
   struct addrinfo hints;
   memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_family = PF_UNSPEC;
-  if (lua_istable(L, 3)) {
+  if (lua_istable(L, 4)) {
 #define SET_ADDRINFO_FIELD(name) \
-  lua_getfield(L, 3, #name); \
+  lua_getfield(L, 4, #name); \
   if (lua_isnumber(L, -1)) { \
     hints.ai_##name = lua_tonumber(L, -1); \
   } else if (!lua_isnil(L, -1)) { \
-    return luaL_argerror(L, 3, "field '##name' must be of type 'number'"); \
+    return luaL_argerror(L, 4, "field '##name' must be of type 'number'"); \
   } \
   lua_pop(L, 1);
 
@@ -155,21 +138,16 @@ static int dns_getaddrinfo(lua_State* L) {
     SET_ADDRINFO_FIELD(socktype);
     SET_ADDRINFO_FIELD(protocol);
     SET_ADDRINFO_FIELD(flags);
-  } else if (!lua_isnil(L, 3)) {
-    return luaL_argerror(L, 3, "Must be of type 'table' or nil");
+  } else if (!lua_isnil(L, 4)) {
+    return luaL_argerror(L, 4, "Must be of type 'table' or nil");
   }
 
-  holder->getnameinfo_flags = luaL_optint(L, 4, 0);
-  holder->callback_ref = getaddrinfo_checkcallback(L, 5);
+  holder->getnameinfo_flags = luaL_optint(L, 5, 0);
+  DNSR__SET_CB(6, on_getaddrinfo_callback)
 
   int r = uv_getaddrinfo(loop, req, cb, host, serv, &hints);
-  if (r == -1) {
-    lev_push_uv_err(L, uv_last_error(loop));
-    return 1;
-  }
 
-  lua_pushnil(L);
-  return 1;
+  DNSR__TEARDOWN
 }
 
 
