@@ -576,6 +576,34 @@ static int core_arch(lua_State *L) {
   return 1;
 }
 
+static int core_version(lua_State *L) {
+  lua_pushstring(L, LEV_VERSION);
+  return 1;
+}
+
+typedef struct core_version_s {
+  char *module;
+  char *version;
+} core_version_t;
+
+static core_version_t versions[] = {
+   { "lev", LEV_VERSION }
+  ,{ "luajit", LUAJIT_VERSION }
+  ,{ "http_perser", HTTP_VERSION }
+  ,{ "libuv", UV_VERSION }
+  ,{ NULL, NULL } /* sentinail */
+};
+
+static int core_versions(lua_State *L) {
+  lua_newtable(L);
+  core_version_t *ver;
+  for (ver = versions; ver->module; ver++) {
+    lua_pushstring(L, ver->version);
+    lua_setfield(L, -2, ver->module);
+  }
+  return 1;
+}
+
 
 void luaopen_lev_core(lua_State *L) {
   cache_time_init();
@@ -586,4 +614,8 @@ void luaopen_lev_core(lua_State *L) {
   lua_setfield(L, -2, "platform");
   core_arch(L);
   lua_setfield(L, -2, "arch");
+  core_version(L);
+  lua_setfield(L, -2, "version");
+  core_versions(L);
+  lua_setfield(L, -2, "versions");
 }

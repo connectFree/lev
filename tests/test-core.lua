@@ -264,5 +264,26 @@ exports['test core arch'] = function (test)
   test.done()
 end
 
+exports['test core version'] = function (test)
+  test.is_string(lev.version)
+  test.ok(#lev.version > 0)
+
+  test.done()
+end
+
+exports['test core versions'] = function (test)
+  test.is_table(lev.versions)
+  test.is_string(lev.versions.lev)
+  test.ok(#lev.versions.lev > 0)
+  test.is_string(lev.versions.http_perser)
+  test.ok(#lev.versions.http_perser > 0)
+  test.is_string(lev.versions.libuv)
+  test.ok(#lev.versions.libuv > 0)
+  test.is_string(lev.versions.luajit)
+  test.ok(#lev.versions.luajit > 0)
+
+  test.done()
+end
+
 return exports
 
