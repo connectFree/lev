@@ -1,4 +1,5 @@
-Luvit
-Copyright (c) 2012 The Luvit Authors.
+Lev: Lua for Event-based IO
+Copyright (c) 2012 connectFree k.k. and other lev contributors.
+Contributors listed in AUTHORS.txt
 
 Portions of this software were based on Node.js, Copyright Joyent, Inc. and other Node contributors.
