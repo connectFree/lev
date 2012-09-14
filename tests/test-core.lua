@@ -173,7 +173,7 @@ exports['lev.core:\thandle_type'] = function (test)
 end
 
 -- TODO: should be implemented test for the libuv that supported uv_signal_t version.
--- exports['test core active_signal_handler'] = function (test)
+-- exports['lev.core:\tactive_signal_handler'] = function (test)
 --   test.done()
 -- end
 
@@ -250,28 +250,28 @@ exports['lev.core:\tumask: specify invalid value'] = function (test)
   test.done()
 end
 
-exports['test core platform'] = function (test)
+exports['lev.core:\tplatform'] = function (test)
   test.is_string(lev.platform)
   test.ok(#lev.platform > 0)
 
   test.done()
 end
 
-exports['test core arch'] = function (test)
+exports['lev.core:\tarch'] = function (test)
   test.is_string(lev.arch)
   test.ok(#lev.arch > 0)
 
   test.done()
 end
 
-exports['test core version'] = function (test)
+exports['lev.core:\tversion'] = function (test)
   test.is_string(lev.version)
   test.ok(#lev.version > 0)
 
   test.done()
 end
 
-exports['test core versions'] = function (test)
+exports['lev.core:\tversions'] = function (test)
   test.is_table(lev.versions)
   test.is_string(lev.versions.lev)
   test.ok(#lev.versions.lev > 0)
