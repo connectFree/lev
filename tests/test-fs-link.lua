@@ -18,7 +18,7 @@ limitations under the License.
 
 local exports = {}
 
-exports['fs_link'] = function(test)
+exports['lev.fs:\tfs_link'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
 

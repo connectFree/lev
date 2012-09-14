@@ -18,20 +18,15 @@ limitations under the License.
 
 local lev = require("lev")
 
-if lev.process.platform == "win32" then
-  print("buffer is broken on win32, need to not ffi into malloc")
-  return
-end
-
 local exports = {}
 
-exports['test Buffer:new'] = function(test)
+exports['lev.buffer:\tBuffer:new'] = function(test)
    test.ok(Buffer:new('a'))
 
    test.done()
 end
 
-exports['test union slices/concat'] = function(test)
+exports['lev.buffer:\tunion slices/concat'] = function(test)
    local ubuf1 = Buffer:new("a");
    local ubuf2 = Buffer:new("b");
    local ubuf3 = Buffer:new("c");
@@ -54,7 +49,7 @@ exports['test union slices/concat'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readUInt8'] = function(test)
+exports['lev.buffer:\tBuffer:readUInt8'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -69,7 +64,7 @@ exports['test Buffer:readUInt8'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readInt8'] = function(test)
+exports['lev.buffer:\tBuffer:readInt8'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -84,7 +79,7 @@ exports['test Buffer:readInt8'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readUInt16BE'] = function(test)
+exports['lev.buffer:\tBuffer:readUInt16BE'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -98,7 +93,7 @@ exports['test Buffer:readUInt16BE'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readUInt16LE'] = function(test)
+exports['lev.buffer:\tBuffer:readUInt16LE'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -112,7 +107,7 @@ exports['test Buffer:readUInt16LE'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readUInt32BE'] = function(test)
+exports['lev.buffer:\tBuffer:readUInt32BE'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -124,7 +119,7 @@ exports['test Buffer:readUInt32BE'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readUInt32LE'] = function(test)
+exports['lev.buffer:\tBuffer:readUInt32LE'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -136,7 +131,7 @@ exports['test Buffer:readUInt32LE'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readInt32BE'] = function(test)
+exports['lev.buffer:\tBuffer:readInt32BE'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -148,7 +143,7 @@ exports['test Buffer:readInt32BE'] = function(test)
    test.done()
 end
 
-exports['test Buffer:readInt32LE'] = function(test)
+exports['lev.buffer:\tBuffer:readInt32LE'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -160,7 +155,7 @@ exports['test Buffer:readInt32LE'] = function(test)
    test.done()
 end
 
-exports['test Buffer:slice'] = function(test)
+exports['lev.buffer:\tBuffer:slice'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -182,7 +177,7 @@ exports['test Buffer:slice'] = function(test)
    test.done()
 end
 
-exports['test Buffer:find'] = function(test)
+exports['lev.buffer:\tBuffer:find'] = function(test)
    local buf = Buffer:new('abcdefghij')
 
    test.equal(buf:toString(buf:find('fgh')), 'fghij')
@@ -192,7 +187,7 @@ exports['test Buffer:find'] = function(test)
    test.done()
 end
 
-exports['test Buffer:upUntil'] = function(test)
+exports['lev.buffer:\tBuffer:upUntil'] = function(test)
    local buf = Buffer:new('abcdefghij')
 
    test.equal(buf:upUntil(''), '')
@@ -203,7 +198,7 @@ exports['test Buffer:upUntil'] = function(test)
    test.done()
 end
 
-exports['test Buffer.isBuffer'] = function(test)
+exports['lev.buffer:\tBuffer.isBuffer'] = function(test)
    local buf = Buffer:new('abcdefghij')
 
    test.ok(Buffer.isBuffer(buf))
@@ -212,7 +207,7 @@ exports['test Buffer.isBuffer'] = function(test)
    test.done()
 end
 
-exports['test Buffer length'] = function(test)
+exports['lev.buffer:\tBuffer length'] = function(test)
    local buf = Buffer:new('abcdefghij')
 
    test.equal(#buf, 10)
@@ -220,7 +215,7 @@ exports['test Buffer length'] = function(test)
    test.done()
 end
 
-exports['test Buffer:inspect'] = function(test)
+exports['lev.buffer:\tBuffer:inspect'] = function(test)
    local buf = Buffer:new(4)
    buf[1] = 0xFB
    buf[2] = 0x04
@@ -232,7 +227,7 @@ exports['test Buffer:inspect'] = function(test)
    test.done()
 end
 
-exports['test Buffer:meta:__concat'] = function(test)
+exports['lev.buffer:\tBuffer:meta:__concat'] = function(test)
    local buf1 = Buffer:new(4)
    buf1[1] = 0xFB
    buf1[2] = 0x04
@@ -246,7 +241,7 @@ exports['test Buffer:meta:__concat'] = function(test)
    test.done()
 end
 
-exports['test initial memory for buf1 and buf2 should not be changed or altered'] = function(test)
+exports['lev.buffer:\tinitial memory for buf1 and buf2 should not be changed or altered'] = function(test)
    local buf1 = Buffer:new(4)
    buf1[1] = 0xFB
    buf1[2] = 0x04
@@ -260,7 +255,7 @@ exports['test initial memory for buf1 and buf2 should not be changed or altered'
    test.done()
 end
 
-exports['test Buffer:fill'] = function(test)
+exports['lev.buffer:\tBuffer:fill'] = function(test)
    local buf1 = Buffer:new(4)
    buf1[1] = 0xFB
    buf1[2] = 0x04
@@ -283,7 +278,7 @@ exports['test Buffer:fill'] = function(test)
    test.done()
 end
 
-exports['test bitwise write'] = function(test)
+exports['lev.buffer:\tbitwise write'] = function(test)
    local writebuf = Buffer:new(4)
 
    writebuf:writeUInt8(0xFB, 1)
@@ -309,7 +304,7 @@ exports['test bitwise write'] = function(test)
    test.done()
 end
 
-exports['test Buffer pair'] = function(test)
+exports['lev.buffer:\tBuffer pair'] = function(test)
    local buf1 = Buffer:new(4)
    buf1[1] = 0xFB
    buf1[2] = 0x04
@@ -327,7 +322,7 @@ exports['test Buffer pair'] = function(test)
    test.done()
 end
 
-exports['test GC'] = function(test)
+exports['lev.buffer:\tGC'] = function(test)
    local buf1 = Buffer:new(4)
    buf1[1] = 0xFB
    buf1[2] = 0x04

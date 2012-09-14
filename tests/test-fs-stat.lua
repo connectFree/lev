@@ -18,7 +18,7 @@ limitations under the License.
 
 local exports = {}
 
-exports['fs_sync_stat'] = function(test)
+exports['lev.fs:\tfs_sync_stat'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
   local err, stat = fs.stat('LICENSE.txt')

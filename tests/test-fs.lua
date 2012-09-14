@@ -18,7 +18,7 @@ limitations under the License.
 
 local exports = {}
 
-exports['fs_sync_test'] = function(test)
+exports['lev.fs:\tfs_sync_test'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
   local err, fd
@@ -52,7 +52,7 @@ exports['fs_sync_test'] = function(test)
   test.done()
 end
 
-exports['fs_async_test'] = function(test)
+exports['lev.fs:\tfs_async_test'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
 

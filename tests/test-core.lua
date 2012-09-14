@@ -28,7 +28,7 @@ local noop = function ()
   end
 end
 
-exports['test core now'] = function (test)
+exports['lev.core:\tnow'] = function (test)
   local t = lev.now()
 
   test.is_number(t)
@@ -37,7 +37,7 @@ exports['test core now'] = function (test)
   test.done()
 end
 
-exports['test core update_time'] = function (test)
+exports['lev.core:\tupdate_time'] = function (test)
   local t1 = lev.now()
 
   noop()
@@ -47,7 +47,7 @@ exports['test core update_time'] = function (test)
   test.done()
 end
 
-exports['test core hrtime'] = function (test)
+exports['lev.core:\thrtime'] = function (test)
   local t = lev.hrtime()
   test.is_number(t)
   test.ok(t >= 0)
@@ -55,7 +55,7 @@ exports['test core hrtime'] = function (test)
   test.done()
 end
 
-exports['test core uptime'] = function (test)
+exports['lev.core:\tuptime'] = function (test)
   local t = lev.uptime()
   test.is_number(t)
   test.ok(t >= 0)
@@ -63,13 +63,13 @@ exports['test core uptime'] = function (test)
   test.done()
 end
 
-exports['test core execpath'] = function (test)
+exports['lev.core:\texecpath'] = function (test)
   test.is_string(lev.execpath())
 
   test.done()
 end
 
-exports['test core cpu_info'] = function (test)
+exports['lev.core:\tcpu_info'] = function (test)
   local cpu_info = lev.cpu_info()
 
   test.is_table(cpu_info)
@@ -89,7 +89,7 @@ exports['test core cpu_info'] = function (test)
   test.done()
 end
 
-exports['test core interface_addresses'] = function (test)
+exports['lev.core:\tinterface_addresses'] = function (test)
   local addresses = lev.interface_addresses()
 
   test.is_table(addresses)
@@ -105,7 +105,7 @@ exports['test core interface_addresses'] = function (test)
   test.done()
 end
 
-exports['test core loadavg'] = function (test)
+exports['lev.core:\tloadavg'] = function (test)
   local avg1, avg2, avg3 = lev.loadavg()
 
   test.is_number(avg1)
@@ -118,7 +118,7 @@ exports['test core loadavg'] = function (test)
   test.done()
 end
 
-exports['test core get_free_memory'] = function (test)
+exports['lev.core:\tget_free_memory'] = function (test)
   local free_mem = lev.get_free_memory()
 
   test.ok(free_mem >= 0)
@@ -126,7 +126,7 @@ exports['test core get_free_memory'] = function (test)
   test.done()
 end
 
-exports['test core get_total_memory'] = function (test)
+exports['lev.core:\tget_total_memory'] = function (test)
   local total_mem = lev.get_free_memory()
 
   test.ok(total_mem >= 0)
@@ -134,7 +134,7 @@ exports['test core get_total_memory'] = function (test)
   test.done()
 end
 
-exports['test core get_process_title'] = function (test)
+exports['lev.core:\tget_process_title'] = function (test)
   local title = lev.get_process_title()
 
   test.is_string(title)
@@ -143,7 +143,7 @@ exports['test core get_process_title'] = function (test)
 end
 
 -- NOTE: this test pass linux only. because uv_set_process_title do not support all platform. 
-exports['test core set_process_title'] = function (test)
+exports['lev.core:\tset_process_title'] = function (test)
   test.is_nil(lev.set_process_title('lev_unittest'))
   test.equal(lev.get_process_title(), 'lev_unittest')
 
@@ -165,7 +165,7 @@ exports['test core print_all_handles'] = function (test)
 end
 --]]
 
-exports['test core handle_type'] = function (test)
+exports['lev.core:\thandle_type'] = function (test)
   test.equal(lev.handle_type(0), 'FILE') -- stdin
   test.equal(lev.handle_type(1), 'TTY') -- stout
 

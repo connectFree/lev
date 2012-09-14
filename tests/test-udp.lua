@@ -18,7 +18,7 @@ limitations under the License.
 
 local exports = {}
 
-exports['udp_ping_pong_test'] = function(test)
+exports['lev.udp:\tudp_ping_pong_test'] = function(test)
 
   local lev = require('lev')
 
@@ -69,7 +69,7 @@ exports['udp_ping_pong_test'] = function(test)
   test.is_nil(err)
 end
 
-exports['udp_bind6'] = function(test)
+exports['lev.udp:\tudp_bind6'] = function(test)
   local lev = require('lev')
 
   local TEST_PORT = 9123
@@ -82,7 +82,7 @@ exports['udp_bind6'] = function(test)
   test.done()
 end
 
-exports['udp_bind_error'] = function(test)
+exports['lev.udp:\tudp_bind_error'] = function(test)
   local lev = require('lev')
   local PORT = 10082
 
@@ -97,7 +97,7 @@ exports['udp_bind_error'] = function(test)
   test.done()
 end
 
-exports['udp_set_broadcast'] = function(test)
+exports['lev.udp:\tudp_set_broadcast'] = function(test)
   local lev = require('lev')
   local PORT = 10082
 
@@ -116,7 +116,7 @@ exports['udp_set_broadcast'] = function(test)
   test.done()
 end
 
-exports['udp_set_ttl'] = function(test)
+exports['lev.udp:\tudp_set_ttl'] = function(test)
   local lev = require('lev')
   local PORT = 10082
 
@@ -137,7 +137,7 @@ exports['udp_set_ttl'] = function(test)
   test.done()
 end
 
-exports['udp_set_multicast_loop'] = function(test)
+exports['lev.udp:\tudp_set_multicast_loop'] = function(test)
   local lev = require('lev')
   local PORT = 10082
 
@@ -156,7 +156,7 @@ exports['udp_set_multicast_loop'] = function(test)
   test.done()
 end
 
-exports['udp_set_multicast_membership'] = function(test)
+exports['lev.udp:\tudp_set_multicast_membership'] = function(test)
   local lev = require('lev')
   local TEST_PORT = 9123
   local PING_BUF = Buffer:new("PING")
@@ -183,7 +183,7 @@ exports['udp_set_multicast_membership'] = function(test)
   server:send("127.0.0.1", TEST_PORT, PING_BUF)
 end
 
-exports['udp_set_multicast_ttl'] = function(test)
+exports['lev.udp:\tudp_set_multicast_ttl'] = function(test)
   local lev = require('lev')
   local PORT = 10082
 
@@ -204,7 +204,7 @@ exports['udp_set_multicast_ttl'] = function(test)
   test.done()
 end
 
-exports['udp_getsockname'] = function(test)
+exports['lev.udp:\tudp_getsockname'] = function(test)
   local lev = require('lev')
   local PORT = 10082
 

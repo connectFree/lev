@@ -18,7 +18,7 @@ limitations under the License.
 
 local exports = {}
 
-exports['fs_sync_truncate'] = function(test)
+exports['lev.fs:\tfs_sync_truncate'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
   local path = '_tmp_file1.txt'

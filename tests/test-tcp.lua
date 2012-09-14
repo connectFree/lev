@@ -18,7 +18,7 @@ limitations under the License.
 
 local exports = {}
 
-exports['tcp_echo_test'] = function(test)
+exports['lev.tcp:\ttcp_echo_test'] = function(test)
 
   local lev = require('lev')
 
