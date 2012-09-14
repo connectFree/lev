@@ -261,7 +261,8 @@ static int fs_chmod(lua_State* L) {
   FSR__SETUP
   /* NOTE: index is added by 1 because of holder above. */
   const char *path = luaL_checkstring(L, 2);
-  int mode = luaL_checkint(L, 3);
+  const char *mode_str = luaL_checkstring(L, 3);
+  int mode = strtol(mode_str, (char**) NULL, 8);
   FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_chmod(loop, req, path, mode, cb);
   FSR__TEARDOWN
@@ -288,7 +289,8 @@ static int fs_fchmod(lua_State* L) {
   FSR__SETUP
   /* NOTE: index is added by 1 because of holder above. */
   int fd = luaL_checkint(L, 2);
-  int mode = luaL_checkint(L, 3);
+  const char *mode_str = luaL_checkstring(L, 3);
+  int mode = strtol(mode_str, (char**) NULL, 8);
   FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_fchmod(loop, req, fd, mode, cb);
   FSR__TEARDOWN
@@ -353,7 +355,8 @@ static int fs_mkdir(lua_State* L) {
   FSR__SETUP
   /* NOTE: index is added by 1 because of holder above. */
   const char *path = luaL_checkstring(L, 2);
-  int mode = luaL_optint(L, 3, 0777);
+  const char *mode_str = luaL_optstring(L, 3, "0777");
+  int mode = strtol(mode_str, (char**) NULL, 8);
   FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_mkdir(loop, req, path, mode, cb);
   FSR__TEARDOWN
@@ -373,7 +376,7 @@ static int fs_read(lua_State* L) {
   if (file_until > ms->until) {
     file_until = ms->until;
   }
-  FSR__SET_OPT_CB(5, on_fs_callback)
+  FSR__SET_OPT_CB(6, on_fs_callback)
   uv_fs_read(loop, req, fd, ms->slice, (file_until ? file_until : ms->until), file_pos, cb);
   FSR__TEARDOWN
 }
@@ -556,7 +559,8 @@ static int fs_open(lua_State* L) {
   /* NOTE: index is added by 1 because of holder above. */
   const char *path = luaL_checkstring(L, 2);
   int flags = fs_checkflags(L, 3);
-  int mode = luaL_optint(L, 4, 0666);
+  const char *mode_str = luaL_optstring(L, 4, "0666");
+  int mode = strtol(mode_str, (char**) NULL, 8);
   FSR__SET_OPT_CB(5, on_fs_callback)
   uv_fs_open(loop, req, path, flags, mode, cb);
   FSR__TEARDOWN
@@ -591,8 +595,47 @@ static luaL_reg functions[] = {
  ,{ NULL,         NULL            }
 };
 
+#define NL "\n"
+
 void luaopen_lev_fs(lua_State *L) {
-  lua_createtable(L, 0, ARRAY_SIZE(functions) - 1);
+  lua_createtable(L, 0, ARRAY_SIZE(functions) + 1 /* readfile */ - 1);
+
+  /* X:S readFile Implementation */
+  luaL_loadstring(L,
+    "local fs = lev.fs" NL
+    "local a = {...}" NL
+    "if #a == 1 then                                                         " NL /* no callback */
+    "  local err, stat, count                                                " NL
+    "  err, stat = fs.stat(a[1])                                             " NL
+    "  if err then return err, nil end                                       " NL
+    "  err, fd = fs.open(a[1], 'r', nil)                                     " NL
+    "  if err then return err, nil end                                       " NL
+    "  local buf = Buffer.new( stat.size )                                   " NL
+    "  err, count = fs.read(fd, buf, 1, stat.size)                           " NL
+    "  if err then return err, nil end                                       " NL
+    "  err = fs.close(fd)                                                    " NL
+    "  if err then return err, nil end                                       " NL
+    "  return nil, buf                                                       " NL
+    "else                                                                    " NL /* callback mode */
+    "  local final_cb = a[2]                                                 " NL
+    "  fs.stat(a[1], function(err, stat)                                     " NL
+    "    if err then return final_cb(err, nil) end                           " NL
+    "    fs.open(a[1], 'r', nil, function(err, fd)                           " NL
+    "      if err then return final_cb(err, nil) end                         " NL
+    "      local buf = Buffer.new( stat.size )                               " NL
+    "      err, count = fs.read(fd, buf, 1, stat.size, function(err, count)  " NL
+    "        if err then return final_cb(err, nil) end                       " NL
+    "        final_cb(nil, buf)                                              " NL
+    "        fs.close(fd, function() end)                                    " NL
+    "      end)                                                              " NL
+    "    end)                                                                " NL
+    "  end)                                                                  " NL
+    "end                                                                     " NL
+    );
+  /* X:E readFile Implementation */
+  lua_setfield(L, -2, "readFile");
+
   luaL_register(L, NULL, functions);
   lua_setfield(L, -2, "fs");
+
 }

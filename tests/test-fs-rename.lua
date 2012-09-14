@@ -26,7 +26,7 @@ exports['lev.fs:\tfs_sync_rename'] = function(test)
   assert(not fs.exists(path))
   assert(not fs.exists(new_path))
 
-  local err, fd = fs.open(path, 'w+', tonumber('666', 8))
+  local err, fd = fs.open(path, 'w+', '0666')
   test.is_nil(err)
 
   err = fs.close(fd)

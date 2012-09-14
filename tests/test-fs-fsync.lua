@@ -23,7 +23,7 @@ exports['lev.fs:\tfs_fsync'] = function(test)
   local fs = lev.fs
 
   local path = '_test_tmp1.txt'
-  fs.open(path, 'a', tonumber('666', 8), function(err, fd)
+  fs.open(path, 'a', '0666', function(err, fd)
     test.is_nil(err)
 
     local err = fs.fdatasync(fd)

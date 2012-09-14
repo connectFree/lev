@@ -26,7 +26,7 @@ exports['lev.fs:\tfs_utime'] = function(test)
 
   fs.unlink(path)
 
-  local err, fd = fs.open(path, 'w', tonumber('666', 8))
+  local err, fd = fs.open(path, 'w', '0666')
 
   local atime, mtime = 1234, 5678
   err = fs.futime(fd, atime, mtime)

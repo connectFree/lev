@@ -28,7 +28,7 @@ exports['lev.fs:\tfs_link'] = function(test)
   fs.unlink(path1)
   fs.unlink(path2)
 
-  local err, fd = fs.open(path1, 'a', tonumber('666', 8))
+  local err, fd = fs.open(path1, 'a', '0666')
   fs.close(fd)
 
   err = fs.link(path1, path2)

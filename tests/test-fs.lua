@@ -24,20 +24,20 @@ exports['lev.fs:\tfs_sync_test'] = function(test)
   local err, fd
   local is_exists
 
-  err, fd = fs.open('LICENSE.txt', 'r', tonumber('666', 8))
+  err, fd = fs.open('LICENSE.txt', 'r', '0666')
   test.is_nil(err)
   test.ok(fd)
   err = fs.close(fd)
   test.is_nil(err)
 
-  err, fd = fs.open('non_existing_file', 'r', tonumber('666', 8))
+  err, fd = fs.open('non_existing_file', 'r', '0666')
   test.equal(err, 'ENOENT')
   test.is_nil(fd)
 
-  err = fs.mkdir('_tmp_dir1_', tonumber('750', 8))
+  err = fs.mkdir('_tmp_dir1_', '0750')
   test.is_nil(err)
 
-  err = fs.mkdir('_tmp_dir1_', tonumber('750', 8))
+  err = fs.mkdir('_tmp_dir1_', '0750')
   test.equal(err, 'EEXIST')
 
   is_exists = fs.exists('_tmp_dir1_')
@@ -56,12 +56,12 @@ exports['lev.fs:\tfs_async_test'] = function(test)
   local lev = require('lev')
   local fs = lev.fs
 
-  fs.open('LICENSE.txt', 'r', tonumber('666', 8), function(err, fd)
+  fs.open('LICENSE.txt', 'r', '0666', function(err, fd)
     test.is_nil(err)
     test.ok(fd)
     fs.close(fd, function(err)
       test.is_nil(err)
-      fs.open('non_existing_file', 'r', tonumber('666', 8), function(err, fd)
+      fs.open('non_existing_file', 'r', '0666', function(err, fd)
         test.equal(err, 'ENOENT')
         test.is_nil(fd)
 

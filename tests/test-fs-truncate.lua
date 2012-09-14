@@ -24,7 +24,7 @@ exports['lev.fs:\tfs_sync_truncate'] = function(test)
   local path = '_tmp_file1.txt'
   assert(not fs.exists(path))
 
-  local err, fd = fs.open(path, 'w+', tonumber('666', 8))
+  local err, fd = fs.open(path, 'w+', '0666')
   test.is_nil(err)
 
   local byte_count_written
