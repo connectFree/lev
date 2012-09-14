@@ -250,5 +250,19 @@ exports['lev.core:\tumask: specify invalid value'] = function (test)
   test.done()
 end
 
+exports['test core platform'] = function (test)
+  test.is_string(lev.platform)
+  test.ok(#lev.platform > 0)
+
+  test.done()
+end
+
+exports['test core arch'] = function (test)
+  test.is_string(lev.arch)
+  test.ok(#lev.arch > 0)
+
+  test.done()
+end
+
 return exports
 

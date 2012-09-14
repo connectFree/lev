@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <grp.h>
 #include <errno.h>
+#include <sys/utsname.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -552,7 +553,37 @@ static luaL_reg functions[] = {
 };
 
 
+static int core_platform(lua_State *L) {
+#ifdef WIN32
+  lua_pushstring(L, "win32");
+#else
+  struct utsname info;
+  char *p;
+
+  uname(&info);
+  for (p = info.sysname; *p; p++) {
+    *p = (char)tolower((unsigned char)*p);
+  }
+  lua_pushstring(L, info.sysname);
+#endif
+  return 1;
+}
+
+static int core_arch(lua_State *L) {
+  struct utsname info;
+  uname(&info);
+  lua_pushstring(L, info.machine);
+  return 1;
+}
+
+
 void luaopen_lev_core(lua_State *L) {
   cache_time_init();
   luaL_register(L, NULL, functions);
+
+  /* set properties */
+  core_platform(L);
+  lua_setfield(L, -2, "platform");
+  core_arch(L);
+  lua_setfield(L, -2, "arch");
 }

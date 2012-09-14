@@ -161,22 +161,7 @@ static luaL_reg functions[] = {
 };
 
 
-#define PROPERTY_COUNT 1
-
-static int process_platform(lua_State* L) {
-#ifdef WIN32
-  lua_pushstring(L, "win32");
-#else
-  struct utsname info;
-  char *p;
-
-  uname(&info);
-  for (p = info.sysname; *p; p++)
-    *p = (char)tolower((unsigned char)*p);
-  lua_pushstring(L, info.sysname);
-#endif
-  return 1;
-}
+#define PROPERTY_COUNT 0
 
 void luaopen_lev_process(lua_State *L) {
   luaL_newmetatable(L, "lev.process");
@@ -185,10 +170,6 @@ void luaopen_lev_process(lua_State *L) {
 
   lua_createtable(L, 0, ARRAY_SIZE(functions) + PROPERTY_COUNT - 1);
   luaL_register(L, NULL, functions);
-
-  /* set properties */
-  process_platform(L);
-  lua_setfield(L, -2, "platform");
 
   lua_setfield(L, -2, "process");
 }
