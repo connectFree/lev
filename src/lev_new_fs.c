@@ -367,9 +367,14 @@ static int fs_read(lua_State* L) {
   /* NOTE: index is added by 1 because of holder above. */
   int fd = luaL_checkint(L, 2);
   MemSlice *ms = lev_checkbuffer(L, 3);
-  long file_pos = luaL_optlong(L, 4, -1);
+  int64_t file_pos = luaL_optlong(L, 4, 0);
+  file_pos--; /* Luaisms */
+  size_t file_until = luaL_optlong(L, 5, 0);
+  if (file_until > ms->until) {
+    file_until = ms->until;
+  }
   FSR__SET_OPT_CB(5, on_fs_callback)
-  uv_fs_read(loop, req, fd, ms->slice, ms->until, file_pos, cb);
+  uv_fs_read(loop, req, fd, ms->slice, (file_until ? file_until : ms->until), file_pos, cb);
   FSR__TEARDOWN
 }
 
@@ -381,9 +386,14 @@ static int fs_write(lua_State* L) {
   /* NOTE: index is added by 1 because of holder above. */
   int fd = luaL_checkint(L, 2);
   MemSlice *ms = lev_checkbuffer(L, 3);
-  long file_pos = luaL_optlong(L, 4, -1);
+  int64_t file_pos = luaL_optlong(L, 4, 0);
+  file_pos--; /* Luaisms */
+  size_t file_until = luaL_optlong(L, 5, 0);
+  if (file_until > ms->until) {
+    file_until = ms->until;
+  }
   FSR__SET_OPT_CB(5, on_fs_callback)
-  uv_fs_write(loop, req, fd, ms->slice, ms->until, file_pos, cb);
+  uv_fs_write(loop, req, fd, ms->slice, (file_until ? file_until : ms->until), file_pos, cb);
   FSR__TEARDOWN
 }
 
@@ -394,7 +404,7 @@ static int fs_ftruncate(lua_State* L) {
   FSR__SETUP
   /* NOTE: index is added by 1 because of holder above. */
   int fd = luaL_checkint(L, 2);
-  long file_size = luaL_checklong(L, 3);
+  int64_t file_size = luaL_checklong(L, 3);
   FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_ftruncate(loop, req, fd, file_size, cb);
   FSR__TEARDOWN

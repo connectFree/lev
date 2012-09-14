@@ -35,7 +35,7 @@ exports['fs_sync_write_read'] = function(test)
   test.equal(write_buf:toString(1, byte_count), content)
 
   local read_buf = Buffer:new(80)
-  err, byte_count = fs.read(fd, read_buf, 0)
+  err, byte_count = fs.read(fd, read_buf, 1, #write_buf)
   test.is_nil(err)
   test.equal(byte_count, #write_buf)
 
