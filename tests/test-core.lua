@@ -63,12 +63,6 @@ exports['lev.core:\tuptime'] = function (test)
   test.done()
 end
 
-exports['lev.core:\texecpath'] = function (test)
-  test.is_string(lev.execpath())
-
-  test.done()
-end
-
 exports['lev.core:\tcpu_info'] = function (test)
   local cpu_info = lev.cpu_info()
 

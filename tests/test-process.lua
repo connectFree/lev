@@ -21,7 +21,8 @@ local process = lev.process
 
 local exports = {}
 
-exports['lev.process\tenviron'] = function (test)
+
+exports['lev.process:\tenviron'] = function (test)
   local found = false
   for k, v in process.environ() do
     if k == 'LEV_WORKER_ID' then
@@ -31,5 +32,22 @@ exports['lev.process\tenviron'] = function (test)
   test.ok(found)
   test.done()
 end
+
+exports['lev.process:\tpid'] = function (test)
+  test.is_number(process.pid)
+  test.ok(process.pid > 0)
+
+  test.done()
+end
+
+exports['lev.process:\texecpath'] = function (test)
+  local path = process.execpath()
+
+  test.is_string(path)
+  test.ok(#path > 0)
+
+  test.done()
+end
+
 
 return exports
