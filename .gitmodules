@@ -26,7 +26,3 @@
 	path = deps/luacrypto
 	url = http://github.com/luvit/luacrypto
   ignore = dirty
-[submodule "tools/gyp"]
-	path = tools/gyp
-	url = https://github.com/luvit/gyp.git
-  ignore = dirty
