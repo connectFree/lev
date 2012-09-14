@@ -631,8 +631,12 @@ struct Smain {
 #endif
 
 static int uv_workers_count = 0;
+static int lev_exit_code = 0;
 
 void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
+    if (exit_status) { /* update exit code */
+      lev_exit_code = exit_status;
+    }
     fprintf(stderr, "*lev: a core has exited with status %d, signal %d\n", exit_status, term_signal);
     if (SIGSEGV == term_signal) {/* we just segfaulted */
       fprintf(stderr, "\n\n\n");
@@ -650,7 +654,7 @@ void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
     uv_close((uv_handle_t*) req, NULL);
     free( req->data );
     if (--uv_workers_count == 0) {
-      exit(0); /* this should be cleaner */
+      exit( (lev_exit_code ? lev_exit_code : 0));
     }
 }
 
