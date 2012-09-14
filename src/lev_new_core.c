@@ -22,6 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
+#include <grp.h>
+#include <errno.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -202,7 +205,7 @@ static void core_on_signal(struct ev_loop *loop, struct ev_signal *w, int revent
 
 #endif
 
-int core_activate_signal_handler(lua_State* L) {
+static int core_activate_signal_handler(lua_State* L) {
 #ifndef _WIN32
   int signal = luaL_checkint(L, 1);
   struct ev_signal* signal_watcher = (struct ev_signal*)malloc(sizeof(struct ev_signal));
@@ -214,34 +217,34 @@ int core_activate_signal_handler(lua_State* L) {
   return 0;
 }
 
-int core_update_time(lua_State* L) {
+static int core_update_time(lua_State* L) {
   uv_update_time(lev_get_loop(L));
   return 0;
 }
 
-int core_now(lua_State* L) {
+static int core_now(lua_State* L) {
   double now = (double)uv_now(lev_get_loop(L));
   lua_pushnumber(L, now);
   return 1;
 }
 
-int core_hrtime(lua_State* L) {
+static int core_hrtime(lua_State* L) {
   double now = (double) uv_hrtime() / 1000000.0;
   lua_pushnumber(L, now);
   return 1;
 }
 
-int core_get_free_memory(lua_State* L) {
+static int core_get_free_memory(lua_State* L) {
   lua_pushnumber(L, uv_get_free_memory());
   return 1;
 }
 
-int core_get_total_memory(lua_State* L) {
+static int core_get_total_memory(lua_State* L) {
   lua_pushnumber(L, uv_get_total_memory());
   return 1;
 }
 
-int core_loadavg(lua_State* L) {
+static int core_loadavg(lua_State* L) {
   double avg[3];
   uv_loadavg(avg);
   lua_pushnumber(L, avg[0]);
@@ -250,14 +253,14 @@ int core_loadavg(lua_State* L) {
   return 3;
 }
 
-int core_uptime(lua_State* L) {
+static int core_uptime(lua_State* L) {
   double uptime;
   uv_uptime(&uptime);
   lua_pushnumber(L, uptime);
   return 1;
 }
 
-int core_cpu_info(lua_State* L) {
+static int core_cpu_info(lua_State* L) {
   uv_cpu_info_t* cpu_infos;
   int count, i;
   uv_cpu_info(&cpu_infos, &count);
@@ -299,7 +302,7 @@ int core_cpu_info(lua_State* L) {
  };
 #endif
 
-int core_interface_addresses(lua_State* L) {
+static int core_interface_addresses(lua_State* L) {
   uv_interface_address_t* interfaces;
   int count, i;
   char ip[INET6_ADDRSTRLEN];
@@ -343,7 +346,7 @@ int core_interface_addresses(lua_State* L) {
   return 1;
 }
 
-int core_execpath(lua_State* L) {
+static int core_execpath(lua_State* L) {
   size_t size = 2*PATH_MAX;
   char exec_path[2*PATH_MAX];
   if (uv_exepath(exec_path, &size)) {
@@ -354,7 +357,7 @@ int core_execpath(lua_State* L) {
   return 1;
 }
 
-int core_get_process_title(lua_State* L) {
+static int core_get_process_title(lua_State* L) {
   char title[8192];
   uv_err_t err = uv_get_process_title(title, 8192);
   if (err.code) {
@@ -364,7 +367,7 @@ int core_get_process_title(lua_State* L) {
   return 1;
 }
 
-int core_set_process_title(lua_State* L) {
+static int core_set_process_title(lua_State* L) {
   const char* title = luaL_checkstring(L, 1);
   uv_err_t err = uv_set_process_title(title);
   if (err.code) {
@@ -373,30 +376,132 @@ int core_set_process_title(lua_State* L) {
   return 0;
 }
 
-
-int core_handle_type(lua_State* L) {
+static int core_handle_type(lua_State *L) {
   uv_file file = luaL_checkint(L, 1);
   uv_handle_type type = uv_guess_handle(file);
   lua_pushstring(L, luv_handle_type_to_string(type));
   return 1;
 }
 
-
-int core_timecache_http(lua_State* L) {
+static int core_timecache_http(lua_State* L) {
   cache_time_update();
   lua_pushstring(L, (char *)http_time);
   return 1;
 }
 
-int core_timecache_httplog(lua_State* L) {
+static int core_timecache_httplog(lua_State* L) {
   cache_time_update();
   lua_pushstring(L, (char *)http_log_time);
   return 1;
 }
 
-int core_timecache_errorlog(lua_State* L) {
+static int core_timecache_errorlog(lua_State* L) {
   cache_time_update();
   lua_pushstring(L, (char *)err_log_time);
+  return 1;
+}
+
+static int core_getuid(lua_State *L) {
+  lua_pushinteger(L, getpid());
+  return 1;
+}
+
+static int core_getgid(lua_State *L) {
+  lua_pushinteger(L, getgid());
+  return 1;
+}
+
+static int core_setuid(lua_State *L) {
+  int uid;
+  int err;
+  int type = lua_type(L, -1);
+  if (type == LUA_TNUMBER) {
+    uid = lua_tonumber(L, -1);
+  } else if (type == LUA_TSTRING) {
+    MemBlock *mb;
+    struct passwd pwd;
+    struct passwd *pwdp = NULL;
+    const char *name = lua_tostring(L, -1);
+    int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1) {
+      return luaL_error(L, "lev.setuid: cannot get password entry buffer size");
+    }
+
+    mb = lev_slab_getBlock(bufsize);
+    lev_slab_incRef(mb);
+    err = getpwnam_r(name, &pwd, (char *)mb->bytes, bufsize, &pwdp);
+    if (err || pwdp == NULL) {
+      return luaL_error(L, "lev.setuid: user id \"%s\" does not exist", name);
+    }
+    uid = pwdp->pw_uid;
+    lev_slab_decRef(mb);
+  } else {
+    return luaL_error(L, "lev.setuid: number or string expected");
+  }
+
+  err = setuid(uid);
+  if (err) {
+    return luaL_error(L, "lev.setuid: errno=%d", errno);
+  }
+
+  return 0;
+}
+
+static int core_setgid(lua_State *L) {
+  int gid;
+  int err;
+  int type = lua_type(L, -1);
+  if (type == LUA_TNUMBER) {
+    gid = lua_tonumber(L, -1);
+  } else if (type == LUA_TSTRING) {
+    MemBlock *mb;
+    struct group grp;
+    struct group *grpp = NULL;
+    const char *name = lua_tostring(L, -1);
+    int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1) {
+      return luaL_error(L, "lev.setgid: cannot get password entry buffer size");
+    }
+
+    mb = lev_slab_getBlock(bufsize);
+    lev_slab_incRef(mb);
+    err = getgrnam_r(name, &grp, (char *)mb->bytes, bufsize, &grpp);
+    if (err || grpp == NULL) {
+      return luaL_error(L, "lev.setgid: group id \"%s\" does not exist", name);
+    }
+    gid = grpp->gr_gid;
+    lev_slab_decRef(mb);
+  } else {
+    return luaL_error(L, "lev.setgid: number or string expected");
+  }
+
+  err = setgid(gid);
+  if (err) {
+    return luaL_error(L, "lev.setgid: errno=%d", errno);
+  }
+
+  return 0;
+}
+
+static int core_umask(lua_State *L) {
+  int argc = lua_gettop(L);
+  unsigned int old;
+
+  if (argc < 1) {
+    old = umask(0);
+    umask((int)old);
+  } else {
+    int type = lua_type(L, -1);
+    if (type != LUA_TNUMBER && type != LUA_TSTRING) {
+      return luaL_error(L, "lev.umask: number or string expected");
+    } else if (type == LUA_TSTRING && !lua_isnumber(L, -1)) {
+      return luaL_error(L, "lev.umask: invalid string value");
+    }
+    old = lua_tonumber(L, -1);
+    old = umask((int)old);
+  }
+
+  lua_pushnumber(L, old);
   return 1;
 }
 
@@ -434,6 +539,11 @@ static luaL_reg functions[] = {
   ,{"timeHTTP", core_timecache_http}
   ,{"timeHTTPLog", core_timecache_httplog}
   ,{"timeELog", core_timecache_errorlog}
+  ,{"getuid", core_getuid}
+  ,{"getgid", core_getgid}
+  ,{"setuid", core_setuid}
+  ,{"setgid", core_setgid}
+  ,{"umask", core_umask}
   /* TODO: should be support debug module.
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}

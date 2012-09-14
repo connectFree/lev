@@ -79,90 +79,6 @@ static int process_pid(lua_State* L) {
   lua_pushinteger(L, pid);
   return 1;
 }
-
-static int process_setgid(lua_State* L) {
-  int gid;
-  int err;
-  int type = lua_type(L, -1);
-  if (type == LUA_TNUMBER) {
-    gid = lua_tonumber(L, -1);
-  } else if (type == LUA_TSTRING) {
-    MemBlock *mb;
-    struct group grp;
-    struct group *grpp = NULL;
-    const char *name = lua_tostring(L, -1);
-    int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) {
-      return luaL_error(L, "process.setgid: cannot get password entry buffer size");
-    }
-
-    mb = lev_slab_getBlock(bufsize);
-    lev_slab_incRef(mb);
-    err = getgrnam_r(name, &grp, (char *)mb->bytes, bufsize, &grpp);
-    if (err || grpp == NULL) {
-      return luaL_error(L, "process.setgid: group id \"%s\" does not exist", name);
-    }
-    gid = grpp->gr_gid;
-    lev_slab_decRef(mb);
-  } else {
-    return luaL_error(L, "process.setgid: number or string expected");
-  }
-
-  err = setgid(gid);
-  if (err) {
-    return luaL_error(L, "process.setgid: errno=%d", errno);
-  }
-
-  return 0;
-}
-
-static int process_getgid(lua_State* L) {
-  int gid = getgid();
-  lua_pushinteger(L, gid);
-  return 1;
-}
-
-static int process_setuid(lua_State* L) {
-  int uid;
-  int err;
-  int type = lua_type(L, -1);
-  if (type == LUA_TNUMBER) {
-    uid = lua_tonumber(L, -1);
-  } else if (type == LUA_TSTRING) {
-    MemBlock *mb;
-    struct passwd pwd;
-    struct passwd *pwdp = NULL;
-    const char *name = lua_tostring(L, -1);
-    int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) {
-      return luaL_error(L, "process.setuid: cannot get password entry buffer size");
-    }
-
-    mb = lev_slab_getBlock(bufsize);
-    lev_slab_incRef(mb);
-    err = getpwnam_r(name, &pwd, (char *)mb->bytes, bufsize, &pwdp);
-    if (err || pwdp == NULL) {
-      return luaL_error(L, "process.setuid: user id \"%s\" does not exist", name);
-    }
-    uid = pwdp->pw_uid;
-    lev_slab_decRef(mb);
-  } else {
-    return luaL_error(L, "process.setuid: number or string expected");
-  }
-
-  err = setuid(uid);
-  if (err) {
-    return luaL_error(L, "process.setuid: errno=%d", errno);
-  }
-
-  return 0;
-}
-
-static int process_getuid(lua_State* L) {
-  int uid = getuid();
-  lua_pushinteger(L, uid);
-  return 1;
-}
 #endif
 
 #define LEV_SETENV_ERRNO_MAP(XX) \
@@ -238,12 +154,8 @@ static luaL_reg functions[] = {
   ,{ "setenv", process_setenv }
   ,{ "unsetenv", process_unsetenv }
   ,{ "environ", process_environ }
-  ,{ "pid", process_pid }
 #ifndef WIN32
-  ,{ "setgid", process_setgid }
-  ,{ "getgid", process_getgid }
-  ,{ "setuid", process_setuid }
-  ,{ "getuid", process_getuid }
+  ,{ "pid", process_pid }
 #endif
   ,{ NULL, NULL }
 };

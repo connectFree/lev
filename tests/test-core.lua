@@ -152,13 +152,13 @@ end
 
 -- TODO; should be support debug module
 --[[
-exports['test core print_active_handles'] = function (test)
+exports['lev.core:\tprint_active_handles'] = function (test)
   test.is_nil(lev.print_active_handles())
 
   test.done()
 end
 
-exports['test core print_all_handles'] = function (test)
+exports['lev.core:\tprint_all_handles'] = function (test)
   test.is_nil(lev.print_all_handles())
 
   test.done()
@@ -177,4 +177,78 @@ end
 --   test.done()
 -- end
 
+exports['lev.core:\tgetuid'] = function (test)
+  local uid = lev.getuid()
+
+  test.is_number(uid)
+  test.ok(0 <= uid and uid <= (2^32 - 1))
+
+  test.done()
+end
+
+exports['lev.core:\tgetgid'] = function (test)
+  local gid = lev.getgid()
+
+  test.is_number(gid)
+  test.ok(0 <= gid and gid <= (2^32 - 1))
+
+  test.done()
+end
+
+-- TODO: How do we test?
+--exports['lev.core:\tsetuid: specify string value'] = function (test)
+--  local old = lev.getuid()
+--  local ret = lev.setuid('nobody')
+--  local new = lev.getuid()
+--  p(old, new)
+--
+--  test.is_nil(ret)
+--  test.not_is_equal(new, old)
+--
+--  test.done()
+--end
+
+-- TODO: How do we test?
+--exports['lev.core:\tsetgid: specify string value'] = function (test)
+--  local old = lev.getgid()
+--  local ret = lev.setuid('nobody')
+--  local new = lev.getgid()
+--  p(old, new)
+--
+--  test.is_nil(ret)
+--  test.not_is_equal(new, old)
+--
+--  test.done()
+--end
+
+exports['lev.core:\tumask: specify number value'] = function (test)
+  local mask = 0644
+  local old = lev.umask(mask)
+
+  test.equal(mask, lev.umask(old))
+  test.equal(old, lev.umask())
+  test.equal(old, lev.umask())
+
+  test.done()
+end
+
+exports['lev.core:\tumask: specify string value'] = function (test)
+  local mask = 0644
+  local old = lev.umask('0644')
+
+  test.equal(mask, lev.umask(old))
+  test.equal(old, lev.umask())
+  test.equal(old, lev.umask())
+
+  test.done()
+end
+
+exports['lev.core:\tumask: specify invalid value'] = function (test)
+  test.throws(lev.umask, 'hoge')
+  test.throws(lev.umask, 'こんにちは')
+
+  test.done()
+end
+
 return exports
+
