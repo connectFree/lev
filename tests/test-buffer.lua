@@ -20,9 +20,19 @@ local lev = require("lev")
 
 local exports = {}
 
-exports['lev.buffer:\tBuffer:new'] = function(test)
-   test.ok(Buffer:new('a'))
+local OUTSIDE_BUFFER = Buffer.new("HELLO, SIR!")
 
+exports['lev.buffer:\tBuffer:new'] = function(test)
+   test.ok( OUTSIDE_BUFFER:inspect() == '<Buffer 48 45 4C 4C 4F 2C 20 53 49 52 21 >')
+   local abcde = Buffer:new('abcde')
+   test.ok(abcde:s() == 'abcde')
+   test.ok( OUTSIDE_BUFFER:inspect() == '<Buffer 48 45 4C 4C 4F 2C 20 53 49 52 21 >')
+   local sixzeros = Buffer:new(6)
+   test.ok(sixzeros:s() == '\0\0\0\0\0\0')
+    -- test to make sure that the same memblock was not whiped
+    -- yes, this was a bug that was found...
+   test.ok(abcde:s() == 'abcde')
+   test.ok( OUTSIDE_BUFFER:inspect() == '<Buffer 48 45 4C 4C 4F 2C 20 53 49 52 21 >')
    test.done()
 end
 

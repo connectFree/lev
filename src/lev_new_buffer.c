@@ -182,7 +182,7 @@ MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t te
       ,(size > temp_size ? temp_size : size)
       );
   } else {
-    memset(_static_mb->bytes, '\0', size);
+    memset(_static_mb->bytes + _static_mb->nbytes, '\0', size);
   }
 
   _static_mb->nbytes += size;
