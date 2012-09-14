@@ -133,7 +133,7 @@ function web.createServer(host, port, onRequest, onData)
             parser:reinitialize("request")
           end
           ,fin = function(chunk)
-            client:write( chunk )
+            if chunk then client:write( chunk ) end
             client:close()
           end --X:E res.fin
         } --X:E response
