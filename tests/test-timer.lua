@@ -83,7 +83,7 @@ exports['tcp_timer_again_error'] = function(test)
   local constants = require('constants')
   local timer = lev.timer.new()
   local err = timer:again()
-  test.equal(err.code, 18 --[[EINVAL]])
+  test.equal(err, 'EINVAL')
   test.done()
 end
 

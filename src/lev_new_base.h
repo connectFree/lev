@@ -81,14 +81,16 @@ void lev_set_loop(lua_State *L, uv_loop_t *loop);
 uv_loop_t* lev_get_loop(lua_State *L);
 
 /* error helper function */
-void lev_push_uv_err(lua_State *L, uv_err_t err);
-uv_err_t lev_code_to_uv_err(uv_err_code errcode);
+const char *lev_uv_errname(uv_err_code errcode);
+#define lev_push_uv_errname(L, uv_errcode) \
+  lua_pushstring(L, lev_uv_errname(uv_errcode))
+
+#define LEV_UV_ERRCODE_IN_LOOP(L) uv_last_error(lev_get_loop(L)).code
 
 /* request helper macros */
 #define LEV_IS_ASYNC_REQ(req) ((req)->cb)
-#define LEV_UV_ERR_FROM_REQ(req) \
-    (LEV_IS_ASYNC_REQ(req) ? lev_code_to_uv_err((req)->errorno) \
-                           : uv_last_error((req)->loop))
+#define LEV_UV_ERRCODE_FROM_REQ(req) \
+  (LEV_IS_ASYNC_REQ(req) ? (req)->errorno : uv_last_error((req)->loop).code)
 
 #define LEV_SET_FIELD(name, type, val) \
   lua_push##type(L, val);              \

@@ -209,20 +209,14 @@ uv_loop_t* lev_get_loop(lua_State *L) {
  * Error helper functions.
  */
 
-void lev_push_uv_err(lua_State *L, uv_err_t err) {
-  lua_createtable(L, 0, 2);
+#define LEV_UV_ERR_CASE_GEN(val, name, s) \
+  case val: return #name;
 
-  lua_pushstring(L, uv_strerror(err));
-  lua_setfield(L, -2, "message");
-
-  lua_pushnumber(L, err.code);
-  lua_setfield(L, -2, "code");
-}
-
-uv_err_t lev_code_to_uv_err(uv_err_code errcode) {
-  uv_err_t err;
-  err.code = errcode;
-  return err;
+const char *lev_uv_errname(uv_err_code errcode) {
+  switch (errcode) {
+  UV_ERRNO_MAP(LEV_UV_ERR_CASE_GEN)
+  default: return "UNKNOWN";
+  }
 }
 
 #ifdef WIN32
