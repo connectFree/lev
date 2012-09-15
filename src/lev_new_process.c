@@ -24,7 +24,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "luv_debug.h"
-/* FIXME: header include compile error ...
+/* FIXME: Disable including luajit header, compile error ...
 #include "lj_obj.h"
 */
 
@@ -101,7 +101,7 @@ static int process_memory_usage(lua_State *L) {
   lua_setfield(L, -2, "rss");
 
   /* NOTE: disable luajit GC infomation */
-  /* 
+  /*
   global_State *g = G(L);
   if (g == NULL) {
     return luaL_error(L, "cannot get the lujit global_State object");
