@@ -358,26 +358,7 @@ static int core_execpath(lua_State* L) {
   return 1;
 }
 
-static int core_get_process_title(lua_State* L) {
-  char title[8192];
-  uv_err_t err = uv_get_process_title(title, 8192);
-  if (err.code) {
-    return luaL_error(L, "uv_get_process_title: %s: %s", uv_err_name(err), uv_strerror(err));
-  }
-  lua_pushstring(L, title);
-  return 1;
-}
-
-static int core_set_process_title(lua_State* L) {
-  const char* title = luaL_checkstring(L, 1);
-  uv_err_t err = uv_set_process_title(title);
-  if (err.code) {
-    return luaL_error(L, "uv_set_process_title: %s: %s", uv_err_name(err), uv_strerror(err));
-  }
-  return 0;
-}
-
-static int core_handle_type(lua_State *L) {
+int core_handle_type(lua_State *L) {
   uv_file file = luaL_checkint(L, 1);
   uv_handle_type type = uv_guess_handle(file);
   lua_pushstring(L, luv_handle_type_to_string(type));
@@ -534,8 +515,6 @@ static luaL_reg functions[] = {
   ,{"cpu_info", core_cpu_info}
   ,{"interface_addresses", core_interface_addresses}
   ,{"execpath", core_execpath}
-  ,{"get_process_title", core_get_process_title}
-  ,{"set_process_title", core_set_process_title}
   ,{"handle_type", core_handle_type}
   ,{"timeHTTP", core_timecache_http}
   ,{"timeHTTPLog", core_timecache_httplog}

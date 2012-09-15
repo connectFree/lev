@@ -128,22 +128,6 @@ exports['lev.core:\tget_total_memory'] = function (test)
   test.done()
 end
 
-exports['lev.core:\tget_process_title'] = function (test)
-  local title = lev.get_process_title()
-
-  test.is_string(title)
-
-  test.done()
-end
-
--- NOTE: this test pass linux only. because uv_set_process_title do not support all platform. 
-exports['lev.core:\tset_process_title'] = function (test)
-  test.is_nil(lev.set_process_title('lev_unittest'))
-  test.equal(lev.get_process_title(), 'lev_unittest')
-
-  test.done()
-end
-
 -- TODO; should be support debug module
 --[[
 exports['lev.core:\tprint_active_handles'] = function (test)

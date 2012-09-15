@@ -24,7 +24,9 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "luv_debug.h"
+/* FIXME: header include compile error ...
 #include "lj_obj.h"
+*/
 
 #ifndef WIN32
 #include <ctype.h>
@@ -98,6 +100,8 @@ static int process_memory_usage(lua_State *L) {
   lua_pushnumber(L, rss);
   lua_setfield(L, -2, "rss");
 
+  /* NOTE: disable luajit GC infomation */
+  /* 
   global_State *g = G(L);
   if (g == NULL) {
     return luaL_error(L, "cannot get the lujit global_State object");
@@ -118,6 +122,7 @@ static int process_memory_usage(lua_State *L) {
   lua_setfield(L, -2, "pause");
 
   lua_setfield(L, -2, "gc");
+  */
   return 1;
 }
 
@@ -200,7 +205,7 @@ static luaL_reg functions[] = {
 };
 
 
-#define PROPERTY_COUNT 1
+#define PROPERTY_COUNT 2
 
 #ifndef WIN32
 static int process_pid(lua_State *L) {
@@ -208,6 +213,16 @@ static int process_pid(lua_State *L) {
   return 1;
 }
 #endif
+
+static int process_title(lua_State *L) {
+  char title[8192];
+  uv_err_t err = uv_get_process_title(title, 8192);
+  if (err.code) {
+    return luaL_error(L, "uv_get_process_title: %s: %s", uv_err_name(err), uv_strerror(err));
+  }
+  lua_pushstring(L, title);
+  return 1;
+}
 
 
 void luaopen_lev_process(lua_State *L) {
@@ -221,6 +236,8 @@ void luaopen_lev_process(lua_State *L) {
   /* properties */
   process_pid(L);
   lua_setfield(L, -2, "pid");
+  process_title(L);
+  lua_setfield(L, -2, "title");
 
   lua_setfield(L, -2, "process");
 }

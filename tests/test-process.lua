@@ -55,19 +55,29 @@ exports['lev.process:\tmemory_usage'] = function (test)
   test.is_table(mem)
   test.is_number(mem.rss)
   test.ok(mem.rss >= 0)
-  test.is_table(mem.gc)
-  test.is_number(mem.gc.total)
-  test.ok(mem.gc.total >= 0)
-  test.is_number(mem.gc.threshold)
-  test.ok(mem.gc.threshold >= 0)
-  test.is_number(mem.gc.stepmul)
-  test.ok(mem.gc.stepmul >= 0)
-  test.is_number(mem.gc.debt)
-  test.ok(mem.gc.debt >= 0)
-  test.is_number(mem.gc.estimate)
-  test.ok(mem.gc.estimate >= 0)
-  test.is_number(mem.gc.pause)
-  test.ok(mem.gc.pause >= 0)
+  -- NOTE: disable luajit GC infomation
+  --test.is_table(mem.gc)
+  --test.is_number(mem.gc.total)
+  --test.ok(mem.gc.total >= 0)
+  --test.is_number(mem.gc.threshold)
+  --test.ok(mem.gc.threshold >= 0)
+  --test.is_number(mem.gc.stepmul)
+  --test.ok(mem.gc.stepmul >= 0)
+  --test.is_number(mem.gc.debt)
+  --test.ok(mem.gc.debt >= 0)
+  --test.is_number(mem.gc.estimate)
+  --test.ok(mem.gc.estimate >= 0)
+  --test.is_number(mem.gc.pause)
+  --test.ok(mem.gc.pause >= 0)
+
+  test.done()
+end
+
+exports['lev.process:\ttitle'] = function (test)
+  local title = process.title
+
+  test.is_string(title)
+  test.ok(#title > 0)
 
   test.done()
 end
