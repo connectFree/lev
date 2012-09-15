@@ -24,6 +24,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "luv_debug.h"
+#include "lj_obj.h"
 
 #ifndef WIN32
 #include <ctype.h>
@@ -85,6 +86,40 @@ static int process_execpath(lua_State *L) {
   return 1;
 }
 
+static int process_memory_usage(lua_State *L) {
+  lua_newtable(L);
+
+  size_t rss;
+  uv_err_t err = uv_resident_set_memory(&rss);
+  if (err.code != UV_OK) {
+    uv_err_t err = uv_last_error(lev_get_loop(L));
+    return luaL_error(L, "uv_resident_set_memory: %s", uv_strerror(err));
+  }
+  lua_pushnumber(L, rss);
+  lua_setfield(L, -2, "rss");
+
+  global_State *g = G(L);
+  if (g == NULL) {
+    return luaL_error(L, "cannot get the lujit global_State object");
+  }
+
+  lua_newtable(L);
+  lua_pushnumber(L, g->gc.total);
+  lua_setfield(L, -2, "total");
+  lua_pushnumber(L, g->gc.threshold);
+  lua_setfield(L, -2, "threshold");
+  lua_pushnumber(L, g->gc.stepmul);
+  lua_setfield(L, -2, "stepmul");
+  lua_pushnumber(L, g->gc.debt);
+  lua_setfield(L, -2, "debt");
+  lua_pushnumber(L, g->gc.estimate);
+  lua_setfield(L, -2, "estimate");
+  lua_pushnumber(L, g->gc.pause);
+  lua_setfield(L, -2, "pause");
+
+  lua_setfield(L, -2, "gc");
+  return 1;
+}
 
 #define LEV_SETENV_ERRNO_MAP(XX) \
   XX(EINVAL) \
@@ -155,6 +190,7 @@ static luaL_reg methods[] = {
 static luaL_reg functions[] = {
    { "new", process_new }
   ,{ "execpath", process_execpath }
+  ,{ "memory_usage", process_memory_usage }
   ,{ "cwd", process_cwd }
   ,{ "getenv", process_getenv }
   ,{ "setenv", process_setenv }
