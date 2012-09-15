@@ -157,6 +157,7 @@ MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t te
 
   if (!_static_mb) {
     _static_mb = lev_slab_getBlock( size );
+    lev_slab_incRef( _static_mb );
   }
 
   if (_static_mb->size - _static_mb->nbytes < size) {
@@ -847,6 +848,14 @@ static int buffer__newindex (lua_State *L) {
   return 1;
 }
 
+static int buffer_debug(lua_State *L) {
+  MemSlice *ms = luaL_checkudata(L, 1, "lev.buffer");
+  printf("[%p] |||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n", ms->slice);
+  printf("[%p] BUFFER DEBUG(r=%d, p=%p)\n", ms, ms->mb->refcount, ms->mb->allocator);
+  printf("[%p] |||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n", ms->slice);
+  return 0;
+}
+
 
 /******************************************************************************/
 
@@ -861,6 +870,7 @@ static luaL_reg methods[] = {
 
   /* convenience */
   ,{"s", buffer_tostring}
+  ,{"debug", buffer_debug}
 
   /* binary helpers */
   ,{"readUInt8", buffer__index} /* same as __index */
