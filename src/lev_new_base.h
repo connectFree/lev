@@ -50,6 +50,7 @@ void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle);
 int luaopen_levbase(lua_State *L);
 
 void luaopen_lev_fs(lua_State *L); /* lev.fs */
+void luaopen_lev_net(lua_State *L); /* lev.net */
 void luaopen_lev_dns(lua_State *L); /* lev.dns */
 void luaopen_lev_tcp(lua_State *L); /* lev.tcp */
 void luaopen_lev_udp(lua_State *L); /* lev.udp */
@@ -113,5 +114,9 @@ const char *lev_uv_errname(uv_err_code errcode);
   lua_setfield(L, -2, #name)
 
 char **lev_os_environ();
+
+/* ares utility functions. */
+void lev_set_ares_channel(lua_State *L, ares_channel channel);
+ares_channel lev_get_ares_channel(lua_State *L);
 
 #endif /* LEVBASE_H_ */
