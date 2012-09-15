@@ -122,7 +122,10 @@ ifeq (${USE_SYSTEM_SSL},0)
 DEPS+=${SSLDIR}/libopenssl.a
 endif
 
-all: ${BUILDDIR}/lev
+all: Makefile ${BUILDDIR}/lev
+
+Makefile: .gitmodules
+	git submodule sync
 
 ${LUADIR}/Makefile:
 	git submodule update --init ${LUADIR}
