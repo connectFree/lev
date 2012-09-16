@@ -177,6 +177,67 @@ static int dns_resolve6(lua_State* L) {
   DNSR__TEARDOWN
 }
 
+static int to_lev_addr_type(int c_type) {
+  assert(c_type == AF_INET || c_type == AF_INET6);
+  return (c_type) == AF_INET ? 4 : 6;
+}
+
+static void on_lookup_family(void *arg, int status, int timeouts,
+    struct hostent *host) {
+  UNWRAP((dns_req_holder_t *)arg);
+  int ret_n;
+
+  push_callback_no_obj(L, holder, DNSR__CBNAME);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+  } else {
+    char addr_buf[sizeof("0000:0000:0000:0000:0000:0000:0000:0001")];
+    ret_n = 3;
+    lua_pushnil(L);
+    inet_ntop(host->h_addrtype, host->h_addr_list, addr_buf, sizeof(addr_buf));
+    lua_pushstring(L, addr_buf);
+    lua_pushnumber(L, to_lev_addr_type(host->h_addrtype));
+  }
+  lua_call(L, ret_n, 0);
+
+  DNSR__DISPOSE
+}
+
+static int dns_lookup_family(lua_State* L) {
+  DNSR__SETUP
+  const char *domain = luaL_checkstring(L, 1);
+  int family_arg = luaL_optint(L, 2, 0);
+  int family;
+  switch (family_arg) {
+  case 0: family = AF_UNSPEC; break;
+  case 4: family = AF_INET; break;
+  case 6: family = AF_INET6; break;
+  default:
+    return luaL_error(L, "lookupFamily: invalid family=%d", family_arg);
+  }
+  DNSR__SET_CB(3)
+
+  assert(sizeof(struct in6_addr) >= sizeof(struct in_addr));
+  char addr_buf[sizeof(struct in6_addr)];
+  int addr_len;
+  ares_channel channel = lev_get_ares_channel(L);
+  if (inet_pton(AF_INET, domain, &addr_buf) == 1) {
+    addr_len = sizeof(struct in_addr);
+    ares_gethostbyaddr(channel, addr_buf, addr_len, family, on_lookup_family,
+      holder);
+  } else if (inet_pton(AF_INET6, domain, &addr_buf) == 1) {
+    addr_len = sizeof(struct in6_addr);
+    ares_gethostbyaddr(channel, addr_buf, addr_len, family, on_lookup_family,
+      holder);
+  } else {
+    ares_gethostbyname(channel, domain, family, on_lookup_family, holder);
+  }
+
+  DNSR__TEARDOWN
+}
+
+
 static int push_host_aliases(lua_State* L, struct hostent *host) {
   lua_newtable(L);
   for (int i = 0; host->h_aliases[i]; ++i) {
@@ -442,7 +503,8 @@ static int dns_resolve_cname(lua_State* L) {
 }
 
 static luaL_reg functions[] = {
-   { "resolve4",     dns_resolve4      }
+   { "lookupFamily", dns_lookup_family }
+  ,{ "resolve4",     dns_resolve4      }
   ,{ "resolve6",     dns_resolve6      }
   ,{ "resolveCname", dns_resolve_cname }
   ,{ "resolveMx",    dns_resolve_mx    }

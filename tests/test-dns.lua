@@ -180,4 +180,47 @@ exports['dns_reverse_bad_ip'] = function(test)
   test.done()
 end
 
+exports['dns_lookup_ipv4_implicit'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.lookupFamily('www.google.com', 4, function(err, ip, family)
+    test.is_nil(err)
+p(ip)
+    test.ok(net.isIPv4(ip))
+    test.equal(family, 4)
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_lookup_ip_ipv4'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.lookupFamily('127.0.0.1', 4, function(err, ip, family)
+    test.is_nil(err)
+p(ip)
+    test.equal(ip, '127.0.0.1')
+    test.ok(net.isIPv4(ip))
+    test.equal(family, 4)
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_lookup_ip_ipv6'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.lookupFamily('::1', 6, function(err, ip, family)
+    test.is_nil(err)
+p(ip)
+    test.ok(net.isIPv6(ip))
+    test.equal(family, 6)
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
 return exports
