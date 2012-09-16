@@ -58,6 +58,87 @@ exports['dns_resolve6'] = function(test)
   end)
 end
 
+exports['dns_resolve_mx'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolveMx('gmail.com', function(err, addresses)
+    test.is_nil(err)
+    test.ok(#addresses > 0)
+    for i = 1, #addresses do
+      local address = addresses[i]
+      test.equal(type(address), 'table')
+      test.equal(type(address.priority), 'number')
+      test.equal(type(address.exchange), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_resolve_txt'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolveTxt('gmail.com', function(err, records)
+    test.is_nil(err)
+    test.ok(#records > 0)
+    for i = 1, #records do
+      local record = records[i]
+      test.equal(type(record), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_resolve_srv'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolveSrv('_jabber._tcp.google.com', function(err, services)
+    test.is_nil(err)
+    test.ok(#services > 0)
+    for i = 1, #services do
+      local service = services[i]
+      test.equal(type(service), 'table')
+      test.equal(type(service.name), 'string')
+      test.equal(type(service.priority), 'number')
+      test.equal(type(service.port), 'number')
+      test.equal(type(service.weight), 'number')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_resolve_ns'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolveNs('google.com', function(err, addresses)
+    test.is_nil(err)
+    test.ok(#addresses > 0)
+    for i = 1, #addresses do
+      local address = addresses[i]
+      test.equal(type(address), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_resolve_cname'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolveCname('www.google.com', function(err, names)
+    test.is_nil(err)
+    test.ok(#names > 0)
+    for i = 1, #names do
+      local address = names[i]
+      test.equal(type(address), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
 exports['dns_reverse_ipv4'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
@@ -66,7 +147,7 @@ exports['dns_reverse_ipv4'] = function(test)
     test.is_nil(err)
     test.ok(#domains > 0)
     for i = 1, #domains do
-      test.ok(type(domains[i]) == 'string')
+      test.equal(type(domains[i]), 'string')
     end
     test.done()
   end)
@@ -81,7 +162,7 @@ exports['dns_reverse_ipv6'] = function(test)
     test.is_nil(err)
     test.ok(#domains > 0)
     for i = 1, #domains do
-      test.ok(type(domains[i]) == 'string')
+      test.equal(type(domains[i]), 'string')
     end
     test.done()
   end)

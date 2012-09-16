@@ -21,8 +21,11 @@
 #include <string.h>
 #include <assert.h>
 #include <arpa/inet.h>
-/* #include "../src/ares/inet_net_pton.h" */
-#include <errno.h>
+#if defined(__OpenBSD__) || defined(__MINGW32__) || defined(_MSC_VER)
+# include <nameser.h>
+#else
+# include <arpa/nameser.h>
+#endif
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -174,6 +177,15 @@ static int dns_resolve6(lua_State* L) {
   DNSR__TEARDOWN
 }
 
+static int push_host_aliases(lua_State* L, struct hostent *host) {
+  lua_newtable(L);
+  for (int i = 0; host->h_aliases[i]; ++i) {
+    lua_pushstring(L, host->h_aliases[i]);
+    lua_rawseti(L, -2, i + 1);
+  }
+  return 1;
+}
+
 static void on_reverse(void *arg, int status, int timeouts,
     struct hostent *host) {
   UNWRAP((dns_req_holder_t *)arg);
@@ -184,15 +196,9 @@ static void on_reverse(void *arg, int status, int timeouts,
     ret_n = 1;
     lua_pushstring(L, to_ares_errname(status));
   } else {
-    char **p;
-    int i;
     ret_n = 2;
     lua_pushnil(L);
-    lua_newtable(L);
-    for (p = host->h_addr_list, i = 1; *p; p++, i++) {
-      lua_pushstring(L, host->h_name);
-      lua_rawseti(L, -2, i);
-    }
+    push_host_aliases(L, host);
   }
   lua_call(L, ret_n, 0);
 
@@ -224,10 +230,226 @@ static int dns_reverse(lua_State* L) {
 }
 
 
+static void on_resolve_mx(void *arg, int status, int timeouts,
+    unsigned char *abuf, int alen) {
+  UNWRAP((dns_req_holder_t *)arg);
+  int ret_n;
+
+  push_callback_no_obj(L, holder, DNSR__CBNAME);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  }
+
+  struct ares_mx_reply* mx_start;
+  status = ares_parse_mx_reply(abuf, alen, &mx_start);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  } 
+
+  ret_n = 2;
+  lua_pushnil(L);
+  lua_newtable(L);
+  int i = 1;
+  struct ares_mx_reply *mx_cur;
+  for (mx_cur = mx_start; mx_cur; mx_cur = mx_cur->next, i++) {
+    lua_createtable(L, 0, 2);
+    LEV_SET_FIELD(exchange, string, mx_cur->host);
+    LEV_SET_FIELD(priority, number, mx_cur->priority);
+    lua_rawseti(L, -2, i);
+  }
+  ares_free_data(mx_start);
+
+run_callback:
+  lua_call(L, ret_n, 0);
+  DNSR__DISPOSE
+}
+
+#define DNSR__RESOLVE_HELPER(type, callback) \
+  DNSR__SETUP                                                   \
+  const char *domain = luaL_checkstring(L, 1);                  \
+  DNSR__SET_CB(2)                                               \
+  ares_channel channel = lev_get_ares_channel(L);               \
+  ares_query(channel, domain, ns_c_in, type, callback, holder); \
+  DNSR__TEARDOWN
+
+static int dns_resolve_mx(lua_State* L) {
+  DNSR__RESOLVE_HELPER(ns_t_mx, on_resolve_mx)
+}
+
+
+static void on_resolve_txt(void *arg, int status, int timeouts,
+    unsigned char *abuf, int alen) {
+  UNWRAP((dns_req_holder_t *)arg);
+  int ret_n;
+
+  push_callback_no_obj(L, holder, DNSR__CBNAME);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  }
+
+  struct ares_txt_reply *txt_start;
+  status = ares_parse_txt_reply(abuf, alen, &txt_start);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  } 
+
+  ret_n = 2;
+  lua_pushnil(L);
+  lua_newtable(L);
+  int i = 1;
+  struct ares_txt_reply *txt_cur;
+  for (txt_cur = txt_start; txt_cur; txt_cur = txt_cur->next, i++) {
+    lua_pushstring(L, (const char *)txt_cur->txt);
+    lua_rawseti(L, -2, i);
+  }
+  ares_free_data(txt_start);
+
+run_callback:
+  lua_call(L, ret_n, 0);
+  DNSR__DISPOSE
+}
+
+static int dns_resolve_txt(lua_State* L) {
+  DNSR__RESOLVE_HELPER(ns_t_txt, on_resolve_txt)
+}
+
+
+static void on_resolve_ns(void *arg, int status, int timeouts,
+    unsigned char *abuf, int alen) {
+  UNWRAP((dns_req_holder_t *)arg);
+  int ret_n;
+
+  push_callback_no_obj(L, holder, DNSR__CBNAME);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  }
+
+  struct hostent *host;
+  status = ares_parse_ns_reply(abuf, alen, &host);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  } 
+
+  ret_n = 2;
+  lua_pushnil(L);
+  push_host_aliases(L, host);
+  ares_free_hostent(host);
+
+run_callback:
+  lua_call(L, ret_n, 0);
+  DNSR__DISPOSE
+}
+
+static int dns_resolve_ns(lua_State* L) {
+  DNSR__RESOLVE_HELPER(ns_t_ns, on_resolve_ns)
+}
+
+
+static void on_resolve_srv(void *arg, int status, int timeouts,
+    unsigned char *abuf, int alen) {
+  UNWRAP((dns_req_holder_t *)arg);
+  int ret_n;
+
+  push_callback_no_obj(L, holder, DNSR__CBNAME);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  }
+
+  struct ares_srv_reply *srv_start;
+  status = ares_parse_srv_reply(abuf, alen, &srv_start);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  } 
+
+  ret_n = 2;
+  lua_pushnil(L);
+  lua_newtable(L);
+  int i;
+  struct ares_srv_reply *srv_cur;
+  for (srv_cur = srv_start, i = 1; srv_cur; srv_cur = srv_cur->next, i++) {
+    lua_createtable(L, 0, 4);
+    LEV_SET_FIELD(name, string, srv_cur->host);
+    LEV_SET_FIELD(port, number, srv_cur->port);
+    LEV_SET_FIELD(priority, number, srv_cur->priority);
+    LEV_SET_FIELD(weight, number, srv_cur->weight);
+    lua_rawseti(L, -2, i);
+  }
+  ares_free_data(srv_start);
+
+run_callback:
+  lua_call(L, ret_n, 0);
+  DNSR__DISPOSE
+}
+
+static int dns_resolve_srv(lua_State* L) {
+  DNSR__RESOLVE_HELPER(ns_t_srv, on_resolve_srv)
+}
+
+
+static void on_resolve_cname(void *arg, int status, int timeouts,
+    unsigned char *abuf, int alen) {
+  UNWRAP((dns_req_holder_t *)arg);
+  int ret_n;
+
+  push_callback_no_obj(L, holder, DNSR__CBNAME);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  }
+
+  struct hostent *host;
+  status = ares_parse_a_reply(abuf, alen, &host, NULL, NULL);
+  if (status != ARES_SUCCESS) {
+    ret_n = 1;
+    lua_pushstring(L, to_ares_errname(status));
+    goto run_callback;
+  } 
+
+  ret_n = 2;
+  lua_pushnil(L);
+
+  /* A cname lookup always returns a single record but we follow the
+     common API here. */
+  lua_createtable(L, 1, 0);
+  lua_pushstring(L, host->h_name);
+  lua_rawseti(L, -2, 1);
+  ares_free_hostent(host);
+
+run_callback:
+  lua_call(L, ret_n, 0);
+  DNSR__DISPOSE
+}
+
+static int dns_resolve_cname(lua_State* L) {
+  DNSR__RESOLVE_HELPER(ns_t_cname, on_resolve_cname)
+}
+
 static luaL_reg functions[] = {
-   { "resolve4",   dns_resolve4    }
-  ,{ "resolve6",   dns_resolve6    }
-  ,{ "reverse",    dns_reverse     }
+   { "resolve4",     dns_resolve4      }
+  ,{ "resolve6",     dns_resolve6      }
+  ,{ "resolveCname", dns_resolve_cname }
+  ,{ "resolveMx",    dns_resolve_mx    }
+  ,{ "resolveNs",    dns_resolve_ns    }
+  ,{ "resolveSrv",   dns_resolve_srv   }
+  ,{ "resolveTxt",   dns_resolve_txt   }
+  ,{ "reverse",      dns_reverse       }
   ,{ NULL, NULL }
 };
 
