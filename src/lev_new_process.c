@@ -78,17 +78,11 @@ static int process_cwd(lua_State* L) {
 }
 
 static int process_chdir(lua_State *L) {
-  int argc = lua_gettop(L);
-  if (argc < 1 || lua_type(L, -1) != LUA_TSTRING) {
-    return luaL_error(L, "process.chdir: invalid argument");
-  }
-
-  const char *path = lua_tostring(L, -1);
+  const char *path = luaL_checkstring(L, 1);
   uv_err_t err = uv_chdir(path);
   if (err.code != UV_OK) {
-    return luaL_error(L, "process.chdir: uv_chdir: %s", uv_strerror(err));
+    return luaL_error(L, uv_strerror(err));
   }
-
   return 0;
 }
 
@@ -97,7 +91,7 @@ static int process_execpath(lua_State *L) {
   char exec_path[2*PATH_MAX];
   if (uv_exepath(exec_path, &size)) {
     uv_err_t err = uv_last_error(lev_get_loop(L));
-    return luaL_error(L, "uv_exepath: %s", uv_strerror(err));
+    return luaL_error(L, uv_strerror(err));
   }
 
   lua_pushlstring(L, exec_path, size);
@@ -111,7 +105,7 @@ static int process_memory_usage(lua_State *L) {
   uv_err_t err = uv_resident_set_memory(&rss);
   if (err.code != UV_OK) {
     uv_err_t err = uv_last_error(lev_get_loop(L));
-    return luaL_error(L, "uv_resident_set_memory: %s", uv_strerror(err));
+    return luaL_error(L, uv_strerror(err));
   }
   lua_pushnumber(L, rss);
   lua_setfield(L, -2, "rss");
@@ -150,11 +144,7 @@ LEV_STD_ERRNAME_FUNC(lev_setenv_errname, LEV_SETENV_ERRNO_MAP, EUNDEF)
 static int process_getenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   char *value = getenv(name);
-  if (value) {
-    lua_pushstring(L, value);
-  } else {
-    lua_pushnil(L);
-  }
+  value ? lua_pushstring(L, value) : lua_pushnil(L);
   return 1;
 }
 
@@ -162,22 +152,14 @@ static int process_setenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   const char *value = luaL_checkstring(L, 2);
   int r = setenv(name, value, 1);
-  if (r) {
-    lua_pushstring(L, lev_setenv_errname(errno));
-  } else {
-    lua_pushnil(L);
-  }
+  r ? lua_pushstring(L, lev_setenv_errname(errno)) : lua_pushnil(L);
   return 1;
 }
 
 static int process_unsetenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   int r = unsetenv(name);
-  if (r) {
-    lua_pushstring(L, lev_setenv_errname(errno));
-  } else {
-    lua_pushnil(L);
-  }
+  r ? lua_pushstring(L, lev_setenv_errname(errno)) : lua_pushnil(L);
   return 1;
 }
 
@@ -236,7 +218,7 @@ static int process_title(lua_State *L) {
   char title[8192];
   uv_err_t err = uv_get_process_title(title, 8192);
   if (err.code) {
-    return luaL_error(L, "uv_get_process_title: %s: %s", uv_err_name(err), uv_strerror(err));
+    return luaL_error(L, uv_strerror(err));
   }
   lua_pushstring(L, title);
   return 1;

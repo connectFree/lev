@@ -352,7 +352,7 @@ static int core_execpath(lua_State* L) {
   char exec_path[2*PATH_MAX];
   if (uv_exepath(exec_path, &size)) {
     uv_err_t err = uv_last_error(lev_get_loop(L));
-    return luaL_error(L, "uv_exepath: %s", uv_strerror(err));
+    return luaL_error(L, uv_strerror(err));
   }
   lua_pushlstring(L, exec_path, size);
   return 1;
@@ -406,24 +406,24 @@ static int core_setuid(lua_State *L) {
     const char *name = lua_tostring(L, -1);
     int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
     if (bufsize == -1) {
-      return luaL_error(L, "lev.setuid: cannot get password entry buffer size");
+      return luaL_error(L, "cannot get password entry buffer size");
     }
 
     mb = lev_slab_getBlock(bufsize);
     lev_slab_incRef(mb);
     err = getpwnam_r(name, &pwd, (char *)mb->bytes, bufsize, &pwdp);
     if (err || pwdp == NULL) {
-      return luaL_error(L, "lev.setuid: user id \"%s\" does not exist", name);
+      return luaL_error(L, "user id \"%s\" does not exist", name);
     }
     uid = pwdp->pw_uid;
     lev_slab_decRef(mb);
   } else {
-    return luaL_error(L, "lev.setuid: number or string expected");
+    return luaL_error(L, "number or string expected");
   }
 
   err = setuid(uid);
   if (err) {
-    return luaL_error(L, "lev.setuid: errno=%d", errno);
+    return luaL_error(L, "setuid error (%d)", errno);
   }
 
   return 0;
@@ -442,24 +442,24 @@ static int core_setgid(lua_State *L) {
     const char *name = lua_tostring(L, -1);
     int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
     if (bufsize == -1) {
-      return luaL_error(L, "lev.setgid: cannot get password entry buffer size");
+      return luaL_error(L, "cannot get password entry buffer size");
     }
 
     mb = lev_slab_getBlock(bufsize);
     lev_slab_incRef(mb);
     err = getgrnam_r(name, &grp, (char *)mb->bytes, bufsize, &grpp);
     if (err || grpp == NULL) {
-      return luaL_error(L, "lev.setgid: group id \"%s\" does not exist", name);
+      return luaL_error(L, "group id \"%s\" does not exist", name);
     }
     gid = grpp->gr_gid;
     lev_slab_decRef(mb);
   } else {
-    return luaL_error(L, "lev.setgid: number or string expected");
+    return luaL_error(L, "number or string expected");
   }
 
   err = setgid(gid);
   if (err) {
-    return luaL_error(L, "lev.setgid: errno=%d", errno);
+    return luaL_error(L, "setgid error (%d)", errno);
   }
 
   return 0;
@@ -475,9 +475,9 @@ static int core_umask(lua_State *L) {
   } else {
     int type = lua_type(L, -1);
     if (type != LUA_TNUMBER && type != LUA_TSTRING) {
-      return luaL_error(L, "lev.umask: number or string expected");
+      return luaL_error(L, "number or string expected");
     } else if (type == LUA_TSTRING && !lua_isnumber(L, -1)) {
-      return luaL_error(L, "lev.umask: invalid string value");
+      return luaL_error(L, "invalid string value");
     }
     old = lua_tonumber(L, -1);
     old = umask((int)old);
