@@ -63,6 +63,35 @@ static int process_new(lua_State* L) {
   return 1;
 }
 
+static int process_cwd(lua_State* L) {
+  size_t size = 2*PATH_MAX - 1;
+  char path[2*PATH_MAX];
+  uv_err_t err;
+
+  err = uv_cwd(path, size);
+  if (err.code != UV_OK) {
+    return luaL_error(L, "uv_cwd: %s", uv_strerror(err));
+  }
+
+  lua_pushstring(L, path);
+  return 1;
+}
+
+static int process_chdir(lua_State *L) {
+  int argc = lua_gettop(L);
+  if (argc < 1 || lua_type(L, -1) != LUA_TSTRING) {
+    return luaL_error(L, "process.chdir: invalid argument");
+  }
+
+  const char *path = lua_tostring(L, -1);
+  uv_err_t err = uv_chdir(path);
+  if (err.code != UV_OK) {
+    return luaL_error(L, "process.chdir: uv_chdir: %s", uv_strerror(err));
+  }
+
+  return 0;
+}
+
 static int process_execpath(lua_State *L) {
   size_t size = 2*PATH_MAX;
   char exec_path[2*PATH_MAX];
@@ -187,11 +216,13 @@ static luaL_reg functions[] = {
   ,{ "setenv", process_setenv }
   ,{ "unsetenv", process_unsetenv }
   ,{ "environ", process_environ }
+  ,{ "cwd", process_cwd }
+  ,{ "chdir", process_chdir }
   ,{ NULL, NULL }
 };
 
 
-#define PROPERTY_COUNT 3
+#define PROPERTY_COUNT 2
 
 #ifndef WIN32
 static int process_pid(lua_State *L) {
@@ -210,21 +241,6 @@ static int process_title(lua_State *L) {
   return 1;
 }
 
-static int process_cwd(lua_State* L) {
-  size_t size = 2*PATH_MAX - 1;
-  char path[2*PATH_MAX];
-  uv_err_t err;
-
-  err = uv_cwd(path, size);
-  if (err.code != UV_OK) {
-    return luaL_error(L, "uv_cwd: %s", uv_strerror(err));
-  }
-
-  lua_pushstring(L, path);
-  return 1;
-}
-
-
 void luaopen_lev_process(lua_State *L) {
   luaL_newmetatable(L, "lev.process");
   luaL_register(L, NULL, methods);
@@ -238,8 +254,6 @@ void luaopen_lev_process(lua_State *L) {
   lua_setfield(L, -2, "pid");
   process_title(L);
   lua_setfield(L, -2, "title");
-  process_cwd(L);
-  lua_setfield(L, -2, "cwd");
 
   lua_setfield(L, -2, "process");
 }

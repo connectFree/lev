@@ -83,10 +83,29 @@ exports['lev.process:\ttitle'] = function (test)
 end
 
 exports['lev.process:\tcwd'] = function (test)
-  local cwd = process.cwd
+  local cur = process.cwd()
 
-  test.is_string(cwd)
-  test.ok(#cwd > 0)
+  test.is_string(cur)
+  test.ok(#cur > 0)
+
+  test.done()
+end
+
+exports['lev.process:\tchdir'] = function (test)
+  local old = process.cwd()
+  local ret = process.chdir('../')
+  local new = process.cwd()
+  process.chdir(old)
+
+  test.is_nil(ret)
+  test.not_equal(new, old)
+
+  test.done()
+end
+
+exports['lev.process:\tchdir: spcify invalid path'] = function (test)
+  test.throws(process.chdir, 1)
+  test.throws(process.chdir, 'hoge')
 
   test.done()
 end
