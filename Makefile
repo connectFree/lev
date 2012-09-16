@@ -183,6 +183,20 @@ ${BUILDDIR}/%.o: src/%.c ${DEPS}
 		-DLEV_VERSION=\"${VERSION}\" \
 		-DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
 
+${BUILDDIR}/%.pre: src/%.c ${DEPS}
+	mkdir -p ${BUILDDIR}
+	$(CC) ${CPPFLAGS} ${CFLAGS} --std=c99 -D_GNU_SOURCE -g -Wall -Werror -E $< \
+		-I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api \
+		-I${YAJLDIR}/src -I${ZLIBDIR} -I${CRYPTODIR}/src \
+		-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+		-DUSE_SYSTEM_SSL=${USE_SYSTEM_SSL} \
+		-DHTTP_VERSION=\"${HTTP_VERSION}\" \
+		-DUV_VERSION=\"${UV_VERSION}\" \
+		-DYAJL_VERSIONISH=\"${YAJL_VERSION}\" \
+		-DLEV_VERSION=\"${VERSION}\" \
+		-DLUAJIT_VERSION=\"${LUAJIT_VERSION}\" \
+    > $@
+
 ${BUILDDIR}/liblev.a: ${CRYPTODIR}/Makefile ${LUVLIBS} ${DEPS}
 	$(AR) rvs ${BUILDDIR}/liblev.a ${LUVLIBS} ${DEPS}
 

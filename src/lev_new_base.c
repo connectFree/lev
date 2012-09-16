@@ -19,6 +19,8 @@
 #include <assert.h>
 #include "luv_debug.h"
 
+#include <errno.h>
+
 static char object_registry[0];
 static MemBlock *_static_mb = NULL;
 

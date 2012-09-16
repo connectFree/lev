@@ -165,6 +165,45 @@ static int process_getuid(lua_State* L) {
 }
 #endif
 
+#define LEV_SETENV_ERRNO_MAP(XX) \
+  XX(EINVAL) \
+  XX(ENOMEM)
+LEV_STD_ERRNAME_FUNC(lev_setenv_errname, LEV_SETENV_ERRNO_MAP, EUNDEF)
+
+static int process_getenv(lua_State* L) {
+  const char *name = luaL_checkstring(L, 1);
+  char *value = getenv(name);
+  if (value) {
+    lua_pushstring(L, value);
+  } else {
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
+static int process_setenv(lua_State* L) {
+  const char *name = luaL_checkstring(L, 1);
+  const char *value = luaL_checkstring(L, 2);
+  int r = setenv(name, value, 1);
+  if (r) {
+    lua_pushstring(L, lev_setenv_errname(errno));
+  } else {
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
+static int process_unsetenv(lua_State* L) {
+  const char *name = luaL_checkstring(L, 1);
+  int r = unsetenv(name);
+  if (r) {
+    lua_pushstring(L, lev_setenv_errname(errno));
+  } else {
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
   { NULL,         NULL            }
@@ -174,6 +213,9 @@ static luaL_reg methods[] = {
 static luaL_reg functions[] = {
    { "new", process_new }
   ,{ "cwd", process_cwd }
+  ,{ "getenv", process_getenv }
+  ,{ "setenv", process_setenv }
+  ,{ "unsetenv", process_unsetenv }
   ,{ "pid", process_pid }
 #ifndef WIN32
   ,{ "setgid", process_setgid }
