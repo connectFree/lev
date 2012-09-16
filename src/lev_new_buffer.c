@@ -76,6 +76,53 @@ static uint16_t __builtin_bswap16( uint16_t a ) {
 
 /******************************************************************************/
 
+/* Mac OS X < 10.7.x has no "memmem" */
+#if !((!defined(__GNUC__) || __GNUC__ >= 2) && !defined(__APPLE__))
+#undef memmem
+/* memmem implementation from fbsd */
+/* Copyright (c) 2005 Pascal Gloor <pascal.gloor@spale.com> */
+/* http://opensource.apple.com/source/Libc/Libc-763.12/string/memmem-fbsd.c */
+static void *my_memmem(l, l_len, s, s_len)
+  const void *l; size_t l_len;
+  const void *s; size_t s_len;
+{
+  register char *cur, *last;
+  const char *cl = (const char *)l;
+  const char *cs = (const char *)s;
+
+  /* we need something to compare */
+  if (l_len == 0 || s_len == 0) {
+    return NULL;
+  }
+
+  /* "s" must be smaller or equal to "l" */
+  if (l_len < s_len) {
+    return NULL;
+  }
+
+  /* special case where s_len == 1 */
+  if (s_len == 1) {
+    return memchr(l, (int)*cs, l_len);
+  }
+
+  /* the last position where its possible to find "s" in "l" */
+  last = (char *)cl + l_len - s_len;
+
+  for (cur = (char *)cl; cur <= last; cur++) {
+    if (cur[0] == cs[0] && memcmp(cur, cs, s_len) == 0) {
+      return cur;
+    }
+  }
+
+  return NULL;
+}
+
+#define memmem my_memmem
+
+#endif
+
+/******************************************************************************/
+
 #define lua_boxpointer(L, u)   (*(void **)(lua_newuserdata(L, sizeof(void *))) = (u))
 #define lua_unboxpointer(L, i)   (*(void **)(lua_touserdata(L, i)))
 #define lua_unboxpointerchk(L, i, tname)   (*(void **)(luaL_checkudata(L, i, tname)))
