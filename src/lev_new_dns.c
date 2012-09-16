@@ -549,9 +549,40 @@ static int dns_resolve_cname(lua_State* L) {
   DNSR__RESOLVE_HELPER(ns_t_cname, on_resolve_cname)
 }
 
+static int dns_resolve(lua_State* L) {
+  const char *rrtype;
+  if (lua_isstring(L, 2)) {
+    rrtype = luaL_optstring(L, 2, "A");
+  } else {
+    rrtype = "A";
+  }
+  lua_remove(L, 2);
+
+  if (!strcmp(rrtype, "A")) {
+    return dns_resolve4(L);
+  } else if (!strcmp(rrtype, "AAAA")) {
+    return dns_resolve6(L);
+  } else if (!strcmp(rrtype, "MX")) {
+    return dns_resolve_mx(L);
+  } else if (!strcmp(rrtype, "TXT")) {
+    return dns_resolve_txt(L);
+  } else if (!strcmp(rrtype, "SRV")) {
+    return dns_resolve_srv(L);
+  } else if (!strcmp(rrtype, "PTR")) {
+    return dns_reverse(L);
+  } else if (!strcmp(rrtype, "NS")) {
+    return dns_resolve_ns(L);
+  } else if (!strcmp(rrtype, "CNAME")) {
+    return dns_resolve_cname(L);
+  } else {
+    return luaL_error(L, "dns.resolve: invalid rrtype=%s", rrtype);
+  }
+}
+
 static luaL_reg functions[] = {
    { "lookup",       dns_lookup        }
   ,{ "lookupFamily", dns_lookup_family }
+  ,{ "resolve",      dns_resolve       }
   ,{ "resolve4",     dns_resolve4      }
   ,{ "resolve6",     dns_resolve6      }
   ,{ "resolveCname", dns_resolve_cname }

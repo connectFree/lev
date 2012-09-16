@@ -139,6 +139,146 @@ exports['dns_resolve_cname'] = function(test)
   test.is_nil(err)
 end
 
+exports['dns_generic_ipv4'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  dns.resolve('www.google.com', 'A', function(err, ips)
+    test.is_nil(err)
+    test.ok(#ips > 0)
+    for i = 1, #ips do
+      test.ok(net.isIPv4(ips[i]))
+    end
+    test.done()
+  end)
+end
+
+exports['dns_generic_resolve_ipv6'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  dns.resolve('ipv6.google.com', 'AAAA', function(err, ips)
+    test.is_nil(err)
+    test.ok(#ips > 0)
+    for i = 1, #ips do
+      test.ok(net.isIPv6(ips[i]))
+    end
+    test.done()
+  end)
+end
+
+exports['dns_generic_resolve_mx'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolve('gmail.com', 'MX', function(err, addresses)
+    test.is_nil(err)
+    test.ok(#addresses > 0)
+    for i = 1, #addresses do
+      local address = addresses[i]
+      test.equal(type(address), 'table')
+      test.equal(type(address.priority), 'number')
+      test.equal(type(address.exchange), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_geenric_resolve_txt'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolve('gmail.com', 'TXT', function(err, records)
+    test.is_nil(err)
+    test.ok(#records > 0)
+    for i = 1, #records do
+      local record = records[i]
+      test.equal(type(record), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_generic_resolve_srv'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolve('_jabber._tcp.google.com', 'SRV',
+      function(err, services)
+    test.is_nil(err)
+    test.ok(#services > 0)
+    for i = 1, #services do
+      local service = services[i]
+      test.equal(type(service), 'table')
+      test.equal(type(service.name), 'string')
+      test.equal(type(service.priority), 'number')
+      test.equal(type(service.port), 'number')
+      test.equal(type(service.weight), 'number')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_generic_resolve_ns'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolve('google.com', 'NS', function(err, addresses)
+    test.is_nil(err)
+    test.ok(#addresses > 0)
+    for i = 1, #addresses do
+      local address = addresses[i]
+      test.equal(type(address), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_generic_resolve_cname'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local err = dns.resolve('www.google.com', 'CNAME', function(err, names)
+    test.is_nil(err)
+    test.ok(#names > 0)
+    for i = 1, #names do
+      local address = names[i]
+      test.equal(type(address), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_generic_resolve_reverse_ipv4'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.resolve('8.8.8.8', 'PTR', function(err, domains)
+    test.is_nil(err)
+    test.ok(#domains > 0)
+    for i = 1, #domains do
+      test.equal(type(domains[i]), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_generic_resolve_reverse_ipv6'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.resolve('2001:4860:4860::8888', 'PTR', function(err, domains)
+    test.is_nil(err)
+    test.ok(#domains > 0)
+    for i = 1, #domains do
+      test.equal(type(domains[i]), 'string')
+    end
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
 exports['dns_reverse_ipv4'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
