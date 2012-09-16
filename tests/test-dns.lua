@@ -16,6 +16,8 @@ limitations under the License.
 
 --]]
 
+local process = lev.process
+
 local exports = {}
 
 exports['dns_resolve4'] = function(test)
@@ -44,11 +46,11 @@ exports['dns_resolve4_nonexist'] = function(test)
 end
 --]]
 
---[[ This test failed with 'ENODATA' on Travis
 exports['dns_resolve6'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
+  local process = lev.process
   dns.resolve6('ipv6.google.com', function(err, ips)
     test.is_nil(err)
     test.ok(#ips > 0)
@@ -58,7 +60,6 @@ exports['dns_resolve6'] = function(test)
     test.done()
   end)
 end
---]]
 
 exports['dns_resolve_mx'] = function(test)
   local lev = require('lev')
@@ -126,19 +127,23 @@ exports['dns_resolve_ns'] = function(test)
   test.is_nil(err)
 end
 
-exports['dns_resolve_cname'] = function(test)
-  local lev = require('lev')
-  local dns = lev.dns
-  local err = dns.resolveCname('www.google.com', function(err, names)
+if process.getenv('TRAVIS') then
+  print("SKIP dns_resolve_cname on TRAVIS")
+else
+  exports['dns_resolve_cname'] = function(test)
+    local lev = require('lev')
+    local dns = lev.dns
+    local err = dns.resolveCname('www.google.com', function(err, names)
+      test.is_nil(err)
+      test.ok(#names > 0)
+      for i = 1, #names do
+        local address = names[i]
+        test.equal(type(address), 'string')
+      end
+      test.done()
+    end)
     test.is_nil(err)
-    test.ok(#names > 0)
-    for i = 1, #names do
-      local address = names[i]
-      test.equal(type(address), 'string')
-    end
-    test.done()
-  end)
-  test.is_nil(err)
+  end
 end
 
 exports['dns_generic_ipv4'] = function(test)
@@ -186,7 +191,7 @@ exports['dns_generic_resolve_mx'] = function(test)
   test.is_nil(err)
 end
 
-exports['dns_geenric_resolve_txt'] = function(test)
+exports['dns_generic_resolve_txt'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolve('gmail.com', 'TXT', function(err, records)
@@ -236,19 +241,24 @@ exports['dns_generic_resolve_ns'] = function(test)
   test.is_nil(err)
 end
 
-exports['dns_generic_resolve_cname'] = function(test)
-  local lev = require('lev')
-  local dns = lev.dns
-  local err = dns.resolve('www.google.com', 'CNAME', function(err, names)
+if process.getenv('TRAVIS') then
+  print("SKIP dns_generic_resolve_cname on TRAVIS")
+else
+  -- NOTE: This test sometimes fails on Ubunt 12.04.
+  exports['dns_generic_resolve_cname'] = function(test)
+    local lev = require('lev')
+    local dns = lev.dns
+    local err = dns.resolve('www.google.com', 'CNAME', function(err, names)
+      test.is_nil(err)
+      test.ok(#names > 0)
+      for i = 1, #names do
+        local address = names[i]
+        test.equal(type(address), 'string')
+      end
+      test.done()
+    end)
     test.is_nil(err)
-    test.ok(#names > 0)
-    for i = 1, #names do
-      local address = names[i]
-      test.equal(type(address), 'string')
-    end
-    test.done()
-  end)
-  test.is_nil(err)
+  end
 end
 
 exports['dns_generic_resolve_reverse_ipv4'] = function(test)
