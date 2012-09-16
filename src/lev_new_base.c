@@ -254,6 +254,21 @@ const char *lev_uv_errname(uv_err_code errcode) {
   }
 }
 
+#ifdef __APPLE__
+#include <crt_externs.h>
+/**
+ * If compiled as a shared library, you do not have access to the environ symbol,
+ * See man (7) environ for the fun details.
+ */
+char **lev_os_environ() { return *_NSGetEnviron(); }
+
+#else
+
+extern char **environ;
+
+char **lev_os_environ() { return environ; }
+#endif
+
 #ifdef WIN32
 __declspec(dllexport)
 #endif

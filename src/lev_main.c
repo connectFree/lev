@@ -658,7 +658,6 @@ void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
     }
 }
 
-
 void spawn_helper(const char*pipe_fn
                   ,lev_worker* lworker
                   ,int script_loc
@@ -668,7 +667,6 @@ void spawn_helper(const char*pipe_fn
   uv_process_options_t options;
   size_t exepath_size;
   char exepath[1024];
-  char env_temp[1024];
   char* args[256]; /* we shouldn't need more than 256 args */
   int n;
   int r;
@@ -700,12 +698,21 @@ void spawn_helper(const char*pipe_fn
   options.exit_cb = worker__on_exit;
   options.args = args;
 
-  char *worker_env[3];
+  char **environ = lev_os_environ();
+  char env_temp[1024];
+  int env_cnt = 0;
+  char **entry;
+  for (entry = environ; *entry; entry++, env_cnt++);
+  char *worker_env[2 + env_cnt + 1];
+  n = 0;
   sprintf(env_temp, "LEV_WORKER_ID=%s", lworker->uuid);
-  worker_env[0] = strdup(env_temp);
+  worker_env[n++] = strdup(env_temp);
   sprintf(env_temp, "LEV_IPC_FILENAME=%s", pipe_fn);
-  worker_env[1] = strdup(env_temp);
-  worker_env[2] = NULL; /* terminate */
+  worker_env[n++] = strdup(env_temp);
+  for (entry = environ; *entry; entry++) {
+    worker_env[n++] = *entry;
+  }
+  worker_env[n] = NULL;
   options.env = worker_env; 
 
   options.stdio = stdio;
