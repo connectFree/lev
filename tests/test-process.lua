@@ -110,5 +110,52 @@ exports['lev.process:\tchdir: spcify invalid path'] = function (test)
   test.done()
 end
 
+exports['lev.process:\tgetenv'] = function (test)
+  process.setenv('FOO', 'BAR')
+  local val = process.getenv('FOO')
+
+  test.equal('BAR', val)
+
+  test.done()
+end
+
+exports['lev.process:\tsetenv'] = function (test)
+  local err = process.setenv('BAZ', 'FOO')
+  local val = process.getenv('BAZ')
+
+  test.is_nil(err)
+  test.equal('FOO', val)
+
+  test.done()
+end
+
+exports['lev.process:\tsetenv: specify invalid name'] = function (test)
+  test.throws(process.setenv, {}, 'FOO')
+
+  test.done()
+end
+
+exports['lev.process:\tsetenv: specify invalid value'] = function (test)
+  test.throws(process.setenv, "FOO", {})
+
+  test.done()
+end
+
+exports['lev.process:\tunsetenv'] = function (test)
+  local err = process.unsetenv('FOO')
+
+  test.is_nil(err)
+  test.is_nil(process.getenv('FOO'))
+
+  test.done()
+end
+
+exports['lev.process:\t unsetenv: specify invalid name'] = function (test)
+  test.throws(process.unsetenv, {})
+
+  test.done()
+end
+
+
 return exports
 

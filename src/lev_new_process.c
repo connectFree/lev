@@ -147,7 +147,7 @@ static int process_memory_usage(lua_State *L) {
   XX(ENOMEM)
 LEV_STD_ERRNAME_FUNC(lev_setenv_errname, LEV_SETENV_ERRNO_MAP, EUNDEF)
 
-static int process_getenv(lua_State* L) {
+static int process_getenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   char *value = getenv(name);
   if (value) {
@@ -158,7 +158,7 @@ static int process_getenv(lua_State* L) {
   return 1;
 }
 
-static int process_setenv(lua_State* L) {
+static int process_setenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   const char *value = luaL_checkstring(L, 2);
   int r = setenv(name, value, 1);
@@ -170,7 +170,7 @@ static int process_setenv(lua_State* L) {
   return 1;
 }
 
-static int process_unsetenv(lua_State* L) {
+static int process_unsetenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   int r = unsetenv(name);
   if (r) {
@@ -181,7 +181,7 @@ static int process_unsetenv(lua_State* L) {
   return 1;
 }
 
-static int process_environ_iter(lua_State* L) {
+static int process_environ_iter(lua_State *L) {
   char ***env_ptr = (char ***)lua_touserdata(L, lua_upvalueindex(1));
   char **env = *env_ptr;
   if (*env) {
@@ -195,12 +195,13 @@ static int process_environ_iter(lua_State* L) {
   }
 }
 
-static int process_environ(lua_State* L) {
+static int process_environ(lua_State *L) {
   char ***env_ptr = (char ***)lua_newuserdata(L, sizeof(char **));
   *env_ptr = lev_os_environ();
   lua_pushcclosure(L, process_environ_iter, 1);
   return 1;
 }
+
 
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
