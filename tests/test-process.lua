@@ -82,6 +82,14 @@ exports['lev.process:\ttitle'] = function (test)
   test.done()
 end
 
+exports['lev.process:\tcwd'] = function (test)
+  local cwd = process.cwd
+
+  test.is_string(cwd)
+  test.ok(#cwd > 0)
+
+  test.done()
+end
 
 return exports
 

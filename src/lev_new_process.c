@@ -63,19 +63,6 @@ static int process_new(lua_State* L) {
   return 1;
 }
 
-static int process_cwd(lua_State* L) {
-  size_t size = 2*PATH_MAX-1;
-  char path[2*PATH_MAX];
-  uv_err_t err;
-
-  err = uv_cwd(path, size);
-  if (err.code != UV_OK) {
-    return luaL_error(L, "uv_cwd: %s", uv_strerror(err));
-  }
-  lua_pushstring(L, path);
-  return 1;
-}
-
 static int process_execpath(lua_State *L) {
   size_t size = 2*PATH_MAX;
   char exec_path[2*PATH_MAX];
@@ -196,7 +183,6 @@ static luaL_reg functions[] = {
    { "new", process_new }
   ,{ "execpath", process_execpath }
   ,{ "memory_usage", process_memory_usage }
-  ,{ "cwd", process_cwd }
   ,{ "getenv", process_getenv }
   ,{ "setenv", process_setenv }
   ,{ "unsetenv", process_unsetenv }
@@ -205,7 +191,7 @@ static luaL_reg functions[] = {
 };
 
 
-#define PROPERTY_COUNT 2
+#define PROPERTY_COUNT 3
 
 #ifndef WIN32
 static int process_pid(lua_State *L) {
@@ -224,6 +210,20 @@ static int process_title(lua_State *L) {
   return 1;
 }
 
+static int process_cwd(lua_State* L) {
+  size_t size = 2*PATH_MAX - 1;
+  char path[2*PATH_MAX];
+  uv_err_t err;
+
+  err = uv_cwd(path, size);
+  if (err.code != UV_OK) {
+    return luaL_error(L, "uv_cwd: %s", uv_strerror(err));
+  }
+
+  lua_pushstring(L, path);
+  return 1;
+}
+
 
 void luaopen_lev_process(lua_State *L) {
   luaL_newmetatable(L, "lev.process");
@@ -238,6 +238,8 @@ void luaopen_lev_process(lua_State *L) {
   lua_setfield(L, -2, "pid");
   process_title(L);
   lua_setfield(L, -2, "title");
+  process_cwd(L);
+  lua_setfield(L, -2, "cwd");
 
   lua_setfield(L, -2, "process");
 }
