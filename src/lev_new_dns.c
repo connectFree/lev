@@ -40,7 +40,12 @@
 typedef struct dns_req_holder_s {
   LEVBASE_REF_FIELDS
   lua_State *L;
+  uv_getaddrinfo_t handle;
 } dns_req_holder_t;
+
+#define UNWRAP_BY_HANDLE(h) \
+  dns_req_holder_t *holder = container_of((h), dns_req_holder_t, handle); \
+  lua_State* L = holder->L;
 
 #define UNWRAP(h) \
   dns_req_holder_t *holder = (dns_req_holder_t *)(h); \
@@ -98,7 +103,7 @@ typedef struct dns_req_holder_s {
 #define LEV_ARES_ERR_CASE_GEN(val, name) \
   case val: return #name;
 
-static const char *to_ares_errname(int errcode) {
+static const char *lev_ares_errname(int errcode) {
   switch (errcode) {
   LEV_ARES_ERRNO_MAP(LEV_ARES_ERR_CASE_GEN)
   default: return "UNKNOWN";
@@ -113,7 +118,7 @@ static void on_resolve4(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
   } else {
     char **p;
     int i;
@@ -149,7 +154,7 @@ static void on_resolve6(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
   } else {
     char **p;
     int i;
@@ -177,30 +182,68 @@ static int dns_resolve6(lua_State* L) {
   DNSR__TEARDOWN
 }
 
-static int to_lev_addr_type(int c_type) {
-  assert(c_type == AF_INET || c_type == AF_INET6);
-  return (c_type) == AF_INET ? 4 : 6;
-}
+#define LEV_INET 4
+#define LEV_INET6 6
 
-static void on_lookup_family(void *arg, int status, int timeouts,
-    struct hostent *host) {
-  UNWRAP((dns_req_holder_t *)arg);
+static void on_lookup_family(uv_getaddrinfo_t *handle, int status,
+    struct addrinfo *res) {
+  UNWRAP_BY_HANDLE(handle);
   int ret_n;
 
   push_callback_no_obj(L, holder, DNSR__CBNAME);
-  if (status != ARES_SUCCESS) {
+  if (status) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
-  } else {
-    char addr_buf[sizeof("0000:0000:0000:0000:0000:0000:0000:0001")];
-    ret_n = 3;
-    lua_pushnil(L);
-    inet_ntop(host->h_addrtype, host->h_addr_list, addr_buf, sizeof(addr_buf));
-    lua_pushstring(L, addr_buf);
-    lua_pushnumber(L, to_lev_addr_type(host->h_addrtype));
+    lua_pushstring(L, lev_uv_errname(status));
+    goto run_callback;
   }
-  lua_call(L, ret_n, 0);
 
+  ret_n = 3;
+  lua_pushnil(L);
+
+  struct addrinfo *address;
+  char ip[INET6_ADDRSTRLEN];
+  int found = 0;
+
+  /* Get the first IPv4 address. */
+  for (address = res; address; address = address->ai_next) {
+    assert(address->ai_socktype == SOCK_STREAM);
+    if (address->ai_family != AF_INET)
+      continue;
+    const char *addr = (const char *)
+        &((struct sockaddr_in *)address->ai_addr)->sin_addr;
+    const char *dst = inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+    if (!dst)
+      continue;
+    lua_pushstring(L, ip);
+    lua_pushnumber(L, LEV_INET);
+    found = 1;
+    break;
+  }
+
+  if (!found) {
+    /* Get the first IPv6 address. */
+    for (address = res; address; address = address->ai_next) {
+      assert(address->ai_socktype == SOCK_STREAM);
+      if (address->ai_family != AF_INET6)
+        continue;
+      const char *addr = (const char *)
+          &((struct sockaddr_in6 *)address->ai_addr)->sin6_addr;
+      const char *dst = inet_ntop(address->ai_family, addr, ip,
+                                  INET6_ADDRSTRLEN);
+      if (!dst)
+        continue;
+      lua_pushstring(L, ip);
+      lua_pushnumber(L, LEV_INET6);
+      found = 1;
+      break;
+    }
+  }
+
+  assert(found == 1);
+  uv_freeaddrinfo(res);
+
+run_callback:
+  lua_call(L, ret_n, 0);
   DNSR__DISPOSE
 }
 
@@ -218,23 +261,27 @@ static int dns_lookup_family(lua_State* L) {
   }
   DNSR__SET_CB(3)
 
-  assert(sizeof(struct in6_addr) >= sizeof(struct in_addr));
-  char addr_buf[sizeof(struct in6_addr)];
-  int addr_len;
-  ares_channel channel = lev_get_ares_channel(L);
-  if (inet_pton(AF_INET, domain, &addr_buf) == 1) {
-    addr_len = sizeof(struct in_addr);
-    ares_gethostbyaddr(channel, addr_buf, addr_len, family, on_lookup_family,
-      holder);
-  } else if (inet_pton(AF_INET6, domain, &addr_buf) == 1) {
-    addr_len = sizeof(struct in6_addr);
-    ares_gethostbyaddr(channel, addr_buf, addr_len, family, on_lookup_family,
-      holder);
-  } else {
-    ares_gethostbyname(channel, domain, family, on_lookup_family, holder);
+  struct addrinfo hints;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = family;
+  hints.ai_socktype = SOCK_STREAM;
+  uv_loop_t *loop = lev_get_loop(L);
+  int r = uv_getaddrinfo(loop, &holder->handle, on_lookup_family,
+                         domain, NULL, &hints);
+  if (r) {
+    /* NOTE: remove "object" */
+    lua_remove(L, 1);
+    lev_push_uv_errname(L, LEV_UV_ERRCODE_IN_LOOP(L));
+    return 1;
   }
 
   DNSR__TEARDOWN
+}
+
+static int dns_lookup(lua_State* L) {
+  lua_pushnil(L);
+  lua_insert(L, -2);
+  return dns_lookup_family(L);
 }
 
 
@@ -255,7 +302,7 @@ static void on_reverse(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
   } else {
     ret_n = 2;
     lua_pushnil(L);
@@ -299,7 +346,7 @@ static void on_resolve_mx(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   }
 
@@ -307,7 +354,7 @@ static void on_resolve_mx(void *arg, int status, int timeouts,
   status = ares_parse_mx_reply(abuf, alen, &mx_start);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   } 
 
@@ -350,7 +397,7 @@ static void on_resolve_txt(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   }
 
@@ -358,7 +405,7 @@ static void on_resolve_txt(void *arg, int status, int timeouts,
   status = ares_parse_txt_reply(abuf, alen, &txt_start);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   } 
 
@@ -391,7 +438,7 @@ static void on_resolve_ns(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   }
 
@@ -399,7 +446,7 @@ static void on_resolve_ns(void *arg, int status, int timeouts,
   status = ares_parse_ns_reply(abuf, alen, &host);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   } 
 
@@ -426,7 +473,7 @@ static void on_resolve_srv(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   }
 
@@ -434,7 +481,7 @@ static void on_resolve_srv(void *arg, int status, int timeouts,
   status = ares_parse_srv_reply(abuf, alen, &srv_start);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   } 
 
@@ -471,7 +518,7 @@ static void on_resolve_cname(void *arg, int status, int timeouts,
   push_callback_no_obj(L, holder, DNSR__CBNAME);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   }
 
@@ -479,7 +526,7 @@ static void on_resolve_cname(void *arg, int status, int timeouts,
   status = ares_parse_a_reply(abuf, alen, &host, NULL, NULL);
   if (status != ARES_SUCCESS) {
     ret_n = 1;
-    lua_pushstring(L, to_ares_errname(status));
+    lua_pushstring(L, lev_ares_errname(status));
     goto run_callback;
   } 
 
@@ -503,7 +550,8 @@ static int dns_resolve_cname(lua_State* L) {
 }
 
 static luaL_reg functions[] = {
-   { "lookupFamily", dns_lookup_family }
+   { "lookup",       dns_lookup        }
+  ,{ "lookupFamily", dns_lookup_family }
   ,{ "resolve4",     dns_resolve4      }
   ,{ "resolve6",     dns_resolve6      }
   ,{ "resolveCname", dns_resolve_cname }

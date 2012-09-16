@@ -184,11 +184,62 @@ exports['dns_lookup_ipv4_implicit'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
-  local err = dns.lookupFamily('www.google.com', 4, function(err, ip, family)
+  local err = dns.lookup('www.google.com', function(err, ip, family)
     test.is_nil(err)
-p(ip)
     test.ok(net.isIPv4(ip))
     test.equal(family, 4)
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_lookup_ipv6_implicit'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.lookup('ipv6.google.com', function(err, ip, family)
+    test.is_nil(err)
+    test.ok(net.isIPv6(ip))
+    test.equal(family, 6)
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+--[[ TODO: fix callback never called
+exports['dns_lookup_nonexist'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.lookupFamily('does.not.exist', 4, function(err, ip, family)
+    test.equal(err, 'ENOTFOUND')
+    test.done()
+  end)
+  test.is_nil(err)
+end
+--]]
+
+exports['dns_lookup_ipv4_explicit'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.lookupFamily('www.google.com', 4, function(err, ip, family)
+    test.is_nil(err)
+    test.ok(net.isIPv4(ip))
+    test.equal(family, 4)
+    test.done()
+  end)
+  test.is_nil(err)
+end
+
+exports['dns_lookup_ipv6_explicit'] = function(test)
+  local lev = require('lev')
+  local dns = lev.dns
+  local net = lev.net
+  local err = dns.lookupFamily('ipv6.google.com', 6, function(err, ip, family)
+    test.is_nil(err)
+    test.ok(net.isIPv6(ip))
+    test.equal(family, 6)
     test.done()
   end)
   test.is_nil(err)
@@ -200,7 +251,6 @@ exports['dns_lookup_ip_ipv4'] = function(test)
   local net = lev.net
   local err = dns.lookupFamily('127.0.0.1', 4, function(err, ip, family)
     test.is_nil(err)
-p(ip)
     test.equal(ip, '127.0.0.1')
     test.ok(net.isIPv4(ip))
     test.equal(family, 4)
@@ -215,7 +265,6 @@ exports['dns_lookup_ip_ipv6'] = function(test)
   local net = lev.net
   local err = dns.lookupFamily('::1', 6, function(err, ip, family)
     test.is_nil(err)
-p(ip)
     test.ok(net.isIPv6(ip))
     test.equal(family, 6)
     test.done()
