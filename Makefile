@@ -94,8 +94,7 @@ else
 CPPFLAGS += -I${SSLDIR}/openssl-configs/ia32
 endif
 
-LEVLIBS=${BUILDDIR}/utils.o            \
-				${BUILDDIR}/lev_mpack.o        \
+LEVLIBS=${BUILDDIR}/lev_mpack.o        \
         ${BUILDDIR}/lev_new_fs.o       \
         ${BUILDDIR}/lev_new_net.o      \
         ${BUILDDIR}/lev_new_tcp.o      \
