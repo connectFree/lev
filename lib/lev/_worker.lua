@@ -18,11 +18,11 @@ limitations under the License.
 
 -- Bootstrap require system
 local lev = require('lev')
-local env = require('env')
 local utils = require('utils')
 local table = require('table')
-local pipe = require('lev').pipe
-local mp = require('lev').mpack
+local pipe = lev.pipe
+local mp = lev.mpack
+local process = lev.process
 
 local ipc_channel = false
 local ipc_connected = false
@@ -78,7 +78,7 @@ end --ipc__on_read
 local ipc_connect = function()
   if ipc_channel then return end
   ipc_channel = pipe.new(1)
-  ipc_channel:connect( env.get("LEV_IPC_FILENAME"), function(c, err)
+  ipc_channel:connect( process.getenv("LEV_IPC_FILENAME"), function(c, err)
     if err then
       return
     end
