@@ -42,7 +42,6 @@
 #include "utils.h"
 #include "luv_debug.h"
 #include "luv_portability.h"
-#include "lconstants.h"
 #include "lhttp_parser.h"
 #include "lenv.h"
 /* X:E lev */
@@ -584,9 +583,6 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
   /* Register env */
   lua_pushcfunction(L, luaopen_env);
   lua_setfield(L, -2, "env");
-  /* Register constants */
-  lua_pushcfunction(L, luaopen_constants);
-  lua_setfield(L, -2, "constants");
 
   /* We're done with preload, put it away */
   lua_pop(L, 1);
