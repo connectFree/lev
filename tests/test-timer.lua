@@ -80,7 +80,6 @@ end
 
 exports['lev.timer:\ttcp_timer_again_error'] = function(test)
   local lev = require('lev')
-  local constants = require('constants')
   local timer = lev.timer.new()
   local err = timer:again()
   test.equal(err, 'EINVAL')
