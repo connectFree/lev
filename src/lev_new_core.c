@@ -443,5 +443,6 @@ static luaL_reg functions[] = {
 
 
 void luaopen_lev_core(lua_State *L) {
+  cache_time_init();
   luaL_register(L, NULL, functions);
 }
