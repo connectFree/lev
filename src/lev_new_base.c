@@ -183,7 +183,7 @@ void* create_obj_init_ref(lua_State* L, size_t size, const char *class_name) {
   self->refCount = 0;
  
   /* if handle create in a coroutine, we need hold the coroutine */
-  mainthread = luv_get_main_thread(L);
+  mainthread = lev_get_main_thread(L);
   if (L != mainthread) { 
     lua_pushthread(L);
     self->threadref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -242,6 +242,15 @@ uv_loop_t* lev_get_loop(lua_State *L) {
   return loop;
 }
 
+
+lua_State* lev_get_main_thread(lua_State *L) {
+  lua_State *main_thread;
+  lua_getfield(L, LUA_REGISTRYINDEX, "main_thread");
+  main_thread = lua_tothread(L, -1);
+  lua_pop(L, 1);
+  return main_thread;
+}
+
 /*
  * ares utility functions.
  */
@@ -269,6 +278,24 @@ const char *lev_uv_errname(uv_err_code errcode) {
   switch (errcode) {
   UV_ERRNO_MAP(LEV_UV_ERR_CASE_GEN)
   default: return "UNKNOWN";
+  }
+}
+
+const char* lev_handle_type_to_string(uv_handle_type type) {
+  switch (type) {
+    case UV_TCP: return "TCP";
+    case UV_UDP: return "UDP";
+    case UV_NAMED_PIPE: return "NAMED_PIPE";
+    case UV_TTY: return "TTY";
+    case UV_FILE: return "FILE";
+    case UV_TIMER: return "TIMER";
+    case UV_PREPARE: return "PREPARE";
+    case UV_CHECK: return "CHECK";
+    case UV_IDLE: return "IDLE";
+    case UV_ASYNC: return "ASYNC";
+    case UV_PROCESS: return "PROCESS";
+    case UV_FS_EVENT: return "FS_EVENT";
+    default: return "UNKNOWN_HANDLE";
   }
 }
 

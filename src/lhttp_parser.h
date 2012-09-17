@@ -20,7 +20,6 @@
 
 #include "lua.h"
 #include "lauxlib.h"
-#include "utils.h"
 
 LUALIB_API int luaopen_http_parser (lua_State *L);
 

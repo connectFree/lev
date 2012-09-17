@@ -122,7 +122,7 @@ static void on_read2(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf,
       lua_pushnil(L);
     }
 
-    lua_pushstring(L, luv_handle_type_to_string( pending ));
+    lua_pushstring(L, lev_handle_type_to_string( pending ));
 
     lua_call(L, 5, 0);/*, -5*/
   }
