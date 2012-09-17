@@ -20,7 +20,7 @@ local process = lev.process
 
 local exports = {}
 
-exports['lev.dns\tresolve4'] = function(test)
+exports['lev.dns:\tresolve4'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -35,7 +35,7 @@ exports['lev.dns\tresolve4'] = function(test)
 end
 
 --[[ TODO: fix callback never called
-exports['dns_resolve4_nonexist'] = function(test)
+exports['lev.dns:\tresolve4_nonexist'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -46,7 +46,7 @@ exports['dns_resolve4_nonexist'] = function(test)
 end
 --]]
 
-exports['lev.dns\tresolve6'] = function(test)
+exports['lev.dns:\tresolve6'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -61,7 +61,7 @@ exports['lev.dns\tresolve6'] = function(test)
   end)
 end
 
-exports['lev.dns\tresolve_mx'] = function(test)
+exports['lev.dns:\tresolve_mx'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolveMx('gmail.com', function(err, addresses)
@@ -78,7 +78,7 @@ exports['lev.dns\tresolve_mx'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tresolve_txt'] = function(test)
+exports['lev.dns:\tresolve_txt'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolveTxt('gmail.com', function(err, records)
@@ -93,7 +93,7 @@ exports['lev.dns\tresolve_txt'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tresolve_srv'] = function(test)
+exports['lev.dns:\tresolve_srv'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolveSrv('_jabber._tcp.google.com', function(err, services)
@@ -112,7 +112,7 @@ exports['lev.dns\tresolve_srv'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tresolve_ns'] = function(test)
+exports['lev.dns:\tresolve_ns'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolveNs('google.com', function(err, addresses)
@@ -128,9 +128,9 @@ exports['lev.dns\tresolve_ns'] = function(test)
 end
 
 if process.getenv('TRAVIS') then
-  print("SKIP dns_resolve_cname on TRAVIS")
+  print("SKIP lev.dns:\tresolve_cname on TRAVIS")
 else
-  exports['lev.dns\tresolve_cname'] = function(test)
+  exports['lev.dns:\tresolve_cname'] = function(test)
     local lev = require('lev')
     local dns = lev.dns
     local err = dns.resolveCname('www.google.com', function(err, names)
@@ -148,7 +148,7 @@ else
   end
 end
 
-exports['lev.dns\tgeneric_ipv4'] = function(test)
+exports['lev.dns:\tgeneric_ipv4'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -162,7 +162,7 @@ exports['lev.dns\tgeneric_ipv4'] = function(test)
   end)
 end
 
-exports['lev.dns\tgeneric_resolve_ipv6'] = function(test)
+exports['lev.dns:\tgeneric_resolve_ipv6'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -176,7 +176,7 @@ exports['lev.dns\tgeneric_resolve_ipv6'] = function(test)
   end)
 end
 
-exports['lev.dns\tgeneric_resolve_mx'] = function(test)
+exports['lev.dns:\tgeneric_resolve_mx'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolve('gmail.com', 'MX', function(err, addresses)
@@ -193,7 +193,7 @@ exports['lev.dns\tgeneric_resolve_mx'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tgeneric_resolve_txt'] = function(test)
+exports['lev.dns:\tgeneric_resolve_txt'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolve('gmail.com', 'TXT', function(err, records)
@@ -208,7 +208,7 @@ exports['lev.dns\tgeneric_resolve_txt'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tgeneric_resolve_srv'] = function(test)
+exports['lev.dns:\tgeneric_resolve_srv'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolve('_jabber._tcp.google.com', 'SRV',
@@ -228,7 +228,7 @@ exports['lev.dns\tgeneric_resolve_srv'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tgeneric_resolve_ns'] = function(test)
+exports['lev.dns:\tgeneric_resolve_ns'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local err = dns.resolve('google.com', 'NS', function(err, addresses)
@@ -244,10 +244,10 @@ exports['lev.dns\tgeneric_resolve_ns'] = function(test)
 end
 
 if process.getenv('TRAVIS') then
-  print("SKIP dns_generic_resolve_cname on TRAVIS")
+  print("SKIP lev.dns:\tgeneric_resolve_cname on TRAVIS")
 else
   -- NOTE: This test sometimes fails on Ubunt 12.04.
-  exports['lev.dns\tgeneric_resolve_cname'] = function(test)
+  exports['lev.dns:\tgeneric_resolve_cname'] = function(test)
     local lev = require('lev')
     local dns = lev.dns
     local err = dns.resolve('www.google.com', 'CNAME', function(err, names)
@@ -265,7 +265,7 @@ else
   end
 end
 
-exports['lev.dns\tgeneric_resolve_reverse_ipv4'] = function(test)
+exports['lev.dns:\tgeneric_resolve_reverse_ipv4'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -280,7 +280,7 @@ exports['lev.dns\tgeneric_resolve_reverse_ipv4'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tgeneric_resolve_reverse_ipv6'] = function(test)
+exports['lev.dns:\tgeneric_resolve_reverse_ipv6'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -295,7 +295,7 @@ exports['lev.dns\tgeneric_resolve_reverse_ipv6'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\treverse_ipv4'] = function(test)
+exports['lev.dns:\treverse_ipv4'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -310,7 +310,7 @@ exports['lev.dns\treverse_ipv4'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\treverse_ipv6'] = function(test)
+exports['lev.dns:\treverse_ipv6'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -325,7 +325,7 @@ exports['lev.dns\treverse_ipv6'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\treverse_bad_ip'] = function(test)
+exports['lev.dns:\treverse_bad_ip'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -336,7 +336,7 @@ exports['lev.dns\treverse_bad_ip'] = function(test)
   test.done()
 end
 
-exports['lev.dns\tlookup_ipv4_implicit'] = function(test)
+exports['lev.dns:\tlookup_ipv4_implicit'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -349,7 +349,7 @@ exports['lev.dns\tlookup_ipv4_implicit'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tlookup_ipv6_implicit'] = function(test)
+exports['lev.dns:\tlookup_ipv6_implicit'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -363,7 +363,7 @@ exports['lev.dns\tlookup_ipv6_implicit'] = function(test)
 end
 
 --[[ TODO: fix callback never called
-exports['dns_lookup_nonexist'] = function(test)
+exports['lev.dns:\tlookup_nonexist'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -375,7 +375,7 @@ exports['dns_lookup_nonexist'] = function(test)
 end
 --]]
 
-exports['lev.dns\tlookup_ipv4_explicit'] = function(test)
+exports['lev.dns:\tlookup_ipv4_explicit'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -388,7 +388,7 @@ exports['lev.dns\tlookup_ipv4_explicit'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tlookup_ipv6_explicit'] = function(test)
+exports['lev.dns:\tlookup_ipv6_explicit'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -401,7 +401,7 @@ exports['lev.dns\tlookup_ipv6_explicit'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tlookup_ip_ipv4'] = function(test)
+exports['lev.dns:\tlookup_ip_ipv4'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
@@ -415,7 +415,7 @@ exports['lev.dns\tlookup_ip_ipv4'] = function(test)
   test.is_nil(err)
 end
 
-exports['lev.dns\tlookup_ip_ipv6'] = function(test)
+exports['lev.dns:\tlev.lookup_ip_ipv6'] = function(test)
   local lev = require('lev')
   local dns = lev.dns
   local net = lev.net
