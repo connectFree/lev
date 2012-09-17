@@ -204,6 +204,27 @@ static int process_unsetenv(lua_State* L) {
   return 1;
 }
 
+static int process_environ_iter(lua_State* L) {
+  char ***env_ptr = (char ***)lua_touserdata(L, lua_upvalueindex(1));
+  char **env = *env_ptr;
+  if (*env) {
+    char *eq = strchr(*env, '=');
+    lua_pushlstring(L, *env, eq - *env);
+    lua_pushstring(L, eq + 1);
+    *env_ptr = ++env;
+    return 2;
+  } else {
+    return 0;
+  }
+}
+
+static int process_environ(lua_State* L) {
+  char ***env_ptr = (char ***)lua_newuserdata(L, sizeof(char **));
+  *env_ptr = lev_os_environ();
+  lua_pushcclosure(L, process_environ_iter, 1);
+  return 1;
+}
+
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
   { NULL,         NULL            }
@@ -216,6 +237,7 @@ static luaL_reg functions[] = {
   ,{ "getenv", process_getenv }
   ,{ "setenv", process_setenv }
   ,{ "unsetenv", process_unsetenv }
+  ,{ "environ", process_environ }
   ,{ "pid", process_pid }
 #ifndef WIN32
   ,{ "setgid", process_setgid }
