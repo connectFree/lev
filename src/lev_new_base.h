@@ -90,6 +90,19 @@ const char *lev_uv_errname(uv_err_code errcode);
 
 #define LEV_UV_ERRCODE_IN_LOOP(L) uv_last_error(lev_get_loop(L)).code
 
+/* NOTE: We cannot define the single function for converting all errno codes
+   to error names because some of error codes collides each other, for example,
+   EAGAIN and EWOULDBLOCK, ENOTSUP and EOPNOTSUPP. */
+#define LEV_STD_ERRNAME_GEN(name) \
+  case name: return #name;
+#define LEV_STD_ERRNAME_FUNC(name, map_macro, def_name) \
+  static const char *name(int errcode) { \
+    switch (errcode) { \
+    map_macro(LEV_STD_ERRNAME_GEN) \
+    default: return #def_name; \
+    } \
+  }
+
 /* request helper macros */
 #define LEV_IS_ASYNC_REQ(req) ((req)->cb)
 #define LEV_UV_ERRCODE_FROM_REQ(req) \
