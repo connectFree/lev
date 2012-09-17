@@ -31,8 +31,6 @@
   
 */
 
-static MemBlock *_static_mb = NULL;
-
 #define UNWRAP(h) \
   udp_obj* self = container_of((h), udp_obj, handle); \
   lua_State* L = self->handle.loop->data;
@@ -152,30 +150,6 @@ static int udp_send(lua_State* L) {
   return 1;
 }
 
-/* TODO: Fix code duplication copied from lev_new_tcp.c */
-static uv_buf_t on_alloc(uv_handle_t* handle, size_t suggested_size) {
-  uv_buf_t buf;
-  size_t remaining;
-
-  if (!_static_mb) {
-    _static_mb = lev_slab_getBlock( suggested_size );
-    lev_slab_incRef( _static_mb );
-  }
-
-  remaining = _static_mb->size - _static_mb->nbytes;
-  if (_static_mb->size - _static_mb->nbytes < 512) {
-    lev_slab_decRef( _static_mb );
-    _static_mb = lev_slab_getBlock( suggested_size );
-    lev_slab_incRef( _static_mb );
-    remaining = _static_mb->size - _static_mb->nbytes;
-  }
-
-  buf.base = (char *)(_static_mb->bytes + _static_mb->nbytes);
-  buf.len = remaining;
-
-  return buf;
-}
-
 static void udp_after_close(uv_handle_t* handle) {
   UNWRAP(handle);
   if (push_callback(L, self, "on_close")) {
@@ -233,14 +207,7 @@ static void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t buf,
   push_sockaddr(L, addr);
   lua_pushinteger(L, nread);
 
-  /* push new cBuffer */
-  lev_pushbuffer_from_mb(
-       L
-      ,_static_mb
-      ,nread
-      ,_static_mb->bytes + _static_mb->nbytes
-    ); /* automatically incRef's mb */
-  _static_mb->nbytes += nread; /* consume nread bytes */
+  lev_pushbuffer_from_static_mb(L, nread);
 
   lua_call(L, 6, 0);
 }
