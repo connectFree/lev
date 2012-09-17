@@ -20,6 +20,41 @@
 #include "luv_debug.h"
 
 static char object_registry[0];
+static MemBlock *_static_mb = NULL;
+
+uv_buf_t on_alloc(uv_handle_t* handle, size_t suggested_size) {
+  uv_buf_t buf;
+  size_t remaining;
+
+  if (!_static_mb) {
+    _static_mb = lev_slab_getBlock( suggested_size );
+    lev_slab_incRef( _static_mb );
+  }
+
+  remaining = _static_mb->size - _static_mb->nbytes;
+  if (_static_mb->size - _static_mb->nbytes < 512) {
+    lev_slab_decRef( _static_mb );
+    _static_mb = lev_slab_getBlock( suggested_size );
+    lev_slab_incRef( _static_mb );
+    remaining = _static_mb->size - _static_mb->nbytes;
+  }
+
+  buf.base = (char *)(_static_mb->bytes + _static_mb->nbytes);
+  buf.len = remaining;
+
+  return buf;
+}
+
+void lev_pushbuffer_from_static_mb(lua_State *L, int nread) {
+  /* push new cBuffer */
+  lev_pushbuffer_from_mb(
+       L
+      ,_static_mb
+      ,nread
+      ,_static_mb->bytes + _static_mb->nbytes
+    ); /* automatically incRef's mb */
+  _static_mb->nbytes += nread; /* consume nread bytes */
+}
 
 static void create_object_registry(lua_State* L) {
   lua_pushlightuserdata(L, object_registry);

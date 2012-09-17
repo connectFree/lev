@@ -26,8 +26,6 @@
 #include "luv_debug.h"
 
 
-static MemBlock *_static_mb = NULL;
-
 #define BUFFER_SIZE 8*1024
 
 #define UNWRAP(h) \
@@ -69,29 +67,6 @@ void tcp_after_shutdown(uv_shutdown_t* req, int status) {
   free(req);
 }
 
-static uv_buf_t on_alloc(uv_handle_t* handle, size_t suggested_size) {
-  uv_buf_t buf;
-  size_t remaining;
-
-  if (!_static_mb) {
-    _static_mb = lev_slab_getBlock( suggested_size );
-    lev_slab_incRef( _static_mb );
-  }
-
-  remaining = _static_mb->size - _static_mb->nbytes;
-  if (_static_mb->size - _static_mb->nbytes < 512) {
-    lev_slab_decRef( _static_mb );
-    _static_mb = lev_slab_getBlock( suggested_size );
-    lev_slab_incRef( _static_mb );
-    remaining = _static_mb->size - _static_mb->nbytes;
-  }
-
-  buf.base = (char *)(_static_mb->bytes + _static_mb->nbytes);
-  buf.len = remaining;
-
-  return buf;
-}
-
 
 static void on_connect(uv_connect_t* req, int status) {
   UNWRAP(req->handle);
@@ -125,14 +100,7 @@ static void on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf) {
     push_callback(L, self, "on_read");
     lua_pushinteger(L, nread);
 
-    /* push new cBuffer */
-    lev_pushbuffer_from_mb(
-         L
-        ,_static_mb
-        ,nread
-        ,_static_mb->bytes + _static_mb->nbytes
-      ); /* automatically incRef's mb */
-    _static_mb->nbytes += nread; /* consume nread bytes */
+    lev_pushbuffer_from_static_mb(L, nread);
 
     lua_call(L, 3, 0);/*, -5*/
   }
