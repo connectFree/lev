@@ -19,6 +19,7 @@
 #include "time_cache.h"
 #include "utils.h"
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
