@@ -99,4 +99,6 @@ const char *lev_uv_errname(uv_err_code errcode);
   lua_push##type(L, val);              \
   lua_setfield(L, -2, #name)
 
+char **lev_os_environ();
+
 #endif /* LEVBASE_H_ */
