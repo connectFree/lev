@@ -43,7 +43,6 @@
 #include "luv_debug.h"
 #include "luv_portability.h"
 #include "lhttp_parser.h"
-#include "lenv.h"
 /* X:E lev */
 
 #if LJ_TARGET_POSIX
@@ -580,9 +579,6 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
   /* Register levbase */
   lua_pushcfunction(L, luaopen_levbase);
   lua_setfield(L, -2, "lev");
-  /* Register env */
-  lua_pushcfunction(L, luaopen_env);
-  lua_setfield(L, -2, "env");
 
   /* We're done with preload, put it away */
   lua_pop(L, 1);

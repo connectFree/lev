@@ -111,7 +111,6 @@ LEVLIBS=${BUILDDIR}/utils.o            \
         ${BUILDDIR}/lev_slab.o         \
         ${BUILDDIR}/luv_debug.o        \
         ${BUILDDIR}/time_cache.o       \
-        ${BUILDDIR}/lenv.o             \
         ${BUILDDIR}/lhttp_parser.o   
 
 DEPS=${LUADIR}/src/libluajit.a \
