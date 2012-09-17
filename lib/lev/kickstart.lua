@@ -18,7 +18,6 @@ limitations under the License.
 
 -- Bootstrap require system
 local lev = require('lev')
-local env = require('env')
 local utils = require('utils')
 local callbox = require('callbox')
 local signal = lev.signal
@@ -43,7 +42,7 @@ _G.p = utils.prettyPrint
 _G.debug = utils.debug
 _G.Buffer = lev.buffer
 
-_G.WorkerID = env.get("LEV_WORKER_ID")
+_G.WorkerID = lev.process.getenv("LEV_WORKER_ID")
 
 lev.activate_signal_handler( signal.SIGPIPE )
 
