@@ -200,7 +200,7 @@ end
 --end
 
 exports['lev.core:\tumask: specify number value'] = function (test)
-  local mask = 0644
+  local mask = tonumber('0644', 8)
   local old = lev.umask(mask)
 
   test.equal(mask, lev.umask(old))
@@ -211,7 +211,7 @@ exports['lev.core:\tumask: specify number value'] = function (test)
 end
 
 exports['lev.core:\tumask: specify string value'] = function (test)
-  local mask = 0644
+  local mask = tonumber('0644', 8)
   local old = lev.umask('0644')
 
   test.equal(mask, lev.umask(old))

@@ -480,7 +480,11 @@ static int core_umask(lua_State *L) {
     } else if (type == LUA_TSTRING && !lua_isnumber(L, -1)) {
       return luaL_error(L, "invalid string value");
     }
-    old = lua_tonumber(L, -1);
+    if (type == LUA_TSTRING) {
+      old = strtol(lua_tostring(L, -1), (char**) NULL, 8);
+    } else {
+      old = lua_tonumber(L, -1);
+    }
     old = umask((int)old);
   }
 
