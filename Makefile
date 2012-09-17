@@ -219,7 +219,6 @@ clean:
 	${MAKE} -C ${HTTPDIR} clean
 	${MAKE} -C ${YAJLDIR} clean
 	${MAKE} -C ${UVDIR} distclean
-	${MAKE} -C examples/native clean
 	-rm ${ZLIBDIR}/*.o
 	-rm ${CRYPTODIR}/src/lcrypto.o
 	rm -rf build bundle
