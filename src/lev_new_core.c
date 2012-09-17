@@ -16,6 +16,7 @@
  */
 
 #include "lev_new_base.h"
+#include "time_cache.h"
 #include "utils.h"
 
 #include <stdlib.h>
@@ -380,6 +381,25 @@ int core_handle_type(lua_State* L) {
   return 1;
 }
 
+
+int core_timecache_http(lua_State* L) {
+  cache_time_update();
+  lua_pushstring(L, (char *)http_time);
+  return 1;
+}
+
+int core_timecache_httplog(lua_State* L) {
+  cache_time_update();
+  lua_pushstring(L, (char *)http_log_time);
+  return 1;
+}
+
+int core_timecache_errorlog(lua_State* L) {
+  cache_time_update();
+  lua_pushstring(L, (char *)err_log_time);
+  return 1;
+}
+
 /* TODO: should be support debug modeule
 extern void uv_print_active_handles(uv_loop_t *loop);
 extern void uv_print_all_handles(uv_loop_t *loop);
@@ -411,6 +431,9 @@ static luaL_reg functions[] = {
   ,{"get_process_title", core_get_process_title}
   ,{"set_process_title", core_set_process_title}
   ,{"handle_type", core_handle_type}
+  ,{"timeHTTP", core_timecache_http}
+  ,{"timeHTTPLog", core_timecache_httplog}
+  ,{"timeELog", core_timecache_errorlog}
   /* TODO: should be support debug module.
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}

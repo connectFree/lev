@@ -94,7 +94,7 @@ else
 CPPFLAGS += -I${SSLDIR}/openssl-configs/ia32
 endif
 
-LUVLIBS=${BUILDDIR}/utils.o            \
+LEVLIBS=${BUILDDIR}/utils.o            \
 				${BUILDDIR}/lev_mpack.o        \
         ${BUILDDIR}/lev_new_fs.o       \
         ${BUILDDIR}/lev_new_net.o      \
@@ -105,11 +105,12 @@ LUVLIBS=${BUILDDIR}/utils.o            \
         ${BUILDDIR}/lev_new_core.o     \
         ${BUILDDIR}/lev_new_pipe.o     \
         ${BUILDDIR}/lev_new_timer.o    \
+        ${BUILDDIR}/lev_new_signal.o   \
 				${BUILDDIR}/lev_new_buffer.o   \
         ${BUILDDIR}/lev_new_process.o  \
-        ${BUILDDIR}/lev_new_signal.o   \
         ${BUILDDIR}/lev_slab.o         \
         ${BUILDDIR}/luv_debug.o        \
+        ${BUILDDIR}/time_cache.o       \
         ${BUILDDIR}/lenv.o             \
         ${BUILDDIR}/lhttp_parser.o   
 
@@ -198,8 +199,8 @@ ${BUILDDIR}/%.pre: src/%.c ${DEPS}
 		-DLUAJIT_VERSION=\"${LUAJIT_VERSION}\" \
     > $@
 
-${BUILDDIR}/liblev.a: ${CRYPTODIR}/Makefile ${LUVLIBS} ${DEPS}
-	$(AR) rvs ${BUILDDIR}/liblev.a ${LUVLIBS} ${DEPS}
+${BUILDDIR}/liblev.a: ${CRYPTODIR}/Makefile ${LEVLIBS} ${DEPS}
+	$(AR) rvs ${BUILDDIR}/liblev.a ${LEVLIBS} ${DEPS}
 
 ${CRYPTODIR}/Makefile:
 	git submodule update --init ${CRYPTODIR}
@@ -249,8 +250,8 @@ bundle: bundle/lev
 
 bundle/lev: build/lev ${BUILDDIR}/liblev.a
 	build/lev tools/bundler.lua
-	$(CC) --std=c99 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/lev_exports.c -o bundle/lev_exports.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
-	$(CC) --std=c99 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/lev_main.c -o bundle/lev_main.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLUVIT_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
+	$(CC) --std=c99 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/lev_exports.c -o bundle/lev_exports.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLEV_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
+	$(CC) --std=c99 -D_GNU_SOURCE -g -Wall -Werror -DBUNDLE -c src/lev_main.c -o bundle/lev_main.o -I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api -I${YAJLDIR}/src -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHTTP_VERSION=\"${HTTP_VERSION}\" -DUV_VERSION=\"${UV_VERSION}\" -DYAJL_VERSIONISH=\"${YAJL_VERSION}\" -DLEV_VERSION=\"${VERSION}\" -DLUAJIT_VERSION=\"${LUAJIT_VERSION}\"
 	$(CC) ${LDFLAGS} -g -o bundle/lev ${BUILDDIR}/liblev.a `ls bundle/*.o` ${LIBS} ${CRYPTODIR}/src/lcrypto.o
 
 # Test section

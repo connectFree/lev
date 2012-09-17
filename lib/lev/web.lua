@@ -100,7 +100,8 @@ function web.createServer(host, port, onRequest, onData)
 
             local _headers = {["server"]="lev", ["connection"] = "Close", ["content-type"] = "text/html"}
 
-            _headers['date'] = osDate("!%a, %d %b %Y %H:%M:%S GMT")
+            --get date header from nginx-esque time slot cache
+            _headers['date'] = lev.timeHTTP()
 
             if headers then
               for k,v in pairs(headers) do _headers[k:lower()] = v end
