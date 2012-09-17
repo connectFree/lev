@@ -243,6 +243,22 @@ uv_loop_t* lev_get_loop(lua_State *L) {
 }
 
 /*
+ * ares utility functions.
+ */
+void lev_set_ares_channel(lua_State *L, ares_channel channel) {
+  lua_pushlightuserdata(L, channel);
+  lua_setfield(L, LUA_REGISTRYINDEX, "ares_channel");
+}
+
+ares_channel lev_get_ares_channel(lua_State *L) {
+  ares_channel channel;
+  lua_getfield(L, LUA_REGISTRYINDEX, "ares_channel");
+  channel = lua_touserdata(L, -1);
+  lua_pop(L, 1);
+  return channel;
+}
+
+/*
  * Error helper functions.
  */
 
@@ -284,6 +300,7 @@ int luaopen_levbase(lua_State *L) {
 
   luaL_register(L, "lev", functions);
   luaopen_lev_fs(L); /* lev.fs */
+  luaopen_lev_net(L); /* lev.net */
   luaopen_lev_dns(L); /* lev.dns */
   luaopen_lev_tcp(L); /* lev.tcp */
   luaopen_lev_udp(L); /* lev.udp */

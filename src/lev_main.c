@@ -594,7 +594,7 @@ static int handle_luainit(lua_State *L, uv_loop_t* loop) {
 
   /* Store the ARES Channel */
   uv_ares_init_options(lev_get_loop(L), &channel, &options, 0);
-  luv_set_ares_channel(L, channel);
+  lev_set_ares_channel(L, channel);
 
 
 #if LJ_TARGET_CONSOLE

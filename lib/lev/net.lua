@@ -20,7 +20,7 @@ local lev = require('lev')
 local ltcp = lev.tcp
 local table = require('table')
 
-local net = {}
+local net = lev.net
 
 net.createTCPConnection = function(host, port, callback)
 
