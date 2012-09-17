@@ -17,7 +17,6 @@
 
 #include "lev_new_base.h"
 #include "time_cache.h"
-#include "utils.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -377,7 +376,7 @@ int core_set_process_title(lua_State* L) {
 int core_handle_type(lua_State* L) {
   uv_file file = luaL_checkint(L, 1);
   uv_handle_type type = uv_guess_handle(file);
-  lua_pushstring(L, luv_handle_type_to_string(type));
+  lua_pushstring(L, lev_handle_type_to_string(type));
   return 1;
 }
 

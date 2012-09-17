@@ -116,6 +116,10 @@ const char *lev_uv_errname(uv_err_code errcode);
 
 char **lev_os_environ();
 
+const char* lev_handle_type_to_string(uv_handle_type type);
+
+lua_State* lev_get_main_thread(lua_State *L);
+
 /* ares utility functions. */
 void lev_set_ares_channel(lua_State *L, ares_channel channel);
 ares_channel lev_get_ares_channel(lua_State *L);
