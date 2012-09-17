@@ -36,6 +36,9 @@
 
 #define ARRAY_SIZE(a) (sizeof((a)) / sizeof((a)[0]))
 
+uv_buf_t on_alloc(uv_handle_t* handle, size_t suggested_size);
+void lev_pushbuffer_from_static_mb(lua_State *L, int nread);
+
 typedef struct _LevRefStruct {
   LEVBASE_REF_FIELDS
 } LevRefStruct_t;
