@@ -106,9 +106,9 @@ LUVLIBS=${BUILDDIR}/utils.o            \
         ${BUILDDIR}/lev_new_timer.o    \
 				${BUILDDIR}/lev_new_buffer.o   \
         ${BUILDDIR}/lev_new_process.o  \
+        ${BUILDDIR}/lev_new_signal.o   \
         ${BUILDDIR}/lev_slab.o         \
         ${BUILDDIR}/luv_debug.o        \
-        ${BUILDDIR}/lconstants.o       \
         ${BUILDDIR}/lenv.o             \
         ${BUILDDIR}/lhttp_parser.o   
 

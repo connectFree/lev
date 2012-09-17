@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The Luvit Authors. All Rights Reserved.
+ *  Copyright 2012 The lev Authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,32 +15,16 @@
  *
  */
 
-#ifndef LCONSTANTS
-#define LCONSTANTS
+#include "lev_new_base.h"
 
-#include <uv.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include "luv_debug.h"
 
-#include <errno.h>
-#if !defined(_MSC_VER)
-#include <unistd.h>
-#endif
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+void luaopen_lev_signal(lua_State *L) {
+  lua_newtable(L);
 
-#if defined(__MINGW32__) || defined(_MSC_VER)
-/* # include <platform_win32.h> */
-#endif
+  LEV_SET_FIELD(SIGPIPE, number, SIGPIPE);
 
-#if HAVE_OPENSSL
-# include <openssl/ssl.h>
-#endif
-
-#include "lua.h"
-#include "lauxlib.h"
-#include "utils.h"
-
-LUALIB_API int luaopen_constants(lua_State *L);
-
-#endif
+  lua_setfield(L, -2, "signal");
+}

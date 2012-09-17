@@ -59,6 +59,7 @@ void luaopen_lev_mpack(lua_State *L); /* lev.mpack */
 void luaopen_lev_timer(lua_State *L); /* lev.timer */
 void luaopen_lev_buffer(lua_State *L); /* lev.buffer */
 void luaopen_lev_process(lua_State *L); /* lev.process */
+void luaopen_lev_signal(lua_State *L); /* lev.signal */
 
 /* buffer helper functions */
 int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned char *slice);

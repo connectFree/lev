@@ -291,6 +291,7 @@ int luaopen_levbase(lua_State *L) {
   luaopen_lev_timer(L); /* lev.timer */
   luaopen_lev_buffer(L); /* lev.buffer */
   luaopen_lev_process(L); /* lev.process */
+  luaopen_lev_signal(L); /* lev.signal */
 
   return 1;
 }
