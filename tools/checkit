@@ -181,7 +181,7 @@ local function run(tests, callback)
   end
   test_cnt = ntests
   if callback and ntests == 0 then
-    callback(exit_code, test_cnt, assert_cnt, err_cnt, total_pass_time)
+    callback(exit_code, test_cnt, assert_cnt, err_cnt, total_elapsed_time)
     return
   end
 
