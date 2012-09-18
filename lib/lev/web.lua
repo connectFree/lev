@@ -1,4 +1,5 @@
 local net = require('net')
+local json = require('json')
 local table = require('table')
 local string = require('string')
 local osDate = require('os').date
@@ -71,8 +72,8 @@ function web.createServer(host, port, onRequest, onData)
     local client = s:accept()
 
 --- X:S PARSER
-    local currentField, headers, url, request
-    local parser = newHttpParser("request", {
+    local currentField, headers, url, request, response, parser
+    parser = newHttpParser("request", {
       onMessageBegin = function ()
         headers = {}
         request = {}
@@ -90,6 +91,7 @@ function web.createServer(host, port, onRequest, onData)
         request.url = url
         request.headers = headers
         request.parser = parser
+        request.upgrade = info.upgrade
 
         response = {
           writeHead = function(statusCode, headers)
@@ -131,11 +133,20 @@ function web.createServer(host, port, onRequest, onData)
             client:write( chunk )
           end --X:E res.write
           ,reinit = function()
-            parser:reinitialize("request")
+            request.parser:reinitialize("request")
           end
           ,fin = function(chunk)
             if chunk then client:write( chunk ) end
-            client:close()
+            if request.headers.connection and request.headers.connection:lower() == "keep-alive" then
+              response.reinit()
+            else
+              client:close()
+            end
+          end --X:E res.fin
+          ,simpleJSON = function(status, chunk)
+            local out_buf = Buffer:new( json:encode( chunk ) or '' )
+            response.writeHead(status, {["content-type"] = 'text/json', ["Content-Length"] = tostring(#out_buf)})
+            response.fin( out_buf )
           end --X:E res.fin
         } --X:E response
         onRequest(client, request, response)
@@ -151,6 +162,10 @@ function web.createServer(host, port, onRequest, onData)
 
     client:read_start(function(c, nread, chunk)
       if nread == 0 then return end
+      if request and request.upgrade and onData then
+        onData(c, chunk)
+        return
+      end
       local nparsed = parser:execute(chunk, 0, nread)
     end)
     client:on_close(function(c)
