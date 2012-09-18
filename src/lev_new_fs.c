@@ -385,8 +385,7 @@ static int fs_write(lua_State* L) {
   if (file_until > ms->until) {
     file_until = ms->until;
   }
-  /* TODO: Check fs_callback index is really the same as file_until. */
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  FSR__SET_OPT_CB(5, on_fs_callback)
   uv_fs_write(loop, req, fd, ms->slice, (file_until ? file_until : ms->until), file_pos, cb);
   FSR__TEARDOWN
 }
