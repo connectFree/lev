@@ -54,11 +54,12 @@ typedef struct dns_req_holder_s {
 #define DNSR__CBNAME "_cb"
 
 #define DNSR__SETUP \
-  dns_req_holder_t *holder = (dns_req_holder_t *)create_obj_init_ref(L, \
-      sizeof(dns_req_holder_t), "lev.dns");                             \
-  holder->L = L;
+  dns_req_holder_t *holder;
 
 #define DNSR__SET_CB(index) \
+  holder = (dns_req_holder_t *)create_obj_init_ref(L,           \
+      sizeof(dns_req_holder_t), "lev.dns");                     \
+  holder->L = L;                                                \
   /* NOTE: set_call needs "object" to be stack at index 1 */    \
   lua_insert(L, 1);                                             \
   set_callback(L, DNSR__CBNAME, (index+1));                     \
