@@ -46,17 +46,19 @@ typedef struct fs_req_holder_s {
 #define FSR__SETUP \
   uv_fs_cb cb = NULL;                                                 \
   uv_loop_t *loop = lev_get_loop(L);                                  \
-  fs_req_holder_t *holder = (fs_req_holder_t *)create_obj_init_ref(L, \
-      sizeof(fs_req_holder_t), "lev.fs");                             \
-  /* NOTE: set_call needs "object" to be stack at index 1 */          \
-  lua_insert(L, 1);                                                   \
-  uv_fs_t *req = &holder->req;
+  fs_req_holder_t *holder;                                            \
+  uv_fs_t *req;
 
 #define FSR__SET_OPT_CB(index, c_callback) \
-  if (lua_isfunction(L, (index))) {                               \
-    set_callback(L, FSR__CBNAME, (index));                        \
-    lev_handle_ref(L, (LevRefStruct_t *)holder, 1);               \
-    cb = (c_callback);                                            \
+  holder = (fs_req_holder_t *)create_obj_init_ref(L,                  \
+      sizeof(fs_req_holder_t), "lev.fs");                             \
+  req = &holder->req;                                                 \
+  /* NOTE: set_call needs "object" to be stack at index 1 */          \
+  lua_insert(L, 1);                                                   \
+  if (lua_isfunction(L, (index+1))) {                                 \
+    set_callback(L, FSR__CBNAME, (index+1));                          \
+    lev_handle_ref(L, (LevRefStruct_t *)holder, 1);                   \
+    cb = (c_callback);                                                \
   }
 
 #define FSR__TEARDOWN \
@@ -229,9 +231,8 @@ static void on_exists_callback(uv_fs_t *req) {
 
 static int fs_exists(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  FSR__SET_OPT_CB(3, on_exists_callback)
+  const char *path = luaL_checkstring(L, 1);
+  FSR__SET_OPT_CB(2, on_exists_callback)
   uv_fs_stat(loop, req, path, cb);
   lua_pushboolean(L, req->result != -1);
   if (!cb) {
@@ -247,9 +248,8 @@ static int fs_exists(lua_State* L) {
  */
 static int fs_close(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  int fd = luaL_checkint(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_close(loop, req, fd, cb);
   FSR__TEARDOWN
 }
@@ -259,11 +259,10 @@ static int fs_close(lua_State* L) {
  */
 static int fs_chmod(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  const char *mode_str = luaL_checkstring(L, 3);
+  const char *path = luaL_checkstring(L, 1);
+  const char *mode_str = luaL_checkstring(L, 2);
   int mode = strtol(mode_str, (char**) NULL, 8);
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  FSR__SET_OPT_CB(3, on_fs_callback)
   uv_fs_chmod(loop, req, path, mode, cb);
   FSR__TEARDOWN
 }
@@ -273,11 +272,10 @@ static int fs_chmod(lua_State* L) {
  */
 static int fs_chown(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  int uid = luaL_checkint(L, 3);
-  int gid = luaL_checkint(L, 4);
-  FSR__SET_OPT_CB(5, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  int uid = luaL_checkint(L, 2);
+  int gid = luaL_checkint(L, 3);
+  FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_chown(loop, req, path, uid, gid, cb);
   FSR__TEARDOWN
 }
@@ -287,11 +285,10 @@ static int fs_chown(lua_State* L) {
  */
 static int fs_fchmod(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  const char *mode_str = luaL_checkstring(L, 3);
+  int fd = luaL_checkint(L, 1);
+  const char *mode_str = luaL_checkstring(L, 2);
   int mode = strtol(mode_str, (char**) NULL, 8);
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  FSR__SET_OPT_CB(3, on_fs_callback)
   uv_fs_fchmod(loop, req, fd, mode, cb);
   FSR__TEARDOWN
 }
@@ -301,11 +298,10 @@ static int fs_fchmod(lua_State* L) {
  */
 static int fs_fchown(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  int uid = luaL_checkint(L, 3);
-  int gid = luaL_checkint(L, 4);
-  FSR__SET_OPT_CB(5, on_fs_callback)
+  int fd = luaL_checkint(L, 1);
+  int uid = luaL_checkint(L, 2);
+  int gid = luaL_checkint(L, 3);
+  FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_fchown(loop, req, fd, uid, gid, cb);
   FSR__TEARDOWN
 }
@@ -315,9 +311,8 @@ static int fs_fchown(lua_State* L) {
  */
 static int fs_fdatasync(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  int fd = luaL_checkint(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_fdatasync(loop, req, fd, cb);
   FSR__TEARDOWN
 }
@@ -327,9 +322,8 @@ static int fs_fdatasync(lua_State* L) {
  */
 static int fs_fsync(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  int fd = luaL_checkint(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_fsync(loop, req, fd, cb);
   FSR__TEARDOWN
 }
@@ -339,11 +333,10 @@ static int fs_fsync(lua_State* L) {
  */
 static int fs_futime(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  lua_Number atime = luaL_checknumber(L, 3);
-  lua_Number mtime = luaL_checknumber(L, 4);
-  FSR__SET_OPT_CB(5, on_fs_callback)
+  int fd = luaL_checkint(L, 1);
+  lua_Number atime = luaL_checknumber(L, 2);
+  lua_Number mtime = luaL_checknumber(L, 3);
+  FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_futime(loop, req, fd, atime, mtime, cb);
   FSR__TEARDOWN
 }
@@ -353,11 +346,10 @@ static int fs_futime(lua_State* L) {
  */
 static int fs_mkdir(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  const char *mode_str = luaL_optstring(L, 3, "0777");
+  const char *path = luaL_checkstring(L, 1);
+  const char *mode_str = luaL_optstring(L, 2, "0777");
   int mode = strtol(mode_str, (char**) NULL, 8);
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  FSR__SET_OPT_CB(3, on_fs_callback)
   uv_fs_mkdir(loop, req, path, mode, cb);
   FSR__TEARDOWN
 }
@@ -367,16 +359,15 @@ static int fs_mkdir(lua_State* L) {
  */
 static int fs_read(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  MemSlice *ms = lev_checkbuffer(L, 3);
-  int64_t file_pos = luaL_optlong(L, 4, 0);
+  int fd = luaL_checkint(L, 1);
+  MemSlice *ms = lev_checkbuffer(L, 2);
+  int64_t file_pos = luaL_optlong(L, 3, 0);
   file_pos--; /* Luaisms */
-  size_t file_until = luaL_optlong(L, 5, 0);
+  size_t file_until = luaL_optlong(L, 4, 0);
   if (file_until > ms->until) {
     file_until = ms->until;
   }
-  FSR__SET_OPT_CB(6, on_fs_callback)
+  FSR__SET_OPT_CB(5, on_fs_callback)
   uv_fs_read(loop, req, fd, ms->slice, (file_until ? file_until : ms->until), file_pos, cb);
   FSR__TEARDOWN
 }
@@ -386,16 +377,16 @@ static int fs_read(lua_State* L) {
  */
 static int fs_write(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  MemSlice *ms = lev_checkbuffer(L, 3);
-  int64_t file_pos = luaL_optlong(L, 4, 0);
+  int fd = luaL_checkint(L, 1);
+  MemSlice *ms = lev_checkbuffer(L, 2);
+  int64_t file_pos = luaL_optlong(L, 3, 0);
   file_pos--; /* Luaisms */
-  size_t file_until = luaL_optlong(L, 5, 0);
+  size_t file_until = luaL_optlong(L, 4, 0);
   if (file_until > ms->until) {
     file_until = ms->until;
   }
-  FSR__SET_OPT_CB(5, on_fs_callback)
+  /* TODO: Check fs_callback index is really the same as file_until. */
+  FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_write(loop, req, fd, ms->slice, (file_until ? file_until : ms->until), file_pos, cb);
   FSR__TEARDOWN
 }
@@ -405,10 +396,9 @@ static int fs_write(lua_State* L) {
  */
 static int fs_ftruncate(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  int64_t file_size = luaL_checklong(L, 3);
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  int fd = luaL_checkint(L, 1);
+  int64_t file_size = luaL_checklong(L, 2);
+  FSR__SET_OPT_CB(3, on_fs_callback)
   uv_fs_ftruncate(loop, req, fd, file_size, cb);
   FSR__TEARDOWN
 }
@@ -418,10 +408,9 @@ static int fs_ftruncate(lua_State* L) {
  */
 static int fs_link(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  const char *new_path = luaL_checkstring(L, 3);
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  const char *new_path = luaL_checkstring(L, 2);
+  FSR__SET_OPT_CB(3, on_fs_callback)
   uv_fs_link(loop, req, path, new_path, cb);
   FSR__TEARDOWN
 }
@@ -431,9 +420,8 @@ static int fs_link(lua_State* L) {
  */
 static int fs_readdir(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_readdir(loop, req, path, 0, cb);
   FSR__TEARDOWN
 }
@@ -443,9 +431,8 @@ static int fs_readdir(lua_State* L) {
  */
 static int fs_readlink(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_readlink(loop, req, path, cb);
   FSR__TEARDOWN
 }
@@ -455,10 +442,9 @@ static int fs_readlink(lua_State* L) {
  */
 static int fs_symlink(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  const char *new_path = luaL_checkstring(L, 3);
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  const char *new_path = luaL_checkstring(L, 2);
+  FSR__SET_OPT_CB(3, on_fs_callback)
   uv_fs_symlink(loop, req, path, new_path, 0, cb);
   FSR__TEARDOWN
 }
@@ -468,10 +454,9 @@ static int fs_symlink(lua_State* L) {
  */
 static int fs_rename(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *old_path = luaL_checkstring(L, 2);
-  const char *new_path = luaL_checkstring(L, 3);
-  FSR__SET_OPT_CB(4, on_fs_callback)
+  const char *old_path = luaL_checkstring(L, 1);
+  const char *new_path = luaL_checkstring(L, 2);
+  FSR__SET_OPT_CB(3, on_fs_callback)
   uv_fs_rename(loop, req, old_path, new_path, cb);
   FSR__TEARDOWN
 }
@@ -481,9 +466,8 @@ static int fs_rename(lua_State* L) {
  */
 static int fs_rmdir(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_rmdir(loop, req, path, cb);
   FSR__TEARDOWN
 }
@@ -493,9 +477,8 @@ static int fs_rmdir(lua_State* L) {
  */
 static int fs_fstat(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  int fd = luaL_checkint(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  int fd = luaL_checkint(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_fstat(loop, req, fd, cb);
   FSR__TEARDOWN
 }
@@ -505,9 +488,8 @@ static int fs_fstat(lua_State* L) {
  */
 static int fs_lstat(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_lstat(loop, req, path, cb);
   FSR__TEARDOWN
 }
@@ -517,9 +499,8 @@ static int fs_lstat(lua_State* L) {
  */
 static int fs_stat(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_stat(loop, req, path, cb);
   FSR__TEARDOWN
 }
@@ -529,9 +510,8 @@ static int fs_stat(lua_State* L) {
  */
 static int fs_unlink(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  FSR__SET_OPT_CB(3, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  FSR__SET_OPT_CB(2, on_fs_callback)
   uv_fs_unlink(loop, req, path, cb);
   FSR__TEARDOWN
 }
@@ -541,11 +521,10 @@ static int fs_unlink(lua_State* L) {
  */
 static int fs_utime(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  lua_Number atime = luaL_checknumber(L, 3);
-  lua_Number mtime = luaL_checknumber(L, 4);
-  FSR__SET_OPT_CB(5, on_fs_callback)
+  const char *path = luaL_checkstring(L, 1);
+  lua_Number atime = luaL_checknumber(L, 2);
+  lua_Number mtime = luaL_checknumber(L, 3);
+  FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_utime(loop, req, path, atime, mtime, cb);
   FSR__TEARDOWN
 }
@@ -556,12 +535,11 @@ static int fs_utime(lua_State* L) {
  */
 static int fs_open(lua_State* L) {
   FSR__SETUP
-  /* NOTE: index is added by 1 because of holder above. */
-  const char *path = luaL_checkstring(L, 2);
-  int flags = fs_checkflags(L, 3);
-  const char *mode_str = luaL_optstring(L, 4, "0666");
+  const char *path = luaL_checkstring(L, 1);
+  int flags = fs_checkflags(L, 2);
+  const char *mode_str = luaL_optstring(L, 3, "0666");
   int mode = strtol(mode_str, (char**) NULL, 8);
-  FSR__SET_OPT_CB(5, on_fs_callback)
+  FSR__SET_OPT_CB(4, on_fs_callback)
   uv_fs_open(loop, req, path, flags, mode, cb);
   FSR__TEARDOWN
 }
