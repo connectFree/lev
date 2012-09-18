@@ -12,7 +12,7 @@ local qs = require('querystring')
 local cS = require('web').createServer
 
 local MESSAGE_BACKLOG = 200
-local SESSION_TIMEOUT = 60 * 1000
+local SESSION_TIMEOUT = 60
 
 local sessions = {}
 local mem = {rss = 1} --X:FUTURE
