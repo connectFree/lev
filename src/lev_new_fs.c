@@ -118,6 +118,8 @@ static int fs_checkflags(lua_State *L, int index) {
 }
 
 static int push_fs_stat(lua_State *L, uv_statbuf_t *s) {
+  char permission_buf[16];
+
   lua_newtable(L);
   LEV_SET_FIELD(dev, number, s->st_dev);
   LEV_SET_FIELD(ino, number, s->st_ino);
@@ -139,6 +141,9 @@ static int push_fs_stat(lua_State *L, uv_statbuf_t *s) {
   LEV_SET_FIELD(isFIFO, boolean, S_ISFIFO(s->st_mode));
   LEV_SET_FIELD(isSymbolicLink, boolean, S_ISLNK(s->st_mode));
   LEV_SET_FIELD(isSocket, boolean, S_ISSOCK(s->st_mode));
+
+  sprintf(permission_buf, "0%o", s->st_mode & ~S_IFMT);
+  LEV_SET_FIELD(permission, string, permission_buf);
   return 1;
 }
 
