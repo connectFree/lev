@@ -85,7 +85,7 @@ MemBlock *lev_slab_getBlock(size_t size) {
     block = (MemBlock *)malloc(sizeof(MemBlock) + blocksize);
   }
 
-  /*printf("[%p] lev_slab_getBlock(p=%p)\n", block, pool);*/
+  /*printf("[%p] lev_slab_getBlock(size=%d)\n", block, blocksize);*/
   block->allocator = allocator;
   block->refcount = 0;
   block->size = blocksize;

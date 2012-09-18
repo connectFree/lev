@@ -332,6 +332,7 @@ int luaopen_levbase(lua_State *L) {
   luaopen_lev_tcp(L); /* lev.tcp */
   luaopen_lev_udp(L); /* lev.udp */
   luaopen_lev_core(L); /* lev.core */
+  luaopen_lev_json(L); /* lev.json */
   luaopen_lev_pipe(L); /* lev.pipe */
   luaopen_lev_mpack(L); /* lev.mpack */
   luaopen_lev_timer(L); /* lev.timer */

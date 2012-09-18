@@ -22,7 +22,6 @@
 
 #define SLAB_MAXFREELIST 1024 * 16 * 2
 
-
 /* --[  LEVSTRUCT_REF_ ]-- */
 /* == refCount == */
 /* a count of all pending request to know strength */
@@ -40,12 +39,6 @@
   int refCount;             \
   int threadref;            \
   int ref;            
-
-
-struct linked_list {
-  struct linked_list * next;
-  struct linked_list * prev;
-};
 
 typedef struct _lev_slab_allocator lev_slab_allocator_t;
 typedef struct _MemBlock MemBlock;
@@ -65,10 +58,10 @@ struct _lev_slab_allocator {
 };
 
 typedef struct _MemSlice {
-    LEVBASE_REF_FIELDS
-    MemBlock *mb;         /* our MemBlock */
-    unsigned char *slice; /* begining of slice */
-    size_t until;         /* range of how far we have sliced */
+  LEVBASE_REF_FIELDS
+  MemBlock *mb;         /* our MemBlock */
+  unsigned char *slice; /* begining of slice */
+  size_t until;         /* range of how far we have sliced */
 } MemSlice;
 
 void lev_slab_fill();
@@ -76,6 +69,5 @@ MemBlock *lev_slab_getBlock(size_t size);
 int lev_slab_incRef(MemBlock *block);
 int lev_slab_decRef(MemBlock *block);
 
-
-
 #endif
+
