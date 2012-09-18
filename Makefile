@@ -2,7 +2,9 @@
 #VERSION=$(shell git describe --tags)
 VERSION=0.0.1
 LUADIR=deps/luajit
-LUAJIT_VERSION=$(shell git --git-dir ${LUADIR}/.git describe --tags)
+# TODO: shoube be versioning with git
+#LUAJIT_VERSION=$(shell git --git-dir ${LUADIR}/.git describe --tags)
+LUAJIT_VERSION=2.0.0-beta10
 YAJLDIR=deps/yajl
 YAJL_VERSION=$(shell git --git-dir ${YAJLDIR}/.git describe --tags)
 UVDIR=deps/uv
