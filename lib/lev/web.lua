@@ -1,5 +1,5 @@
+local json = lev.json
 local net = require('net')
-local json = require('json')
 local table = require('table')
 local string = require('string')
 local osDate = require('os').date
@@ -144,7 +144,7 @@ function web.createServer(host, port, onRequest, onData)
             end
           end --X:E res.fin
           ,simpleJSON = function(status, chunk)
-            local out_buf = Buffer:new( json:encode( chunk ) or '' )
+            local out_buf = Buffer:new( json.encode( chunk ) or '' )
             response.writeHead(status, {["content-type"] = 'text/json', ["Content-Length"] = tostring(#out_buf)})
             response.fin( out_buf )
           end --X:E res.fin
