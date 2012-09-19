@@ -498,6 +498,11 @@ static int core_exit(lua_State *L) {
   return 0;
 }
 
+static int core_abort(lua_State *L) {
+  abort();
+  return 0;
+}
+
 /* TODO: should be support debug modeule
 extern void uv_print_active_handles(uv_loop_t *loop);
 extern void uv_print_all_handles(uv_loop_t *loop);
@@ -536,6 +541,7 @@ static luaL_reg functions[] = {
   ,{"setgid", core_setgid}
   ,{"umask", core_umask}
   ,{"exit", core_exit}
+  ,{"abort", core_abort}
   /* TODO: should be support debug module.
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}
