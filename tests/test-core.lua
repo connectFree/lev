@@ -63,12 +63,6 @@ exports['lev.core:\tuptime'] = function (test)
   test.done()
 end
 
-exports['lev.core:\texecpath'] = function (test)
-  test.is_string(lev.execpath())
-
-  test.done()
-end
-
 exports['lev.core:\tcpu_info'] = function (test)
   local cpu_info = lev.cpu_info()
 
@@ -134,31 +128,15 @@ exports['lev.core:\tget_total_memory'] = function (test)
   test.done()
 end
 
-exports['lev.core:\tget_process_title'] = function (test)
-  local title = lev.get_process_title()
-
-  test.is_string(title)
-
-  test.done()
-end
-
--- NOTE: this test pass linux only. because uv_set_process_title do not support all platform. 
-exports['lev.core:\tset_process_title'] = function (test)
-  test.is_nil(lev.set_process_title('lev_unittest'))
-  test.equal(lev.get_process_title(), 'lev_unittest')
-
-  test.done()
-end
-
 -- TODO; should be support debug module
 --[[
-exports['test core print_active_handles'] = function (test)
+exports['lev.core:\tprint_active_handles'] = function (test)
   test.is_nil(lev.print_active_handles())
 
   test.done()
 end
 
-exports['test core print_all_handles'] = function (test)
+exports['lev.core:\tprint_all_handles'] = function (test)
   test.is_nil(lev.print_all_handles())
 
   test.done()
@@ -173,8 +151,117 @@ exports['lev.core:\thandle_type'] = function (test)
 end
 
 -- TODO: should be implemented test for the libuv that supported uv_signal_t version.
--- exports['test core active_signal_handler'] = function (test)
+-- exports['lev.core:\tactive_signal_handler'] = function (test)
 --   test.done()
 -- end
 
+exports['lev.core:\tgetuid'] = function (test)
+  local uid = lev.getuid()
+
+  test.is_number(uid)
+  test.ok(0 <= uid and uid <= (2^32 - 1))
+
+  test.done()
+end
+
+exports['lev.core:\tgetgid'] = function (test)
+  local gid = lev.getgid()
+
+  test.is_number(gid)
+  test.ok(0 <= gid and gid <= (2^32 - 1))
+
+  test.done()
+end
+
+-- TODO: How do we test?
+--exports['lev.core:\tsetuid: specify string value'] = function (test)
+--  local old = lev.getuid()
+--  local ret = lev.setuid('nobody')
+--  local new = lev.getuid()
+--  p(old, new)
+--
+--  test.is_nil(ret)
+--  test.not_is_equal(new, old)
+--
+--  test.done()
+--end
+
+-- TODO: How do we test?
+--exports['lev.core:\tsetgid: specify string value'] = function (test)
+--  local old = lev.getgid()
+--  local ret = lev.setuid('nobody')
+--  local new = lev.getgid()
+--  p(old, new)
+--
+--  test.is_nil(ret)
+--  test.not_is_equal(new, old)
+--
+--  test.done()
+--end
+
+exports['lev.core:\tumask: specify number value'] = function (test)
+  local mask = tonumber('0644', 8)
+  local old = lev.umask(mask)
+
+  test.equal(mask, lev.umask(old))
+  test.equal(old, lev.umask())
+  test.equal(old, lev.umask())
+
+  test.done()
+end
+
+exports['lev.core:\tumask: specify string value'] = function (test)
+  local mask = tonumber('0644', 8)
+  local old = lev.umask('0644')
+
+  test.equal(mask, lev.umask(old))
+  test.equal(old, lev.umask())
+  test.equal(old, lev.umask())
+
+  test.done()
+end
+
+exports['lev.core:\tumask: specify invalid value'] = function (test)
+  test.throws(lev.umask, 'hoge')
+  test.throws(lev.umask, 'こんにちは')
+
+  test.done()
+end
+
+exports['lev.core:\tplatform'] = function (test)
+  test.is_string(lev.platform)
+  test.ok(#lev.platform > 0)
+
+  test.done()
+end
+
+exports['lev.core:\tarch'] = function (test)
+  test.is_string(lev.arch)
+  test.ok(#lev.arch > 0)
+
+  test.done()
+end
+
+exports['lev.core:\tversion'] = function (test)
+  test.is_string(lev.version)
+  test.ok(#lev.version > 0)
+
+  test.done()
+end
+
+exports['lev.core:\tversions'] = function (test)
+  test.is_table(lev.versions)
+  test.is_string(lev.versions.lev)
+  test.ok(#lev.versions.lev > 0)
+  test.is_string(lev.versions.http_perser)
+  test.ok(#lev.versions.http_perser > 0)
+  test.is_string(lev.versions.libuv)
+  test.ok(#lev.versions.libuv > 0)
+  test.is_string(lev.versions.luajit)
+  test.ok(#lev.versions.luajit > 0)
+
+  test.done()
+end
+
 return exports
+

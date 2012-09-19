@@ -24,6 +24,9 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "luv_debug.h"
+/* FIXME: Disable including luajit header, compile error ...
+#include "lj_obj.h"
+*/
 
 #ifndef WIN32
 #include <ctype.h>
@@ -61,7 +64,7 @@ static int process_new(lua_State* L) {
 }
 
 static int process_cwd(lua_State* L) {
-  size_t size = 2*PATH_MAX-1;
+  size_t size = 2*PATH_MAX - 1;
   char path[2*PATH_MAX];
   uv_err_t err;
 
@@ -69,142 +72,98 @@ static int process_cwd(lua_State* L) {
   if (err.code != UV_OK) {
     return luaL_error(L, "uv_cwd: %s", uv_strerror(err));
   }
+
   lua_pushstring(L, path);
   return 1;
 }
 
-#ifndef WIN32
-static int process_pid(lua_State* L) {
-  int pid = getpid();
-  lua_pushinteger(L, pid);
-  return 1;
-}
-
-static int process_setgid(lua_State* L) {
-  int gid;
-  int err;
-  int type = lua_type(L, -1);
-  if (type == LUA_TNUMBER) {
-    gid = lua_tonumber(L, -1);
-  } else if (type == LUA_TSTRING) {
-    MemBlock *mb;
-    struct group grp;
-    struct group *grpp = NULL;
-    const char *name = lua_tostring(L, -1);
-    int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) {
-      return luaL_error(L, "process.setgid: cannot get password entry buffer size");
-    }
-
-    mb = lev_slab_getBlock(bufsize);
-    lev_slab_incRef(mb);
-    err = getgrnam_r(name, &grp, (char *)mb->bytes, bufsize, &grpp);
-    if (err || grpp == NULL) {
-      return luaL_error(L, "process.setgid: group id \"%s\" does not exist", name);
-    }
-    gid = grpp->gr_gid;
-    lev_slab_decRef(mb);
-  } else {
-    return luaL_error(L, "process.setgid: number or string expected");
+static int process_chdir(lua_State *L) {
+  const char *path = luaL_checkstring(L, 1);
+  uv_err_t err = uv_chdir(path);
+  if (err.code != UV_OK) {
+    return luaL_error(L, uv_strerror(err));
   }
-
-  err = setgid(gid);
-  if (err) {
-    return luaL_error(L, "process.setgid: errno=%d", errno);
-  }
-
   return 0;
 }
 
-static int process_getgid(lua_State* L) {
-  int gid = getgid();
-  lua_pushinteger(L, gid);
+static int process_execpath(lua_State *L) {
+  size_t size = 2*PATH_MAX;
+  char exec_path[2*PATH_MAX];
+  if (uv_exepath(exec_path, &size)) {
+    uv_err_t err = uv_last_error(lev_get_loop(L));
+    return luaL_error(L, uv_strerror(err));
+  }
+
+  lua_pushlstring(L, exec_path, size);
   return 1;
 }
 
-static int process_setuid(lua_State* L) {
-  int uid;
-  int err;
-  int type = lua_type(L, -1);
-  if (type == LUA_TNUMBER) {
-    uid = lua_tonumber(L, -1);
-  } else if (type == LUA_TSTRING) {
-    MemBlock *mb;
-    struct passwd pwd;
-    struct passwd *pwdp = NULL;
-    const char *name = lua_tostring(L, -1);
-    int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) {
-      return luaL_error(L, "process.setuid: cannot get password entry buffer size");
-    }
+static int process_memory_usage(lua_State *L) {
+  lua_newtable(L);
 
-    mb = lev_slab_getBlock(bufsize);
-    lev_slab_incRef(mb);
-    err = getpwnam_r(name, &pwd, (char *)mb->bytes, bufsize, &pwdp);
-    if (err || pwdp == NULL) {
-      return luaL_error(L, "process.setuid: user id \"%s\" does not exist", name);
-    }
-    uid = pwdp->pw_uid;
-    lev_slab_decRef(mb);
-  } else {
-    return luaL_error(L, "process.setuid: number or string expected");
+  size_t rss;
+  uv_err_t err = uv_resident_set_memory(&rss);
+  if (err.code != UV_OK) {
+    uv_err_t err = uv_last_error(lev_get_loop(L));
+    return luaL_error(L, uv_strerror(err));
+  }
+  lua_pushnumber(L, rss);
+  lua_setfield(L, -2, "rss");
+
+  /* NOTE: disable luajit GC infomation */
+  /*
+  global_State *g = G(L);
+  if (g == NULL) {
+    return luaL_error(L, "cannot get the lujit global_State object");
   }
 
-  err = setuid(uid);
-  if (err) {
-    return luaL_error(L, "process.setuid: errno=%d", errno);
-  }
+  lua_newtable(L);
+  lua_pushnumber(L, g->gc.total);
+  lua_setfield(L, -2, "total");
+  lua_pushnumber(L, g->gc.threshold);
+  lua_setfield(L, -2, "threshold");
+  lua_pushnumber(L, g->gc.stepmul);
+  lua_setfield(L, -2, "stepmul");
+  lua_pushnumber(L, g->gc.debt);
+  lua_setfield(L, -2, "debt");
+  lua_pushnumber(L, g->gc.estimate);
+  lua_setfield(L, -2, "estimate");
+  lua_pushnumber(L, g->gc.pause);
+  lua_setfield(L, -2, "pause");
 
-  return 0;
-}
-
-static int process_getuid(lua_State* L) {
-  int uid = getuid();
-  lua_pushinteger(L, uid);
+  lua_setfield(L, -2, "gc");
+  */
   return 1;
 }
-#endif
 
 #define LEV_SETENV_ERRNO_MAP(XX) \
   XX(EINVAL) \
   XX(ENOMEM)
 LEV_STD_ERRNAME_FUNC(lev_setenv_errname, LEV_SETENV_ERRNO_MAP, EUNDEF)
 
-static int process_getenv(lua_State* L) {
+static int process_getenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   char *value = getenv(name);
-  if (value) {
-    lua_pushstring(L, value);
-  } else {
-    lua_pushnil(L);
-  }
+  value ? lua_pushstring(L, value) : lua_pushnil(L);
   return 1;
 }
 
-static int process_setenv(lua_State* L) {
+static int process_setenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   const char *value = luaL_checkstring(L, 2);
   int r = setenv(name, value, 1);
-  if (r) {
-    lua_pushstring(L, lev_setenv_errname(errno));
-  } else {
-    lua_pushnil(L);
-  }
+  r ? lua_pushstring(L, lev_setenv_errname(errno)) : lua_pushnil(L);
   return 1;
 }
 
-static int process_unsetenv(lua_State* L) {
+static int process_unsetenv(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   int r = unsetenv(name);
-  if (r) {
-    lua_pushstring(L, lev_setenv_errname(errno));
-  } else {
-    lua_pushnil(L);
-  }
+  r ? lua_pushstring(L, lev_setenv_errname(errno)) : lua_pushnil(L);
   return 1;
 }
 
-static int process_environ_iter(lua_State* L) {
+static int process_environ_iter(lua_State *L) {
   char ***env_ptr = (char ***)lua_touserdata(L, lua_upvalueindex(1));
   char **env = *env_ptr;
   if (*env) {
@@ -218,12 +177,13 @@ static int process_environ_iter(lua_State* L) {
   }
 }
 
-static int process_environ(lua_State* L) {
+static int process_environ(lua_State *L) {
   char ***env_ptr = (char ***)lua_newuserdata(L, sizeof(char **));
   *env_ptr = lev_os_environ();
   lua_pushcclosure(L, process_environ_iter, 1);
   return 1;
 }
+
 
 static luaL_reg methods[] = {
    /*{ "method_name",     ...      }*/
@@ -233,36 +193,34 @@ static luaL_reg methods[] = {
 
 static luaL_reg functions[] = {
    { "new", process_new }
-  ,{ "cwd", process_cwd }
+  ,{ "execpath", process_execpath }
+  ,{ "memory_usage", process_memory_usage }
   ,{ "getenv", process_getenv }
   ,{ "setenv", process_setenv }
   ,{ "unsetenv", process_unsetenv }
   ,{ "environ", process_environ }
-  ,{ "pid", process_pid }
-#ifndef WIN32
-  ,{ "setgid", process_setgid }
-  ,{ "getgid", process_getgid }
-  ,{ "setuid", process_setuid }
-  ,{ "getuid", process_getuid }
-#endif
+  ,{ "cwd", process_cwd }
+  ,{ "chdir", process_chdir }
   ,{ NULL, NULL }
 };
 
 
-#define PROPERTY_COUNT 1
+#define PROPERTY_COUNT 2
 
-static int process_platform(lua_State* L) {
-#ifdef WIN32
-  lua_pushstring(L, "win32");
-#else
-  struct utsname info;
-  char *p;
-
-  uname(&info);
-  for (p = info.sysname; *p; p++)
-    *p = (char)tolower((unsigned char)*p);
-  lua_pushstring(L, info.sysname);
+#ifndef WIN32
+static int process_pid(lua_State *L) {
+  lua_pushinteger(L, getpid());
+  return 1;
+}
 #endif
+
+static int process_title(lua_State *L) {
+  char title[8192];
+  uv_err_t err = uv_get_process_title(title, 8192);
+  if (err.code) {
+    return luaL_error(L, uv_strerror(err));
+  }
+  lua_pushstring(L, title);
   return 1;
 }
 
@@ -274,9 +232,11 @@ void luaopen_lev_process(lua_State *L) {
   lua_createtable(L, 0, ARRAY_SIZE(functions) + PROPERTY_COUNT - 1);
   luaL_register(L, NULL, functions);
 
-  /* set properties */
-  process_platform(L);
-  lua_setfield(L, -2, "platform");
+  /* properties */
+  process_pid(L);
+  lua_setfield(L, -2, "pid");
+  process_title(L);
+  lua_setfield(L, -2, "title");
 
   lua_setfield(L, -2, "process");
 }
