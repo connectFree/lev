@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <script src="jquery.min.js" type="text/javascript"></script>
+    <script src="client.js" type="text/javascript"></script>
+    <title>lev chat</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="connect">
+        <form action="#">
+          <fieldset> 
+            <label for="nick">Name</label>
+            <input id="nickInput" class="text"type="text" name="nick" value=""/>
+            <input id="connectButton" class="button" type="submit" name="" value="Join"/>
+            <p>
+              This is a chat room written in <em>lev</em>. The source code is
+              <a href="https://github.com/connectFree/lev/tree/master/examples/webchat">here</a>.<br />
+              <iframe src="http://ghbtns.com/github-btn.html?user=connectfree&amp;repo=lev&amp;type=watch&amp;count=true&amp;size=large" allowtransparency="true" frameborder="0" scrolling="0" width="152px" height="30px"></iframe>
+            </p>
+
+          </fieldset>
+        </form>
+      </div>
+      <div id="loading"><p>loading</p></div>
+      <div id="log">
+        <table class="message"><tr><td class="date">18:58</td><td valign="top" class="nick">TTilus</td>
+         <td class="msg-text">x6a616e: i think you can, there was some weird #send trick to do that</td>
+        </tr></table>
+      </div>
+      <div id="toolbar">
+        <ul id="status">
+          <li><a id="usersLink" href="#">5 users</a></li>
+          <li>uptime: <span id="uptime">?</span></li>
+          <!-- <li>memory: <span id="rss">?</span>mb RSS</li> -->
+        </ul>
+        <input tabindex="1" type="text" id="entry"/>
+      </div>
+  </body>
+</html>

@@ -39,9 +39,7 @@
 /* X:S lev */
 #include "lev_new_base.h"
 #include "uv.h"
-#include "utils.h"
 #include "luv_debug.h"
-#include "luv_portability.h"
 #include "lhttp_parser.h"
 /* X:E lev */
 

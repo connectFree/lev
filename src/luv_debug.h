@@ -17,7 +17,7 @@
 #ifndef LUV_DEBUG
 #define LUV_DEBUG
 
-#include "luv.h"
+#include <lua.h>
 
 int luaopen_debugger(lua_State *L);
 void luv_lua_debug_stackdump(lua_State *L, const char *msg);

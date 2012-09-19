@@ -36,8 +36,10 @@
 
 #define ARRAY_SIZE(a) (sizeof((a)) / sizeof((a)[0]))
 
+/* X:S network + buffer support */
 uv_buf_t on_alloc(uv_handle_t* handle, size_t suggested_size);
 void lev_pushbuffer_from_static_mb(lua_State *L, int nread);
+/* X:E network + buffer support */
 
 typedef struct _LevRefStruct {
   LEVBASE_REF_FIELDS
@@ -55,19 +57,35 @@ void luaopen_lev_dns(lua_State *L); /* lev.dns */
 void luaopen_lev_tcp(lua_State *L); /* lev.tcp */
 void luaopen_lev_udp(lua_State *L); /* lev.udp */
 void luaopen_lev_core(lua_State *L); /* lev.core */
+void luaopen_lev_json(lua_State *L); /* lev.json */
 void luaopen_lev_pipe(lua_State *L); /* lev.pipe */
 void luaopen_lev_mpack(lua_State *L); /* lev.mpack */
 void luaopen_lev_timer(lua_State *L); /* lev.timer */
 void luaopen_lev_buffer(lua_State *L); /* lev.buffer */
-void luaopen_lev_process(lua_State *L); /* lev.process */
 void luaopen_lev_signal(lua_State *L); /* lev.signal */
+void luaopen_lev_process(lua_State *L); /* lev.process */
 
-/* buffer helper functions */
+/* X:S buffer helper functions */
 int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned char *slice);
 uv_buf_t lev_buffer_to_uv(lua_State *L, int index);
 MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size);
 #define lev_checkbuffer(L, index) \
     ((MemSlice *)luaL_checkudata((L), (index), "lev.buffer"))
+
+size_t lev_memblock_empty_length(MemBlock *mb);
+size_t lev_memslice_empty_length(MemSlice *ms);
+MemBlock * lev_memblock_resize(MemBlock *mb, size_t size);
+void lev_memslice_resize(MemSlice *ms, size_t size);
+void lev_memslice_ensure_empty_length(MemSlice *ms, int len);
+void lev_memslice_append_char_unsafe(MemSlice *ms, size_t at, const char c);
+void lev_memslice_ensure_null(MemSlice *ms, size_t at);
+void lev_memslice_append_char(MemSlice *ms, size_t at, const char c);
+void lev_memslice_append_mem(MemSlice *ms, size_t from, const char *c, size_t len);
+char *lev_memslice_empty_ptr(MemSlice *ms, size_t from);
+void lev_memslice_append_mem_unsafe(MemSlice *ms, size_t from, const char *c, size_t len);
+size_t lev_memslice_append_string(MemSlice *ms, size_t from, const char *str);
+/* X:E buffer helper functions */
+
 
 void* new_object(lua_State* L, size_t size, const char* clazz);
 void set_callback(lua_State* L, const char* name, int index);
@@ -115,6 +133,10 @@ const char *lev_uv_errname(uv_err_code errcode);
   lua_setfield(L, -2, #name)
 
 char **lev_os_environ();
+
+const char* lev_handle_type_to_string(uv_handle_type type);
+
+lua_State* lev_get_main_thread(lua_State *L);
 
 /* ares utility functions. */
 void lev_set_ares_channel(lua_State *L, ares_channel channel);

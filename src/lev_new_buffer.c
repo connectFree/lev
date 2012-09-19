@@ -239,16 +239,131 @@ MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t te
   return lua_touserdata(L, -1);
 }
 
-/*
-void lev_buffer_write(MemBlock *mb, const void *src, size_t offset, size_t length) {
+/* Return bytes remaining in MemBlock
+ * Ensure there is space for a NULL terminator. */
+size_t lev_memblock_empty_length(MemBlock *mb) {
+  return mb->size - mb->nbytes - 1;
+}
+
+/* Return bytes remaining in MemSlice
+ * Ensure there is space for a NULL terminator. */
+size_t lev_memslice_empty_length(MemSlice *ms) {
+  return ms->until - 1;
+}
+
+MemBlock * lev_memblock_resize(MemBlock *mb, size_t size) {
+  MemBlock *mb_new;
+  if (size <= lev_memblock_empty_length(mb)) {
+    return mb;
+  }
+
+  size++; /* compensate for terminating NULL */
+
+  mb_new = lev_slab_getBlock( mb->nbytes + size );
+  lev_slab_incRef( mb_new );
   memcpy(
-    mb->bytes + offset
-    ,src
-    ,length
+     mb_new->bytes
+    ,mb->bytes
+    ,mb->nbytes
   );
+  mb_new->nbytes = mb->nbytes;
+  return mb_new;
+}
+
+void lev_memslice_resize(MemSlice *ms, size_t size) {
+  MemBlock *mb_new;
+  size_t size_new;
+
+  if (size <= lev_memslice_empty_length(ms)) {
+    return;
+  }
+
+  size++; /* compensate for terminating NULL */
+
+  int needs_new_mb = 1;
+
+  /* we need to check if we are able to expand on this MemBlock */
+  if (ms->slice + ms->until == ms->mb->bytes + ms->mb->nbytes) {
+    if (size <= ms->mb->size - ms->mb->nbytes) {
+      needs_new_mb = 0;
+    }
+  } 
+
+  if (needs_new_mb) {
+    size_new = ms->until + size;
+    mb_new = lev_slab_getBlock( size_new );
+    lev_slab_incRef( mb_new );
+    memcpy(
+       mb_new->bytes
+      ,ms->slice
+      ,ms->until
+    );
+    ms->slice = mb_new->bytes;
+    ms->until = size_new;
+    lev_slab_decRef(ms->mb); /* gc */
+    ms->mb = mb_new;
+    ms->mb->nbytes += size_new;
+  } else {
+    /* cool, we can use the remaining length of our current MemBlock */
+    ms->mb->nbytes += size;
+    ms->until += size;
+  }
+
   return;
 }
-*/
+
+void lev_memslice_ensure_empty_length(MemSlice *ms, int len) {
+  if (len > lev_memslice_empty_length(ms)) {
+    lev_memslice_resize(ms, len);
+  }
+}
+
+void lev_memslice_append_char_unsafe(MemSlice *ms, size_t at, const char c) {
+  ms->slice[at] = c;
+}
+
+void lev_memslice_ensure_null(MemSlice *ms, size_t at) {
+  ms->slice[at] = 0;
+}
+
+void lev_memslice_append_char(MemSlice *ms, size_t at, const char c) {
+  lev_memslice_ensure_empty_length(ms, 1);
+  ms->slice[at] = c;
+}
+
+void lev_memslice_append_mem(MemSlice *ms, size_t from, const char *c, size_t len) {
+  lev_memslice_ensure_empty_length(ms, len);
+  memcpy(ms->slice + from, c, len);
+}
+
+char *lev_memslice_empty_ptr(MemSlice *ms, size_t from) {
+  return (char *)(ms->slice + from);
+}
+
+void lev_memslice_append_mem_unsafe(MemSlice *ms, size_t from, const char *c, size_t len) {
+  memcpy(ms->slice + from, c, len);
+}
+
+
+size_t lev_memslice_append_string(MemSlice *ms, size_t from, const char *str) {
+  int i;
+  size_t space;
+  size_t _from;
+
+  _from = from;
+
+  space = lev_memslice_empty_length(ms);
+
+  for (i = 0; str[i]; i++) {
+    if (space < 1) {
+      lev_memslice_resize(ms, 1);
+      space = lev_memslice_empty_length(ms);
+    }
+    ms->slice[_from++] = str[i];
+    space--;
+  }
+  return _from - from;
+}
 
 /******************************************************************************/
 

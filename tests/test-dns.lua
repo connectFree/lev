@@ -135,6 +135,7 @@ else
     local dns = lev.dns
     local err = dns.resolveCname('www.google.com', function(err, names)
       test.is_nil(err)
+      if err then return test.done() end
       if names then
         test.ok(#names > 0)
         for i = 1, #names do
@@ -248,6 +249,7 @@ else
     local dns = lev.dns
     local err = dns.resolve('www.google.com', 'CNAME', function(err, names)
       test.is_nil(err)
+      if err then return test.done() end
       if names then
         test.ok(#names > 0)
         for i = 1, #names do
@@ -319,7 +321,7 @@ else
     end)
     test.is_nil(err)
   end
-
+  
   exports['lev.dns:\treverse_bad_ip'] = function(test)
     local lev = require('lev')
     local dns = lev.dns

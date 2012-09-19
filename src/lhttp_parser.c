@@ -17,6 +17,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include "lev_new_base.h"
 #include "lhttp_parser.h"
 #include "http_parser.h"
 

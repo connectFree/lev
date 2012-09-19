@@ -32,16 +32,21 @@
   tcp_obj* self = container_of((h), tcp_obj, handle); \
   lua_State* L = self->handle.loop->data;
 
-#define UV_CLOSE_CLIENT                           \
-    uv_read_stop((uv_stream_t*)&self->handle);    \
-    uv_shutdown_t* shutdown_req;                  \
-    shutdown_req = malloc(sizeof(uv_shutdown_t)); \
-    lev_handle_ref(L, (LevRefStruct_t*)self, 1);  \
-    uv_shutdown(                                  \
-      shutdown_req                                \
-      ,(uv_stream_t*)&self->handle                \
-      ,tcp_after_shutdown                         \
-    );                                            \
+#define UV_CLOSE_CLIENT                                 \
+    uv_read_stop((uv_stream_t*)&self->handle);          \
+    lev_handle_ref(L, (LevRefStruct_t*)self, 1);        \
+    if (self->handle.fd >= 0) {                         \
+      uv_shutdown_t* shutdown_req;                      \
+      shutdown_req = malloc(sizeof(uv_shutdown_t));     \
+      shutdown_req->data = (uv_handle_t*)&self->handle; \
+      uv_shutdown(                                      \
+        shutdown_req                                    \
+        ,(uv_stream_t*)&self->handle                    \
+        ,tcp_after_shutdown                             \
+      );                                                \
+    } else {                                            \
+      tcp_after_close((uv_handle_t*)&self->handle);     \
+    }                                                   \
 
 
 typedef struct {
@@ -50,20 +55,18 @@ typedef struct {
   uv_connect_t connect_req; /* TODO alloc on as needed basis */
 } tcp_obj;
 
-
 static void tcp_after_close(uv_handle_t* handle) {
   UNWRAP(handle);
+  lev_handle_unref(L, (LevRefStruct_t*)self);
   if (push_callback(L, self, "on_close")) {
     lua_call(L, 1, 0);/*, -3*/
-    
   }
-  lev_handle_unref(L, (LevRefStruct_t*)self);
 }
 
 void tcp_after_shutdown(uv_shutdown_t* req, int status) {
-  UNWRAP(req->handle);
-  lev_handle_unref(L, (LevRefStruct_t*)self);
-  uv_close((uv_handle_t*)&self->handle, tcp_after_close);
+  /* we will do the final unref from after_close */
+  /*lev_handle_unref(L, (LevRefStruct_t*)self);*/
+  uv_close((uv_handle_t*)req->data, tcp_after_close);
   free(req);
 }
 
@@ -167,7 +170,6 @@ static int tcp_bind(lua_State* L) {
   } else {
     lua_pushinteger(L, r);
   }
-  lev_handle_ref(L, (LevRefStruct_t*)self, 1);
 
   return 1;
 }
@@ -296,8 +298,11 @@ static int tcp_read_stop(lua_State* L) {
     lua_pushinteger(L, r);
   }
 
-  if (r == 0)
+  if (r == 0) {
     clear_callback(L, "on_read", self);
+  }
+  
+  lev_handle_unref(L, (LevRefStruct_t*)self);
 
   return 1;
 }
