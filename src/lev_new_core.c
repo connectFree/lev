@@ -491,6 +491,13 @@ static int core_umask(lua_State *L) {
   return 1;
 }
 
+static int core_exit(lua_State *L) {
+  int argc = lua_gettop(L);
+  int exit_code = (argc == 1 ? luaL_checkint(L, 1) : 0);
+  exit(exit_code);
+  return 0;
+}
+
 /* TODO: should be support debug modeule
 extern void uv_print_active_handles(uv_loop_t *loop);
 extern void uv_print_all_handles(uv_loop_t *loop);
@@ -528,6 +535,7 @@ static luaL_reg functions[] = {
   ,{"setuid", core_setuid}
   ,{"setgid", core_setgid}
   ,{"umask", core_umask}
+  ,{"exit", core_exit}
   /* TODO: should be support debug module.
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}
