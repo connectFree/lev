@@ -384,7 +384,7 @@ static int core_timecache_errorlog(lua_State* L) {
 }
 
 static int core_getuid(lua_State *L) {
-  lua_pushinteger(L, getpid());
+  lua_pushinteger(L, getuid());
   return 1;
 }
 
