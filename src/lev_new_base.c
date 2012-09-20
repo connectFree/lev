@@ -24,38 +24,51 @@
 static char object_registry[0];
 static MemBlock *_static_mb = NULL;
 
+#define STATIC_MB_SIZE   8192
+
 uv_buf_t on_alloc(uv_handle_t* handle, size_t suggested_size) {
   uv_buf_t buf;
-  size_t remaining;
+  size_t size = STATIC_MB_SIZE;
 
-  if (!_static_mb) {
-    _static_mb = lev_slab_getBlock( suggested_size );
-    lev_slab_incRef( _static_mb );
-  }
-
-  remaining = _static_mb->size - _static_mb->nbytes;
-  if (_static_mb->size - _static_mb->nbytes < 512) {
+  if (_static_mb && _static_mb->size - _static_mb->nbytes < size) {
     lev_slab_decRef( _static_mb );
-    _static_mb = lev_slab_getBlock( suggested_size );
-    lev_slab_incRef( _static_mb );
-    remaining = _static_mb->size - _static_mb->nbytes;
+    _static_mb = lev_slab_getBlock( size );
+  } else if (!_static_mb){
+    _static_mb = lev_slab_getBlock( size );
   }
 
   buf.base = (char *)(_static_mb->bytes + _static_mb->nbytes);
-  buf.len = remaining;
-
+  buf.len = _static_mb->size - _static_mb->nbytes;
   return buf;
 }
 
+/* this will ALWAYS be called after on_alloc */
 void lev_pushbuffer_from_static_mb(lua_State *L, int nread) {
+  MemBlock *mb = NULL;
+
+  mb = _static_mb;
+  if (STATIC_MB_SIZE != _static_mb->size) {
+    lev_slab_incRef( _static_mb );
+  } else { /* we completely own this MemBlock, no need to give it to others */
+    _static_mb = NULL;
+  }
+
+  if (-1 == nread) {
+    if (!_static_mb) {/* we own this mb -- dispose of it */
+      lev_slab_incRef( mb );
+      lev_slab_decRef( mb );
+    }
+    return;
+  }
+
   /* push new cBuffer */
   lev_pushbuffer_from_mb(
        L
-      ,_static_mb
+      ,mb
       ,nread
-      ,_static_mb->bytes + _static_mb->nbytes
+      ,mb->bytes + mb->nbytes
     ); /* automatically incRef's mb */
-  _static_mb->nbytes += nread; /* consume nread bytes */
+  mb->nbytes += nread; /* consume nread bytes */
 }
 
 static void create_object_registry(lua_State* L) {

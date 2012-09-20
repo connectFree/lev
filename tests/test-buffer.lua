@@ -172,7 +172,7 @@ exports['lev.buffer:\tBuffer:slice'] = function(test)
    buf[3] = 0x23
    buf[4] = 0x42
 
-   local sliced_buf = buf:slice(3, 4)
+   local sliced_buf = buf:slice(3, 2) --slice from pos 3, over two bytes
    test.equal(sliced_buf:readUInt16BE(1), 0x2342)
    local sliced_sliced_buf = sliced_buf:slice(1, 1)
    test.equal(sliced_sliced_buf:readUInt8(1), 0x23)
@@ -180,7 +180,7 @@ exports['lev.buffer:\tBuffer:slice'] = function(test)
    local buf2 = Buffer:new('abcdefghij')
    test.equal(tostring(buf2), 'abcdefghij')
    test.equal(buf2:toString(1, 2), 'ab')
-   test.equal(buf2:toString(2, 3), 'bc')
+   test.equal(buf2:toString(2, 2), 'bc')
    test.equal(buf2:toString(3), 'cdefghij')
    test.equal(buf2:toString(), 'abcdefghij')
 
@@ -310,6 +310,20 @@ exports['lev.buffer:\tbitwise write'] = function(test)
    writebuf:writeInt32BE(-0x04FBDCBE, 1)
    writebuf:writeInt32LE(0x422304FB, 1)
    test.equal(writebuf:inspect(), '<Buffer FB 04 23 42 >')
+
+   test.done()
+end
+
+exports['lev.buffer:\twriteHex'] = function(test)
+   local writebuf = Buffer:new(32)
+
+   test.equal(writebuf:writeHexLower(10239409280934129300, 1), 16)
+   test.equal(writebuf:writeHexLower(10239409280934129300, 17), 16)
+   test.equal(writebuf:inspect(), '<Buffer 38 65 31 39 62 30 37 64 38 33 65 61 62 30 30 30 38 65 31 39 62 30 37 64 38 33 65 61 62 30 30 30 >')
+   writebuf:writeHexUpper(12345, 1)
+   writebuf:writeHexUpper(199, 5)
+   writebuf:writeHexUpper(10291829031, 7)
+   test.equal(writebuf:inspect(), '<Buffer 33 30 33 39 43 37 32 36 35 37 30 44 39 32 37 30 38 65 31 39 62 30 37 64 38 33 65 61 62 30 30 30 >')
 
    test.done()
 end

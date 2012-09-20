@@ -98,6 +98,7 @@ static void on_connection(uv_stream_t* handle, int status) {
 static void on_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf) {
   UNWRAP(handle);
   if (-1 == nread) {/* automatically shutdown connection */
+    lev_pushbuffer_from_static_mb(L, nread); /* won't actually push -- used to clean-up! */
     UV_CLOSE_CLIENT
   } else {
     push_callback(L, self, "on_read");

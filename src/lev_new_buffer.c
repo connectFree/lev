@@ -129,13 +129,13 @@ static void *my_memmem(l, l_len, s, s_len)
 
 
 #define BUFFER_UDATA(L)                                                        \
-  MemSlice *ms = luaL_checkudata(L, 1, "lev.buffer");                           \
+  MemSlice *ms = luaL_checkudata(L, 1, "lev.buffer");                          \
   unsigned char *buffer = (unsigned char *)ms->slice;                          \
   size_t buffer_len = ms->until;                                               \
 
 #define _BUFFER_GETOFFSET(L, _idx, extbound)                                   \
-  size_t index = (size_t)lua_tonumber(L, _idx);                                \
-  if (index < 1 || index > buffer_len - extbound) {                            \
+  size_t index = (size_t)lua_tointeger(L, _idx);                                \
+  if (index < 1 || index - 1 > buffer_len - extbound) {                        \
     return luaL_argerror(L, _idx, "Index out of bounds");                      \
   }
 
@@ -148,36 +148,6 @@ static MemBlock *_static_mb = NULL;
 MemSlice *lev_checkbufobj(lua_State *L, int index) {
   MemSlice *ms = lua_unboxpointerchk(L, index, "lev.buffer");
   return ms;
-}
-
-MemBlock * lev_resizebuffer(lua_State *L, int index, size_t size) {
-  printf("WARNING: lev_resizebuffer not implemented;\n");
-  return NULL;
-
-  unsigned char *new_buffer;
-
-  MemBlock *old_mb = (MemBlock *)lev_checkbufobj(L, index);
-  unsigned char *old_buffer = (unsigned char *)old_mb->bytes;
-  size_t old_buffer_len = *((size_t*)(old_buffer));
-  old_buffer += sizeof(size_t);
-
-  MemBlock *new_mb = lev_slab_getBlock( size + sizeof(size_t) );
-  lev_slab_incRef( new_mb );
-  /***** here we would switch-out our pointers *****/
-  new_buffer = (unsigned char *)new_mb->bytes;
-  /* store the length of string inside of the beginning of the buffer */
-  *((size_t*)(new_buffer)) = (size_t)size;
-
-  /* copy old contents to new userdata */
-  memcpy(
-     new_buffer + sizeof(size_t)
-    ,old_buffer
-    ,(size > old_buffer_len ? old_buffer_len : size)
-  );
-
-  lev_slab_decRef( old_mb );
-
-  return new_mb;
 }
 
 int lev_pushbuffer_from_mb(lua_State *L, MemBlock *mb, size_t until, unsigned char *slice) {
@@ -201,23 +171,27 @@ uv_buf_t lev_buffer_to_uv(lua_State *L, int index) {
 }
 
 MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t temp_size) {
+  MemBlock *mb = NULL;
 
-  if (!_static_mb) {
+  if (_static_mb && _static_mb->size - _static_mb->nbytes < size) {
+    lev_slab_decRef( _static_mb );
     _static_mb = lev_slab_getBlock( size );
-    lev_slab_incRef( _static_mb );
+  } else if (!_static_mb){
+    _static_mb = lev_slab_getBlock( size );
   }
 
-  if (_static_mb->size - _static_mb->nbytes < size) {
-    lev_slab_decRef( _static_mb );
-    _static_mb = lev_slab_getBlock(size);
+  mb = _static_mb;
+  if (size != _static_mb->size) {
     lev_slab_incRef( _static_mb );
+  } else { /* we completely own this MemBlock, no need to give it to others */
+    _static_mb = NULL;
   }
 
   lev_pushbuffer_from_mb(
      L
-    ,_static_mb
+    ,mb
     ,size
-    ,_static_mb->bytes + _static_mb->nbytes
+    ,mb->bytes + mb->nbytes
   ); /* automatically incRef's mb */
 
   if (temp) {
@@ -225,15 +199,15 @@ MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t te
       temp_size = size;
     }
     memcpy(
-      _static_mb->bytes + _static_mb->nbytes
+      mb->bytes + mb->nbytes
       ,temp
       ,(size > temp_size ? temp_size : size)
       );
   } else {
-    memset(_static_mb->bytes + _static_mb->nbytes, '\0', size);
+    memset(mb->bytes + mb->nbytes, '\0', size);
   }
 
-  _static_mb->nbytes += size;
+  mb->nbytes += size;
 
   /* return the userdata */
   return lua_touserdata(L, -1);
@@ -251,32 +225,18 @@ size_t lev_memslice_empty_length(MemSlice *ms) {
   return ms->until - 1;
 }
 
-MemBlock * lev_memblock_resize(MemBlock *mb, size_t size) {
-  MemBlock *mb_new;
-  if (size <= lev_memblock_empty_length(mb)) {
-    return mb;
-  }
-
-  size++; /* compensate for terminating NULL */
-
-  mb_new = lev_slab_getBlock( mb->nbytes + size );
-  lev_slab_incRef( mb_new );
-  memcpy(
-     mb_new->bytes
-    ,mb->bytes
-    ,mb->nbytes
-  );
-  mb_new->nbytes = mb->nbytes;
-  return mb_new;
-}
-
+/* 
+  size is the size of the memslice that we want,
+  *not* the size some byterange that we are about to append
+*/
 void lev_memslice_resize(MemSlice *ms, size_t size) {
   MemBlock *mb_new;
-  size_t size_new;
 
   if (size <= lev_memslice_empty_length(ms)) {
     return;
   }
+
+  printf("[%p] GOING FOR RESIZE!\n", ms);
 
   size++; /* compensate for terminating NULL */
 
@@ -284,29 +244,28 @@ void lev_memslice_resize(MemSlice *ms, size_t size) {
 
   /* we need to check if we are able to expand on this MemBlock */
   if (ms->slice + ms->until == ms->mb->bytes + ms->mb->nbytes) {
-    if (size <= ms->mb->size - ms->mb->nbytes) {
+    if (size <= ms->until + (ms->mb->size - ms->mb->nbytes)) {
       needs_new_mb = 0;
     }
   } 
 
   if (needs_new_mb) {
-    size_new = ms->until + size;
-    mb_new = lev_slab_getBlock( size_new );
+    mb_new = lev_slab_getBlock( size );
     lev_slab_incRef( mb_new );
     memcpy(
        mb_new->bytes
       ,ms->slice
-      ,ms->until
+      ,ms->until /* we can only increase the buffer at this point, so use ms->until over size */
     );
     ms->slice = mb_new->bytes;
-    ms->until = size_new;
+    ms->until = size;
     lev_slab_decRef(ms->mb); /* gc */
     ms->mb = mb_new;
-    ms->mb->nbytes += size_new;
+    ms->mb->nbytes += size;
   } else {
     /* cool, we can use the remaining length of our current MemBlock */
     ms->mb->nbytes += size;
-    ms->until += size;
+    ms->until = size;
   }
 
   return;
@@ -327,12 +286,12 @@ void lev_memslice_ensure_null(MemSlice *ms, size_t at) {
 }
 
 void lev_memslice_append_char(MemSlice *ms, size_t at, const char c) {
-  lev_memslice_ensure_empty_length(ms, 1);
+  lev_memslice_ensure_empty_length(ms, at + 1);
   ms->slice[at] = c;
 }
 
 void lev_memslice_append_mem(MemSlice *ms, size_t from, const char *c, size_t len) {
-  lev_memslice_ensure_empty_length(ms, len);
+  lev_memslice_ensure_empty_length(ms, from + len);
   memcpy(ms->slice + from, c, len);
 }
 
@@ -356,7 +315,7 @@ size_t lev_memslice_append_string(MemSlice *ms, size_t from, const char *str) {
 
   for (i = 0; str[i]; i++) {
     if (space < 1) {
-      lev_memslice_resize(ms, 1);
+      lev_memslice_resize(ms, i + 1);
       space = lev_memslice_empty_length(ms);
     }
     ms->slice[_from++] = str[i];
@@ -369,19 +328,21 @@ size_t lev_memslice_append_string(MemSlice *ms, size_t from, const char *str) {
 
 /* Takes as arguments a number or string */
 static int buffer_new (lua_State *L) {
+  int entry_type;
   size_t buffer_size;
   const char *lua_temp = NULL;
 
   int init_idx = 1;
 
-  int entry_type = lua_type(L, 1);
+  entry_type = lua_type(L, 1);
   if (LUA_TTABLE == entry_type) {
     init_idx++;
   }
 
-  if (lua_isnumber(L, init_idx)) { /* are we perscribing a length */
-    buffer_size = (size_t)lua_tonumber(L, init_idx);
-  } else if (lua_isstring(L, init_idx)) { /* must be a string */
+  entry_type = lua_type(L, init_idx);
+  if (LUA_TNUMBER == entry_type) { /* are we perscribing a length */
+    buffer_size = (size_t)lua_tointeger(L, init_idx);
+  } else if (LUA_TSTRING == entry_type) { /* must be a string */
     lua_temp = lua_tolstring(L, init_idx, &buffer_size);
   } else {
     return luaL_argerror(L, init_idx, "Must be of type 'Number' or 'String'");
@@ -419,7 +380,7 @@ static int buffer_isbuffer (lua_State *L) {
 static int buffer_tostring (lua_State *L) {
   BUFFER_UDATA(L)
 
-  size_t offset = (size_t)lua_tonumber(L, 2);
+  size_t offset = (size_t)lua_tointeger(L, 2);
   if (!offset) {
     offset = 1;
   }
@@ -427,18 +388,18 @@ static int buffer_tostring (lua_State *L) {
     return luaL_argerror(L, 2, "Offset out of bounds");
   }
 
-  size_t length = (size_t)lua_tonumber(L, 3);
+  offset--; /* account for Lua-isms */
+
+  size_t length = (size_t)lua_tointeger(L, 3);
   if (!length) {
-    length = buffer_len;
+    length = buffer_len - offset;
   }
-  if (length < offset || length > buffer_len) {
+  if (length > buffer_len - offset) {
     return luaL_argerror(L, 3, "length out of bounds");
   }
 
-  offset--; /* account for Lua-isms */
-
   /* skip first size_t length */
-  lua_pushlstring(L, (const char *)buffer + offset, length - offset);
+  lua_pushlstring(L, (const char *)buffer + offset, length);
   return 1;
 }
 
@@ -448,7 +409,7 @@ static int buffer_slice (lua_State *L) {
 
   MemSlice *ms = luaL_checkudata(L, 1, "lev.buffer");
 
-  size_t offset = (size_t)lua_tonumber(L, 2);
+  size_t offset = (size_t)lua_tointeger(L, 2);
   if (!offset) {
     offset = 1;
   }
@@ -456,21 +417,21 @@ static int buffer_slice (lua_State *L) {
     return luaL_argerror(L, 2, "Offset out of bounds");
   }
 
-  size_t length = (size_t)lua_tonumber(L, 3);
+  offset--; /* account for Lua-isms */
+
+  size_t length = (size_t)lua_tointeger(L, 3);
   if (!length) {
-    length = ms->until;
+    length = ms->until - offset;
   }
-  if (length < offset || length > ms->until) {
+  if (length > ms->until - offset) {
     return luaL_argerror(L, 3, "length out of bounds");
   }
-
-  offset--; /* account for Lua-isms */
 
   lev_slab_incRef( ms->mb );
   slice_ms = (MemSlice *)create_obj_init_ref(L, sizeof *slice_ms, "lev.buffer");
   slice_ms->mb = ms->mb;
   slice_ms->slice = ms->slice + offset;
-  slice_ms->until = length - offset;
+  slice_ms->until = length;
 
   return 1;
 }
@@ -479,7 +440,7 @@ static int buffer_slice (lua_State *L) {
 static int buffer_fill (lua_State *L) {
   BUFFER_UDATA(L)
 
-  size_t offset = (size_t)lua_tonumber(L, 3);
+  size_t offset = (size_t)lua_tointeger(L, 3);
   if (!offset) {
     offset = 1;
   }
@@ -487,7 +448,7 @@ static int buffer_fill (lua_State *L) {
     return luaL_argerror(L, 3, "Offset out of bounds");
   }
 
-  size_t length = (size_t)lua_tonumber(L, 4);
+  size_t length = (size_t)lua_tointeger(L, 4);
   if (!length) {
     length = buffer_len;
   }
@@ -498,21 +459,23 @@ static int buffer_fill (lua_State *L) {
   offset--; /* account for Lua-isms */
 
   uint8_t value;
+  int entry_type;
 
-  if (lua_isnumber(L, 2)) {
-    value = (uint8_t)lua_tonumber(L, 2); /* using value_len here as value */
+  entry_type = lua_type(L, 2);
+
+  if (LUA_TNUMBER == entry_type) {
+    value = (uint8_t)lua_tointeger(L, 2); /* using value_len here as value */
     if (value > 255) {
       return luaL_argerror(L, 2, "0 < Value < 255");
     }
-  } else if (lua_isstring(L, 2)) {
+  } else if (LUA_TSTRING == entry_type) {
     value = *((uint8_t*)lua_tolstring(L, 2, NULL));
   } else {
     return luaL_argerror(L, 2, "Value is not of type 'String' or 'Number'");
   }
 
   memset(buffer + offset, value, length - offset);
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 /* find(buffer, char) */
@@ -599,7 +562,7 @@ static int buffer_upuntil (lua_State *L) {
     return 1;
   }
 
-  size_t offset = (size_t)lua_tonumber(L, 3);
+  size_t offset = (size_t)lua_tointeger(L, 3);
   if (!offset) {
     offset = 1;
   }
@@ -641,7 +604,7 @@ static int buffer_readInt8 (lua_State *L) {
 static int buffer_readUInt16BE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 2, 1) /* sets index */
+  _BUFFER_GETOFFSET(L, 2, 2) /* sets index */
 
   lua_pushnumber(L, __bswap16( *((uint16_t*)(buffer + index - 1)) ) );
   return 1;
@@ -651,7 +614,7 @@ static int buffer_readUInt16BE (lua_State *L) {
 static int buffer_readUInt16LE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 2, 1) /* sets index */
+  _BUFFER_GETOFFSET(L, 2, 2) /* sets index */
 
   lua_pushnumber(L, *((uint16_t*)(buffer + index - 1)));
   return 1;
@@ -661,7 +624,7 @@ static int buffer_readUInt16LE (lua_State *L) {
 static int buffer_readUInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 2, 4) /* sets index */
 
   lua_pushnumber(L, __bswap32( *((uint32_t*)(buffer + index - 1)) ) );
   return 1;
@@ -672,7 +635,7 @@ static int buffer_readUInt32BE (lua_State *L) {
 static int buffer_readUInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 2, 4) /* sets index */
 
   lua_pushnumber(L, *((uint32_t*)(buffer + index - 1)));
   return 1;
@@ -682,7 +645,7 @@ static int buffer_readUInt32LE (lua_State *L) {
 static int buffer_readInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 2, 4) /* sets index */
 
   lua_pushnumber(L, (int32_t)__bswap32( *((uint32_t*)(buffer + index - 1)) ) );
   return 1;
@@ -693,7 +656,7 @@ static int buffer_readInt32BE (lua_State *L) {
 static int buffer_readInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 2, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 2, 4) /* sets index */
 
   lua_pushnumber(L, *((int32_t*)(buffer + index - 1)));
   return 1;
@@ -707,8 +670,7 @@ static int buffer_writeUInt8 (lua_State *L) {
 
   *((uint8_t*)(buffer + index - 1)) = luaL_checknumber(L, 2);
 
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 
@@ -719,41 +681,37 @@ static int buffer_writeInt8 (lua_State *L) {
   BUFFER_GETOFFSET(L, 3) /* sets index */
 
   *((int8_t*)(buffer + index - 1)) = luaL_checknumber(L, 2);
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 /* writeUInt16LE(buffer, value, offset) */
 static int buffer_writeUInt16BE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 3, 1) /* sets index */
+  _BUFFER_GETOFFSET(L, 3, 2) /* sets index */
 
   *((uint16_t*)(buffer + index - 1)) = __bswap16( luaL_checknumber(L, 2) );
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 /* writeUInt16LE(buffer, value, offset) */
 static int buffer_writeUInt16LE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 3, 1) /* sets index */
+  _BUFFER_GETOFFSET(L, 3, 2) /* sets index */
 
   *((uint16_t*)(buffer + index - 1)) = luaL_checknumber(L, 2);
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 /* writeUInt32LE(buffer, value, offset) */
 static int buffer_writeUInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 3, 4) /* sets index */
 
   *((uint32_t*)(buffer + index - 1)) = __bswap32( luaL_checknumber(L, 2) );
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 
@@ -761,22 +719,20 @@ static int buffer_writeUInt32BE (lua_State *L) {
 static int buffer_writeUInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 3, 4) /* sets index */
 
   *((uint32_t*)(buffer + index - 1)) = luaL_checknumber(L, 2);
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 /* writeInt32LE(buffer, value, offset) */
 static int buffer_writeInt32BE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 3, 4) /* sets index */
 
   *((int32_t*)(buffer + index - 1)) = __bswap32( luaL_checknumber(L, 2) );
-  lua_pushnil(L);
-  return 1;
+  return 0;
 }
 
 
@@ -784,10 +740,59 @@ static int buffer_writeInt32BE (lua_State *L) {
 static int buffer_writeInt32LE (lua_State *L) {
   BUFFER_UDATA(L)
 
-  _BUFFER_GETOFFSET(L, 3, 3) /* sets index */
+  _BUFFER_GETOFFSET(L, 3, 4) /* sets index */
 
   *((int32_t*)(buffer + index - 1)) = luaL_checknumber(L, 2);
-  lua_pushnil(L);
+  return 0;
+}
+
+/* writeHexLower(buffer, write, offset) */
+static int buffer_write_hex_lower (lua_State *L) {
+  size_t write_int;
+  size_t out_int;
+  char tmp[32];
+
+  BUFFER_UDATA(L)
+
+  write_int = luaL_checknumber(L, 2);
+  out_int = snprintf(tmp, 32, "%zx", write_int);
+
+  size_t index = (size_t)lua_tointeger(L, 3);
+  if (index < 1 || index - 1 > buffer_len - out_int) {
+    return luaL_argerror(L, 3, "Index out of bounds");
+  }
+
+  int i;
+  for (i = 0;tmp[i];) { /* this should be faster than memcpy */
+      *(buffer + index++ - 1) = tmp[i++];
+  }
+
+  lua_pushnumber(L, out_int);
+  return 1;
+}
+
+/* writeHexUpper(buffer, write, offset) */
+static int buffer_write_hex_upper (lua_State *L) {
+  size_t write_int;
+  size_t out_int;
+  char tmp[32];
+
+  BUFFER_UDATA(L)
+
+  write_int = luaL_checknumber(L, 2);
+  out_int = snprintf(tmp, 32, "%zX", write_int);
+
+  size_t index = (size_t)lua_tointeger(L, 3);
+  if (index < 1 || index - 1 > buffer_len - out_int) {
+    return luaL_argerror(L, 3, "Index out of bounds");
+  }
+
+  int i;
+  for (i = 0;tmp[i];) { /* this should be faster than memcpy */
+      *(buffer + index++ - 1) = tmp[i++];
+  }
+
+  lua_pushnumber(L, out_int);
   return 1;
 }
 
@@ -820,7 +825,7 @@ static int buffer__len (lua_State *L) {
 
 /* __index(buffer, key) */
 static int buffer__index (lua_State *L) {
-  if (!lua_isnumber(L, 2)) { /* key should be a number */
+  if (LUA_TNUMBER != lua_type(L, 2)) { /* key should be a number */
     const char *value = lua_tolstring(L, 2, NULL);
     if (value[0] == 'l' && 0 == strncmp(value, "length", 7)) { /* ghetto deprecation! */
       MemSlice *ms = luaL_checkudata(L, 1, "lev.buffer");
@@ -981,33 +986,51 @@ static int buffer__concat (lua_State *L) {
 
 /* __newindex(buffer, key, value) */
 static int buffer__newindex (lua_State *L) {
+  int entry_type;
   size_t value_len;
+  const char *value;
+  MemSlice *value_ms;
 
-  if (!lua_isnumber(L, 2)) { /* key should be a number */
+  if (LUA_TNUMBER != lua_type(L, 2)) { /* key should be a number */
     return luaL_argerror(L, 1, "We only support setting indices by type Number");
   }
 
   BUFFER_UDATA(L)
-
   BUFFER_GETOFFSET(L, 2) /* sets index */
   
-  if (lua_isnumber(L, 3)) {
-    value_len = (size_t)lua_tonumber(L, 3); /* using value_len here as value */
-    if (value_len > 255) {
-      return luaL_argerror(L, 3, "0 < Value < 255");
-    }
-    *((unsigned char *)(buffer + index - 1)) = value_len;
-  } else if (lua_isstring(L, 3)) {
-    const char *value = lua_tolstring(L, 3, &value_len);
-
-    if (value_len > buffer_len - index - 1) {
-      return luaL_argerror(L, 3, "Value is longer than Buffer Length");
-    }
-    memcpy(buffer + index - 1, value, value_len);
-  } else {
-    return luaL_argerror(L, 3, "Value is not of type 'String' or 'Number'");
+  entry_type = lua_type(L, 3);
+  switch (entry_type) {
+    case LUA_TUSERDATA:
+      value_ms = luaL_checkudata(L, 3, "lev.buffer");
+      lev_memslice_append_mem(
+           ms
+          ,index - 1 /* offset */
+          ,(const char *)value_ms->slice
+          ,value_ms->until
+        );
+      break;
+    case LUA_TSTRING:
+      value = lua_tolstring(L, 3, &value_len);
+      lev_memslice_append_mem(
+           ms
+          ,index - 1 /* offset */
+          ,(const char *)value
+          ,value_len
+        );
+      break;
+    case LUA_TNUMBER:
+      value_len = (size_t)lua_tointeger(L, 3); /* using value_len here as value */
+      if (value_len > 255) {
+        return luaL_argerror(L, 3, "0 < Value < 255");
+      }
+      *((unsigned char *)(buffer + index - 1)) = value_len;
+      break;
+    default:
+      return luaL_argerror(L, 3, "Must be of type 'String', 'Number' or 'cBuffer'");
+      break;
   }
-  return 1;
+
+  return 0;
 }
 
 static int buffer_debug(lua_State *L) {
@@ -1050,7 +1073,10 @@ static luaL_reg methods[] = {
   ,{"writeUInt32BE", buffer_writeUInt32BE}
   ,{"writeUInt32LE", buffer_writeUInt32LE}
   ,{"writeInt32BE", buffer_writeInt32BE}
-  ,{"writeInt32LE", buffer_writeInt32LE}  
+  ,{"writeInt32LE", buffer_writeInt32LE}
+
+  ,{"writeHexLower", buffer_write_hex_lower}
+  ,{"writeHexUpper", buffer_write_hex_upper}
 
    /* meta */
   ,{"__gc", buffer__gc}

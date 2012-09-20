@@ -47,9 +47,9 @@ static void _lev_slab_fill(lev_slab_allocator_t *allocator, size_t blocksize, in
 
 void lev_slab_fill() {
   _lev_slab_fill((lev_slab_allocator_t*)&mem_1k, 1024, 1024);
-  _lev_slab_fill((lev_slab_allocator_t*)&mem_8k, 8*1024, 8);
+  _lev_slab_fill((lev_slab_allocator_t*)&mem_8k, 8*1024, 256);
   _lev_slab_fill((lev_slab_allocator_t*)&mem_16k, 16*1024, 8);
-  _lev_slab_fill((lev_slab_allocator_t*)&mem_64k, 64*1024, 32);
+  _lev_slab_fill((lev_slab_allocator_t*)&mem_64k, 64*1024, 8);
   _lev_slab_fill((lev_slab_allocator_t*)&mem_1024k, 1024*1024, 0);
 }
 
@@ -99,7 +99,7 @@ int lev_slab_incRef(MemBlock *block) {
   return block->refcount;
 }
 
-int lev_slab_decRef(MemBlock *block) {
+int lev_slab_decRefCount(MemBlock *block, int count) {
   if (!block) return 0;
 
   block->refcount--;
@@ -109,12 +109,11 @@ int lev_slab_decRef(MemBlock *block) {
   if (block->refcount == 0) {/* return block to pool */
     if (block->allocator->pool_count < block->allocator->pool_min) {
       block->allocator->pool[block->allocator->pool_count++] = block;
+      /* printf("BLOCK PUT ON SHELF %lu -> %d\n", block->size, block->allocator->pool_count); */
     } else {
-      free(block);
+      free(block); 
     }
-    
-    /*printf("BLOCK PUT ON SHELF %lu -> %d\n", block->size, block->allocator->pool_count);*/
+    return 0;
   }
-
   return block->refcount;
 }

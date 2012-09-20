@@ -181,6 +181,7 @@ static void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t buf,
   UNWRAP(handle);
 
   if (nread <= 0) {
+    lev_pushbuffer_from_static_mb(L, nread); /* won't actually push -- used to clean-up! */
     /* automatically close on error and EOF */
     UV_UDP_CLOSE(handle);
 

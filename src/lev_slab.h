@@ -45,7 +45,7 @@ typedef struct _MemBlock MemBlock;
 
 struct _MemBlock {
   lev_slab_allocator_t *allocator;
-  int refcount;  /* Number of reference to this block */
+  int refcount;  /* Number of references to this block */
   size_t size;   /* Size of the datablock */
   size_t nbytes; /* Number of bytes actually in buffer */
   unsigned char bytes[0];
@@ -67,7 +67,8 @@ typedef struct _MemSlice {
 void lev_slab_fill();
 MemBlock *lev_slab_getBlock(size_t size);
 int lev_slab_incRef(MemBlock *block);
-int lev_slab_decRef(MemBlock *block);
+int lev_slab_decRefCount(MemBlock *block, int count);
+#define lev_slab_decRef(block)   lev_slab_decRefCount(block, 1)
 
 #endif
 

@@ -74,7 +74,6 @@ MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t te
 
 size_t lev_memblock_empty_length(MemBlock *mb);
 size_t lev_memslice_empty_length(MemSlice *ms);
-MemBlock * lev_memblock_resize(MemBlock *mb, size_t size);
 void lev_memslice_resize(MemSlice *ms, size_t size);
 void lev_memslice_ensure_empty_length(MemSlice *ms, int len);
 void lev_memslice_append_char_unsafe(MemSlice *ms, size_t at, const char c);

@@ -360,7 +360,7 @@ static inline char *memslice_wrap_strbuf_string(strbuf_t *s, int *len){
 #define strbuf_append_string(s, c)         s->length += lev_memslice_append_string(s->ms, s->length, c)
 #define strbuf_extend_length(s, l)         s->length += l;
 #define strbuf_append_char_unsafe(s, c)    lev_memslice_append_char_unsafe(s->ms, s->length, c); s->length++
-#define strbuf_ensure_empty_length(s, l)   lev_memslice_ensure_empty_length(s->ms, l)
+#define strbuf_ensure_empty_length(s, l)   lev_memslice_ensure_empty_length(s->ms, s->length + l)
 #define strbuf_append_mem_unsafe(s, c, l)  lev_memslice_append_mem_unsafe(s->ms, s->length, c, l); s->length += l
 
 /* X:E support layer for MemBlocks */
