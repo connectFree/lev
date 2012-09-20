@@ -173,32 +173,6 @@ exports['lev.core:\tgetgid'] = function (test)
   test.done()
 end
 
--- TODO: How do we test?
---exports['lev.core:\tsetuid: specify string value'] = function (test)
---  local old = lev.getuid()
---  local ret = lev.setuid('nobody')
---  local new = lev.getuid()
---  p(old, new)
---
---  test.is_nil(ret)
---  test.not_is_equal(new, old)
---
---  test.done()
---end
-
--- TODO: How do we test?
---exports['lev.core:\tsetgid: specify string value'] = function (test)
---  local old = lev.getgid()
---  local ret = lev.setuid('nobody')
---  local new = lev.getgid()
---  p(old, new)
---
---  test.is_nil(ret)
---  test.not_is_equal(new, old)
---
---  test.done()
---end
-
 exports['lev.core:\tumask: specify number value'] = function (test)
   local mask = tonumber('0644', 8)
   local old = lev.umask(mask)
