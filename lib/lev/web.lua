@@ -6,6 +6,9 @@ local osDate = require('os').date
 local newHttpParser = require('http_parser').new
 local parseUrl = require('http_parser').parseUrl
 
+local CRLF = '\r\n'
+local CHUNK_BUFFER = Buffer:new(1024)
+local CHUNKED_NO_TRAILER = Buffer:new('0' .. CRLF .. CRLF)
 
 local web = {}
 
@@ -94,13 +97,25 @@ function web.createServer(host, port, onRequest, onData)
         request.upgrade = info.upgrade
 
         response = {
-          writeHead = function(statusCode, headers)
+           headers_sent = false
+          ,chunked_encoding = true
+          ,writeHead = function(statusCode, headers)
+            if response.headers_sent then error("headers already sent") end
             local reasonPhrase = STATUS_CODES[statusCode] or 'unknown'
             if not reasonPhrase then error("Invalid response code " .. tostring(statusCode)) end
 
-            local headers_len = 64
+            local response_buffer = Buffer:new( 1024 )
+            local response_buffer_len = 0
 
-            local _headers = {["server"]="lev", ["connection"] = "Close", ["content-type"] = "text/html"}
+            response_buffer[1] = 'HTTP/1.1 '
+            response_buffer_len = response_buffer_len + 9
+
+            local line
+            line = string.format("%s %s\r\n", statusCode, reasonPhrase)
+            response_buffer[response_buffer_len+1] = line
+            response_buffer_len = response_buffer_len + #line
+
+            local _headers = {["server"]="lev", ["connection"] = "close", ["content-type"] = "text/html"}
 
             --get date header from nginx-esque time slot cache
             _headers['date'] = lev.timeHTTP()
@@ -109,34 +124,53 @@ function web.createServer(host, port, onRequest, onData)
               for k,v in pairs(headers) do _headers[k:lower()] = v end
             end
 
-            local head = { string.format("HTTP/1.1 %s %s\r\n", statusCode, reasonPhrase) }
+            if _headers['content-length'] then
+              response.chunked_encoding = false
+            else
+              _headers['transfer-encoding'] = 'chunked'
+            end
 
             for key, value in pairs(_headers) do
-              headers_len = headers_len + #key + #value
-              table.insert(head, string.format("%s: %s\r\n", key, value))
-            end
-            table.insert(head, "\r\n")
-            headers_len = headers_len + 2
-
-            local out_buffer = Buffer:new(headers_len)
-
-            local at = 1
-            for i=1,#head do
-              local part_len = #head[i]
-              out_buffer[ at ] = head[i]
-              at = at + part_len
+              line = string.format("%s: %s\r\n", key, value)
+              response_buffer[response_buffer_len+1] = line
+              response_buffer_len = response_buffer_len + #line
             end
 
-            client:write( out_buffer:slice(1,at-1) )
+            -- CRLF into body
+            response_buffer[response_buffer_len+1] = CRLF
+            response_buffer_len = response_buffer_len + 2
+
+            client:write( response_buffer:slice(1, response_buffer_len) )
+            response.headers_sent = true
+            response_buffer = nil
+
           end --X:E res.writeHead
           ,write = function(chunk)
-            client:write( chunk )
+            if not response.headers_sent then response.writeHead(200) end
+            if response.chunked_encoding then
+              local chunk_buffer_to = CHUNK_BUFFER:writeHexLower(#chunk, 1)
+              CHUNK_BUFFER[chunk_buffer_to+1] = CRLF
+              CHUNK_BUFFER[chunk_buffer_to+3] = chunk
+              chunk_buffer_to = chunk_buffer_to+3+#chunk
+              CHUNK_BUFFER[chunk_buffer_to] = CRLF
+              client:write( CHUNK_BUFFER:slice(1, chunk_buffer_to+1) )
+            else
+              client:write( chunk )
+            end
+            
           end --X:E res.write
           ,reinit = function()
             request.parser:reinitialize("request")
           end
           ,fin = function(chunk)
-            if chunk then client:write( chunk ) end
+            if chunk then 
+              if response.chunked_encoding then
+                chunk[#chunk+1] = CHUNKED_NO_TRAILER
+              end
+              response.write( chunk )
+            elseif response.chunked_encoding then
+              client:write( CHUNKED_NO_TRAILER )
+            end
             if request.headers.connection and request.headers.connection:lower() == "keep-alive" then
               response.reinit()
             else
