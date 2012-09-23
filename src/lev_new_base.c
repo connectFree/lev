@@ -20,6 +20,7 @@
 #include "luv_debug.h"
 
 #include <errno.h>
+#include <string.h> /* memset */
 
 static char object_registry[0];
 static MemBlock *_static_mb = NULL;
@@ -192,8 +193,7 @@ void* create_obj_init_ref(lua_State* L, size_t size, const char *class_name) {
   lua_State* mainthread;
 
   self = new_object(L, size, class_name);
-
-  self->refCount = 0;
+  memset(self, 0, size); /* cleanly init object */
  
   /* if handle create in a coroutine, we need hold the coroutine */
   mainthread = lev_get_main_thread(L);
@@ -212,7 +212,6 @@ void* create_obj_init_ref(lua_State* L, size_t size, const char *class_name) {
 
 /* This needs to be called when an async function is started on a lhandle. */
 void lev_handle_ref(lua_State* L, LevRefStruct_t* lhandle, int index) {
-  /*printf("handle_ref\t %p:%p\n", lhandle, &lhandle->handle);*/
   /* If it's inactive, store a ref. */
   if (!lhandle->refCount) {
     lua_pushvalue(L, index);
@@ -220,6 +219,7 @@ void lev_handle_ref(lua_State* L, LevRefStruct_t* lhandle, int index) {
     /*printf("makeStrong\t lhandle=%p handle=%p\n", lhandle, &lhandle->handle);*/
   }
   lhandle->refCount++;
+  /*printf("handle_ref\t %p:%d\n", lhandle, lhandle->refCount);*/
 }
 
 /* This needs to be called when an async callback fires on a lhandle. */
@@ -234,7 +234,7 @@ void lev_handle_unref(lua_State* L, LevRefStruct_t* lhandle) {
       lhandle->threadref = LUA_NOREF;
     }
     lhandle->ref = LUA_NOREF;
-    /*printf("handle_unref\t lhandle=%p handle=%p\n", lhandle, &lhandle->handle);*/
+    /*printf("handle_unref\t lhandle=%p rc=%d\n", lhandle, lhandle->refCount);*/
   }
 }
 
