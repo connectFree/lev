@@ -1,6 +1,7 @@
 local cS = require('web').createServer
 
 local client__onRequest = function(c, req, res)
+  c:bottle()
   res.writeHead(200)
   res.fin("Hello World!\n")
 end
