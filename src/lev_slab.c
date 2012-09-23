@@ -19,6 +19,10 @@
 #include <stdio.h>
 #include "lev_slab.h"
 
+#ifndef MIN
+  #define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
 const static lev_slab_allocator_t mem_1k;
 const static lev_slab_allocator_t mem_8k;
 const static lev_slab_allocator_t mem_16k;
@@ -36,18 +40,18 @@ static void corrupted_canary(const void * object) {
 
 static void _lev_slab_fill(lev_slab_allocator_t *allocator, size_t blocksize, int min_number) {
   allocator->pool_count = 0;
-  allocator->pool_min = min_number;
+  allocator->pool_min = MIN(min_number, SLAB_MAXFREELIST);
   MemBlock *mb;  
-  while (allocator->pool_count < min_number) {
-      mb = (MemBlock *)malloc(sizeof(MemBlock) + blocksize);
-      allocator->pool[allocator->pool_count++] = mb;
+  while (allocator->pool_count < allocator->pool_min) {
+    mb = (MemBlock *)malloc(sizeof(MemBlock) + blocksize);
+    allocator->pool[allocator->pool_count++] = mb;
   }
   
 }
 
 void lev_slab_fill() {
   _lev_slab_fill((lev_slab_allocator_t*)&mem_1k, 1024, 1024);
-  _lev_slab_fill((lev_slab_allocator_t*)&mem_8k, 8*1024, 256);
+  _lev_slab_fill((lev_slab_allocator_t*)&mem_8k, 8*1024, 512);
   _lev_slab_fill((lev_slab_allocator_t*)&mem_16k, 16*1024, 8);
   _lev_slab_fill((lev_slab_allocator_t*)&mem_64k, 64*1024, 8);
   _lev_slab_fill((lev_slab_allocator_t*)&mem_1024k, 1024*1024, 0);
@@ -109,8 +113,9 @@ int lev_slab_decRefCount(MemBlock *block, int count) {
   if (block->refcount == 0) {/* return block to pool */
     if (block->allocator->pool_count < block->allocator->pool_min) {
       block->allocator->pool[block->allocator->pool_count++] = block;
-      /* printf("BLOCK PUT ON SHELF %lu -> %d\n", block->size, block->allocator->pool_count); */
+      /*printf("BLOCK PUT ON SHELF %lu -> %d\n", block->size, block->allocator->pool_count); */
     } else {
+      /*printf("FREEFREEFREEFREEFREEFREEFREEFREEFREEFREEFREEFREEFREE\n");*/
       free(block); 
     }
     return 0;
