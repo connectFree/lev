@@ -634,6 +634,7 @@ void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
     }
     fprintf(stderr, "*lev: a core has exited with status %d, signal %d\n", exit_status, term_signal);
     if (SIGSEGV == term_signal) {/* we just segfaulted */
+      lev_exit_code = SIGSEGV;
       fprintf(stderr, "\n\n\n");
       fprintf(stderr, "/****************************************************\\\n");
       fprintf(stderr, "|*  A segfault has occurred on one of lev's workers *|\n");
@@ -825,6 +826,10 @@ static int pmain(lua_State *L) {
 
   } else {/* we are a worker */
     fprintf(stderr, "*lev core started: %d\n", getpid());
+
+    /* performance tuning */
+    dojitopt(L, "maxmcode=4096");
+    dojitopt(L, "maxsnap=4096");
 
     s->status = luaL_dostring(L, "\
       local path = require('lev').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
