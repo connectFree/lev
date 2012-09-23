@@ -384,7 +384,7 @@ static int core_timecache_errorlog(lua_State* L) {
 }
 
 static int core_getuid(lua_State *L) {
-  lua_pushinteger(L, getpid());
+  lua_pushinteger(L, getuid());
   return 1;
 }
 
@@ -491,6 +491,27 @@ static int core_umask(lua_State *L) {
   return 1;
 }
 
+static int core_exit(lua_State *L) {
+  int exit_code = luaL_optint(L, 1, 0);
+  exit(exit_code);
+  return 0;
+}
+
+static int core_abort(lua_State *L) {
+  abort();
+  return 0;
+}
+
+static int core_kill(lua_State *L) {
+  int pid = luaL_checknumber(L, 1);
+  int sig = luaL_optint(L, 2, SIGTERM);
+  uv_err_t err = uv_kill(pid, sig);
+  if (err.code != UV_OK) {
+    return luaL_error(L, "uv_kill error: %s", uv_strerror(err));
+  }
+  return 0;
+}
+
 /* TODO: should be support debug modeule
 extern void uv_print_active_handles(uv_loop_t *loop);
 extern void uv_print_all_handles(uv_loop_t *loop);
@@ -528,6 +549,9 @@ static luaL_reg functions[] = {
   ,{"setuid", core_setuid}
   ,{"setgid", core_setgid}
   ,{"umask", core_umask}
+  ,{"exit", core_exit}
+  ,{"abort", core_abort}
+  ,{"kill", core_kill}
   /* TODO: should be support debug module.
   ,{"print_active_handles", core_print_active_handles}
   ,{"print_all_handles", core_print_all_handles}
