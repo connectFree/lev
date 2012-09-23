@@ -74,11 +74,10 @@ void tcp_after_shutdown(uv_shutdown_t* req, int status) {
 
 static void on_connect(uv_connect_t* req, int status) {
   UNWRAP(req->handle);
-  lev_handle_unref(L, (LevRefStruct_t*)self);
   push_callback(L, self, "on_connect");
   if (!status) {
     lua_pushnil(L);
-    /*printf("CONNECT ON FD: %d\n", ( (uv_stream_t*)&self->handle )->fd);*/
+    /*printf("CONNECT ON FD: %d (ref:%d)\n", ( (uv_stream_t*)&self->handle )->fd, ((LevRefStruct_t*)self)->refCount);*/
   } else {
     lua_pushinteger(L, status);
     lev_handle_unref(L, (LevRefStruct_t*)self);
