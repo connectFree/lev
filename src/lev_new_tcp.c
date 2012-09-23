@@ -25,16 +25,12 @@
 #include <lauxlib.h>
 #include "luv_debug.h"
 
-
-#define BUFFER_SIZE 8*1024
-
 #define UNWRAP(h) \
   tcp_obj* self = container_of((h), tcp_obj, handle); \
   lua_State* L = self->handle.loop->data;
 
 #define UV_CLOSE_CLIENT                                 \
     uv_read_stop((uv_stream_t*)&self->handle);          \
-    lev_handle_ref(L, (LevRefStruct_t*)self, 1);        \
     if (self->handle.fd >= 0) {                         \
       uv_shutdown_t* shutdown_req;                      \
       shutdown_req = malloc(sizeof(uv_shutdown_t));     \
@@ -49,10 +45,15 @@
     }                                                   \
 
 
+#define BUFFER_MAX_CHUNKS 16
+
 typedef struct {
   LEVBASE_REF_FIELDS
   uv_tcp_t handle;
   uv_connect_t connect_req; /* TODO alloc on as needed basis */
+  uv_buf_t buf_bucket[BUFFER_MAX_CHUNKS];
+  int buf_bucket_num;
+  int bottle_mode;
 } tcp_obj;
 
 static void tcp_after_close(uv_handle_t* handle) {
@@ -77,8 +78,10 @@ static void on_connect(uv_connect_t* req, int status) {
   push_callback(L, self, "on_connect");
   if (!status) {
     lua_pushnil(L);
+    /*printf("CONNECT ON FD: %d\n", ( (uv_stream_t*)&self->handle )->fd);*/
   } else {
     lua_pushinteger(L, status);
+    lev_handle_unref(L, (LevRefStruct_t*)self);
   }
   lua_call(L, 2, 0);/*, -4*/
 }
@@ -121,6 +124,7 @@ static int tcp_new(lua_State* L) {
   assert(L == loop->data);
 
   self = (tcp_obj*)create_obj_init_ref(L, sizeof *self, "lev.tcp");
+  self->buf_bucket_num = 0;
   uv_tcp_init(loop, &self->handle);
 
   if (use_this_fd) {
@@ -139,12 +143,15 @@ static int tcp_accept(lua_State* L) {
   self = luaL_checkudata(L, 1, "lev.tcp");
 
   obj = (tcp_obj*)create_obj_init_ref(L, sizeof *obj, "lev.tcp");
+  obj->buf_bucket_num = 0;
   uv_tcp_init(self->handle.loop, &obj->handle);
 
   r = uv_accept((uv_stream_t*)&self->handle,
                 (uv_stream_t*)&obj->handle);
   if (!r) {
     lua_pushnil(L);
+    lev_handle_ref(L, (LevRefStruct_t*)obj, 2);
+    /*printf("ACCEPTED FD: %d\n", ( (uv_stream_t*)&obj->handle )->fd);*/
   } else {
     lua_pushinteger(L, r);
   }
@@ -168,6 +175,7 @@ static int tcp_bind(lua_State* L) {
   r = uv_tcp_bind(&self->handle, addr);
   if (!r) {
     lua_pushnil(L);
+    /*printf("BOUND FD: %d\n", ( (uv_stream_t*)&self->handle )->fd);*/
   } else {
     lua_pushinteger(L, r);
   }
@@ -193,10 +201,11 @@ static int tcp_connect(lua_State* L) {
   r = uv_tcp_connect(&self->connect_req, &self->handle, addr, on_connect);
   if (!r) {
     lua_pushnil(L);
+    lev_handle_ref(L, (LevRefStruct_t*)self, 1);
   } else {
     lua_pushinteger(L, r);
   }
-  lev_handle_ref(L, (LevRefStruct_t*)self, 1);
+  
 
   return 1;
 }
@@ -251,11 +260,10 @@ static int tcp_listen(lua_State* L) {
   r = uv_listen((uv_stream_t*)&self->handle, backlog, on_connection);
   if (!r) {
     lua_pushnil(L);
+    lev_handle_ref(L, (LevRefStruct_t*)self, 1);
   } else {
     lua_pushinteger(L, r);
   }
-
-  lev_handle_ref(L, (LevRefStruct_t*)self, 1);
 
   return 1;
 }
@@ -273,6 +281,8 @@ static int tcp_read_start(lua_State* L) {
   self = luaL_checkudata(L, 1, "lev.tcp");
   set_callback(L, "on_read", 2);
 
+  /*printf("STARTING READ ON FD %d (ref:%d)\n", ( (uv_stream_t*)&self->handle )->fd, ((LevRefStruct_t*)self)->refCount);*/
+
   r = uv_read_start((uv_stream_t*)&self->handle, on_alloc, on_read);
   if (!r) {
     lua_pushnil(L);
@@ -280,7 +290,7 @@ static int tcp_read_start(lua_State* L) {
     lua_pushinteger(L, r);
   }
 
-  lev_handle_ref(L, (LevRefStruct_t*)self, 1);
+  /*lev_handle_ref(L, (LevRefStruct_t*)self, 1);*/
 
   return 1;
 }
@@ -303,36 +313,47 @@ static int tcp_read_stop(lua_State* L) {
     clear_callback(L, "on_read", self);
   }
   
-  lev_handle_unref(L, (LevRefStruct_t*)self);
+  /*lev_handle_unref(L, (LevRefStruct_t*)self);*/
 
   return 1;
 }
 
 void tcp_after_write(uv_write_t* req, int status) {
-  UNWRAP(req->handle);
-  lev_handle_unref(L, (LevRefStruct_t*)self);
+  /*UNWRAP(req->handle);*/
+  /*lev_handle_unref(L, (LevRefStruct_t*)self);*/
   free(req);
 }
 
 
 static int tcp_write(lua_State* L) {
   tcp_obj* self;
-  uv_buf_t buf;
   size_t len;
 
   self = luaL_checkudata(L, 1, "lev.tcp");
 
   if (lua_isstring(L, 2)) {
     const char* chunk = luaL_checklstring(L, 2, &len);
-    buf = uv_buf_init((char*)chunk, len);
+    self->buf_bucket[ self->buf_bucket_num++ ] = uv_buf_init((char*)chunk, len);
   } else {
-    buf = lev_buffer_to_uv(L, 2);
-  }  
+    self->buf_bucket[ self->buf_bucket_num++ ] = lev_buffer_to_uv(L, 2);
+  }
 
-  uv_write_t* req = (uv_write_t*)malloc(sizeof(uv_write_t));
-  uv_write(req, (uv_stream_t*)&self->handle, &buf, 1, tcp_after_write);
-  lev_handle_ref(L, (LevRefStruct_t*)self, 1);
+  if (LUA_TNUMBER == lua_type(L, 3)) { /* unbottle and flush */
+    self->bottle_mode = 0;
+  }
 
+  if (!self->bottle_mode || self->buf_bucket_num == BUFFER_MAX_CHUNKS) { /* FLUSH */
+    uv_write_t* req = (uv_write_t*)malloc(sizeof(uv_write_t));
+    uv_write(
+       req
+      ,(uv_stream_t*)&self->handle 
+      ,self->buf_bucket /* our iovec */
+      ,self->buf_bucket_num /* iovcnt */
+      ,tcp_after_write /* callback */
+    );
+    /*lev_handle_ref(L, (LevRefStruct_t*)self, 1);*/
+    self->buf_bucket_num = 0;
+  }
   return 0;
 }
 
@@ -340,28 +361,49 @@ static int tcp_nodelay(lua_State* L) {
   tcp_obj* self;
 
   self = luaL_checkudata(L, 1, "lev.tcp");
-
   uv_tcp_nodelay((uv_tcp_t*)&self->handle, luaL_checkint(L, 2));
 
   return 0;
 }
 
 
+static int tcp_bottle(lua_State* L) {
+  tcp_obj* self;
+
+  self = luaL_checkudata(L, 1, "lev.tcp");
+  self->bottle_mode = 1;
+
+  return 0;
+}
+
+static int tcp_is_bottled(lua_State* L) {
+  tcp_obj* self;
+
+  self = luaL_checkudata(L, 1, "lev.tcp");
+  lua_pushboolean(L, self->bottle_mode );
+
+  return 1;
+}
 
 static luaL_reg methods[] = {
-   { "accept",     tcp_accept      }
-  ,{ "bind",       tcp_bind        }
-  ,{ "connect",    tcp_connect     }
-  ,{ "close",      tcp_close       }
-  ,{ "listen",     tcp_listen      }
-  ,{ "on_close",   tcp_rcb_close   }
-  ,{ "read_start", tcp_read_start  }
-  ,{ "read_stop",  tcp_read_stop   }
-  ,{ "write",      tcp_write       }
-  ,{ "fd_get",     tcp_fd_get      }
-  ,{ "fd_set",     tcp_fd_set      }
-  ,{ "nodelay",    tcp_nodelay     }
-  ,{ NULL,         NULL            }
+   { "accept",     tcp_accept         } /* ref(obj)    */
+  ,{ "bind",       tcp_bind           }
+  ,{ "connect",    tcp_connect        } /* ref(self)   */
+  ,{ "close",      tcp_close          } /* unref(self) */
+  ,{ "listen",     tcp_listen         } /* ref(self)   */
+  ,{ "on_close",   tcp_rcb_close      }
+  ,{ "read_start", tcp_read_start     }
+  ,{ "read_stop",  tcp_read_stop      }
+  ,{ "write",      tcp_write          }
+  ,{ "fd_get",     tcp_fd_get         }
+  ,{ "fd_set",     tcp_fd_set         }
+  ,{ "nodelay",    tcp_nodelay        }
+   
+  /* used to help transmission */   
+  ,{ "bottle",     tcp_bottle         }
+  ,{ "isBottled",  tcp_is_bottled     }
+
+  ,{ NULL,         NULL               }
 };
 
 
