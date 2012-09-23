@@ -492,8 +492,7 @@ static int core_umask(lua_State *L) {
 }
 
 static int core_exit(lua_State *L) {
-  int argc = lua_gettop(L);
-  int exit_code = (argc == 1 ? luaL_checkint(L, 1) : 0);
+  int exit_code = luaL_optint(L, 1, 0);
   exit(exit_code);
   return 0;
 }
@@ -503,155 +502,13 @@ static int core_abort(lua_State *L) {
   return 0;
 }
 
-typedef struct signo_str_mapping_s {
-  char *name;
-  int no;
-} signo_str_mapping_t;
-
-static signo_str_mapping_t signo_str_maps[] = {
-  { NULL, 0 } /* dummy */
-#ifdef SIGHUP
-  ,{ "SIGHUP", SIGHUP }
-#endif
-#ifdef SIGINT
-  ,{ "SIGINT", SIGINT }
-#endif
-#ifdef SIGQUIT
-  ,{ "SIGNO_CASE", SIGQUIT }
-#endif
-#ifdef SIGILL
-  ,{ "SIGILL", SIGILL }
-#endif
-#ifdef SIGTRAP
-  ,{ "SIGTRAP", SIGTRAP }
-#endif
-#ifdef SIGABRT
-  ,{ "SIGABRT", SIGABRT }
-#endif
-#ifdef SIGIOT
-# if SIGABRT != SIGIOT
-  ,{ "SIGIOT", SIGIOT }
-# endif
-#endif
-#ifdef SIGBUS
-  ,{ "SIGBUF", SIGBUS }
-#endif
-#ifdef SIGFPE
-  ,{ "SIGFPE", SIGFPE }
-#endif
-#ifdef SIGKILL
-  ,{ "SIGKILL", SIGKILL }
-#endif
-#ifdef SIGUSR1
-  ,{ "SIGUSR1", SIGUSR1 }
-#endif
-#ifdef SIGSEGV
-  ,{ "SIGSEGV", SIGSEGV }
-#endif
-#ifdef SIGUSR2
-  ,{ "SIGUSR2", SIGUSR2 }
-#endif
-#ifdef SIGPIPE
-  ,{ "SIGPIPE", SIGPIPE }
-#endif
-#ifdef SIGALRM
-  ,{ "SIGALRM", SIGALRM }
-#endif
-#ifdef SIGTERM
-  ,{ "SIGTERM", SIGTERM }
-#endif
-#ifdef SIGCHLD
-  ,{ "SIGCHLD", SIGCHLD }
-#endif
-#ifdef SIGSTKFLT
-  ,{ "SIGSTKFLT", SIGSTKFLT }
-#endif
-#ifdef SIGCONT
-  ,{ "SIGCONT", SIGCONT }
-#endif
-#ifdef SIGSTOP
-  ,{ "SIGSTOP", SIGSTOP }
-#endif
-#ifdef SIGTSTP
-  ,{ "SIGTSTP", SIGTSTP }
-#endif
-#ifdef SIGTTIN
-  ,{ "SIGTTIN", SIGTTIN }
-#endif
-#ifdef SIGTTOU
-  ,{ "SIGTTOU", SIGTTOU }
-#endif
-#ifdef SIGURG
-  ,{ "SIGURG", SIGURG }
-#endif
-#ifdef SIGXCPU
-  ,{ "SIGXCPU", SIGXCPU }
-#endif
-#ifdef SIGXFSZ
-  ,{ "SIGXFSZ", SIGXFSZ }
-#endif
-#ifdef SIGVTALRM
-  ,{ "SIGVTALRM", SIGVTALRM }
-#endif
-#ifdef SIGPROF
-  ,{ "SIGPROF", SIGPROF }
-#endif
-#ifdef SIGWINCH
-  ,{ "SIGWINCH", SIGWINCH }
-#endif
-#ifdef SIGIO
-  ,{ "SIGIO", SIGIO }
-#endif
-#ifdef SIGPOLL
-# if SIGPOLL != SIGIO
-  ,{ "SIGPOLL", SIGPOLL }
-# endif
-#endif
-#ifdef SIGLOST
-  ,{ "SIGLOST", SIGLOST }
-#endif
-#ifdef SIGPWR
-# if SIGPWR != SIGLOST
-  ,{ "SIGPWR", SIGPWR }
-# endif
-#endif
-#ifdef SIGSYS
-  ,{ "SIGSYS", SIGSYS }
-#endif
-  ,{ NULL, 0 }
-};
-
-static int core__sigstr_to_signo(const char *sigstr) {
-  signo_str_mapping_t *sigmaps;
-  sigmaps = signo_str_maps;
-  sigmaps++; /* skip dummy */
-  for (; sigmaps->name; sigmaps++) {
-    if (strcmp(sigstr, sigmaps->name) == 0) {
-      return sigmaps->no;
-    }
-  }
-  return SIGTERM;
-}
-
 static int core_kill(lua_State *L) {
-  int argc = lua_gettop(L);
-  int pid;
-  int sig;
-  if (argc == 1) {
-    pid = lua_tonumber(L, 1);
-    sig = SIGTERM;
-  } else if (argc == 2) {
-    pid = lua_tonumber(L, 1);
-    sig = core__sigstr_to_signo(luaL_checkstring(L, 2));
-  } else {
-    return luaL_error(L, "bad argument");
-  }
-
+  int pid = luaL_checknumber(L, 1);
+  int sig = luaL_optint(L, 2, SIGTERM);
   uv_err_t err = uv_kill(pid, sig);
   if (err.code != UV_OK) {
     return luaL_error(L, "uv_kill error: %s", uv_strerror(err));
   }
-
   return 0;
 }
 

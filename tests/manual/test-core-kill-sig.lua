@@ -17,10 +17,11 @@ limitations under the License.
 --]]
 
 local lev = require('lev')
+local sig = lev.signal
 
 if #arg < 1 then
   p('spcify pid')
 else
   local pid = tonumber(arg[1])
-  p(lev.kill(pid, 'SIGKILL'))
+  p(lev.kill(pid, sig.SIGKILL))
 end
