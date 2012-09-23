@@ -104,16 +104,12 @@ function web.createServer(host, port, onRequest, onData)
             local reasonPhrase = STATUS_CODES[statusCode] or 'unknown'
             if not reasonPhrase then error("Invalid response code " .. tostring(statusCode)) end
 
-            local response_buffer = Buffer:new( 1024 )
-            local response_buffer_len = 0
+            local is_bottled = client:isBottled()
 
-            response_buffer[1] = 'HTTP/1.1 '
-            response_buffer_len = response_buffer_len + 9
-
-            local line
-            line = string.format("%s %s\r\n", statusCode, reasonPhrase)
-            response_buffer[response_buffer_len+1] = line
-            response_buffer_len = response_buffer_len + #line
+            if not is_bottled then
+              client:bottle()
+            end
+            client:write( string.format("HTTP/1.1 %s %s\r\n", statusCode, reasonPhrase) )
 
             local _headers = {["server"]="lev", ["connection"] = "close", ["content-type"] = "text/html"}
 
@@ -131,45 +127,56 @@ function web.createServer(host, port, onRequest, onData)
             end
 
             for key, value in pairs(_headers) do
-              line = string.format("%s: %s\r\n", key, value)
-              response_buffer[response_buffer_len+1] = line
-              response_buffer_len = response_buffer_len + #line
+              client:write( string.format("%s: %s\r\n", key, value) )
             end
 
             -- CRLF into body
-            response_buffer[response_buffer_len+1] = CRLF
-            response_buffer_len = response_buffer_len + 2
+            if is_bottled then -- if we are pre-bottled, then ignore flushing here.
+              client:write( CRLF )
+            else
+              client:write( CRLF, 1 )
+            end
 
-            client:write( response_buffer:slice(1, response_buffer_len) )
             response.headers_sent = true
             response_buffer = nil
 
           end --X:E res.writeHead
           ,write = function(chunk)
+            local is_bottled = client:isBottled()
+            if not is_bottled then
+              client:bottle()
+            end
             if not response.headers_sent then response.writeHead(200) end
             if response.chunked_encoding then
               local chunk_buffer_to = CHUNK_BUFFER:writeHexLower(#chunk, 1)
-              CHUNK_BUFFER[chunk_buffer_to+1] = CRLF
-              CHUNK_BUFFER[chunk_buffer_to+3] = chunk
-              chunk_buffer_to = chunk_buffer_to+3+#chunk
-              CHUNK_BUFFER[chunk_buffer_to] = CRLF
-              client:write( CHUNK_BUFFER:slice(1, chunk_buffer_to+1) )
-            else
+              client:write( CHUNK_BUFFER:slice(1, chunk_buffer_to) )
+              client:write( CRLF )
               client:write( chunk )
+              if is_bottled then -- if we are pre-bottled, then ignore flushing here.
+                client:write( CRLF )
+              else
+                client:write( CRLF, 1 )
+              end
+            else
+              if is_bottled then -- if we are pre-bottled, then ignore flushing here.
+                client:write( chunk )
+              else
+                client:write( chunk, 1 )
+              end
             end
-            
           end --X:E res.write
           ,reinit = function()
             request.parser:reinitialize("request")
           end
           ,fin = function(chunk)
-            if chunk then 
-              if response.chunked_encoding then
-                chunk[#chunk+1] = CHUNKED_NO_TRAILER
-              end
+            if chunk and response.chunked_encoding then
+              client:bottle()
               response.write( chunk )
+              client:write( CHUNKED_NO_TRAILER, 1 ) --flush
+            elseif chunk then
+              client:write( chunk, 1 ) --flush
             elseif response.chunked_encoding then
-              client:write( CHUNKED_NO_TRAILER )
+              client:write( CHUNKED_NO_TRAILER, 1 ) --flush
             end
             if request.headers.connection and request.headers.connection:lower() == "keep-alive" then
               response.reinit()
