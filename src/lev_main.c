@@ -111,7 +111,8 @@ static void print_usage(void)
   "  -b ...    Save or list bytecode.\n"
   "  -j cmd    Perform LuaJIT control command.\n"
   "  -O[opt]   Control LuaJIT optimizations.\n"
-  "  -g        Run a single worker under GDB.\n"
+  "  -g        Run a single core under GDB.\n"
+  "  -G        Run a single core under Valgrind.\n"
   "  -i        Enter interactive mode after executing " LUA_QL("script") ".\n"
   "  -v        Show version information.\n"
   "  --        Stop handling options.\n"
@@ -450,6 +451,7 @@ static int dobytecode(lua_State *L, char **argv)
 #define FLAGS_EXEC        4
 #define FLAGS_OPTION      8
 #define FLAGS_GDB         16
+#define FLAGS_VALGRIND    32
 
 static int collectargs(char **argv, int *flags)
 {
@@ -474,6 +476,9 @@ static int collectargs(char **argv, int *flags)
         break;
       case 'g':
         *flags |= FLAGS_GDB;
+        break;
+      case 'G':
+        *flags |= FLAGS_VALGRIND;
         break;
       case 'e':
         *flags |= FLAGS_EXEC;
@@ -671,10 +676,16 @@ void spawn_helper(const char*pipe_fn
   exepath[exepath_size] = '\0';
 
   n = 0;
-  if ((flags & FLAGS_GDB)) {
+  if ((flags & FLAGS_GDB)) { /* GDB trumps VALGRIND */
     args[n] = "gdb";
     args[++n] = "--args";
     options.file = "gdb";
+    n++;
+  } else if ((flags & FLAGS_VALGRIND)) {
+    args[n] = "valgrind";
+    args[++n] = "--leak-check=full";
+    args[++n] = "-v";
+    options.file = "valgrind";
     n++;
   } else {
     options.file = exepath;
@@ -747,7 +758,9 @@ static int pmain(lua_State *L) {
 
   uv_timer_init(uv_default_loop(), &gc_timer);
   gc_timer.data = L;
-  uv_timer_start(&gc_timer, (uv_timer_cb)timer_gc_cb, 5000, 5000);
+  if (1) {
+    uv_timer_start(&gc_timer, (uv_timer_cb)timer_gc_cb, 10000, 10000); /* 10s */
+  }
 
   #ifdef LUV_EXPORTS
   lev__suck_in_symbols();
