@@ -110,4 +110,24 @@ exports['lev.querystring:\tparse: spcify illigal data'] = function (test)
   test.done()
 end
 
+exports['lev.querystring:\turlencode,urldecode: basic'] = function (test)
+  
+  local buf1 = Buffer:new(1)
+  buf1:writeInt8(0x7D, 1)
+  local buf2 = Buffer:new(1)
+  buf2:writeInt8(0x00, 1)
+  -- TODO: should be add test cases
+
+  local s1 = buf1:toString()
+  local s2 = buf2:toString()
+
+  test.equal('%7D', qs.urlencode(s1))
+  test.equal('%00', qs.urlencode(s2))
+
+  test.ok(buf1:readInt8(1), qs.urldecode(qs.urlencode(s1)):byte())
+  test.ok(buf2:readInt8(1), qs.urldecode(qs.urlencode(s2)):byte())
+
+  test.done()
+end
+
 return exports
