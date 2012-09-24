@@ -33,7 +33,10 @@ local testcases = {
   --,{ 'str=foo&arr=1&arr=2&arr=3&somenull=&undef=', 'str=foo&arr=1&arr=2&arr=3&somenull=&undef=', { str = 'foo', arr = { '1', '2', '3' }, somenull = '', undef = '' }}
   ,{ ' foo = bar ', '%20foo%20=%20bar%20', { [' foo '] = ' bar ' }}
   ,{ 'foo=%zx', 'foo=%25zx', { foo = '%zx' }}
-  --,{ 'foo=%EF%BF%BD', 'foo=%EF%BF%BD', { foo = 'ufffd' }}
+  ,{ 'foo=%E3%81%84%E3%81%A1', 'foo=%E3%81%84%E3%81%A1', { foo = 'いち' }}
+  ,{ 'foo=いち', 'foo=いち', { foo = 'いち' }}
+  ,{ 'foo=Привет', 'foo=Привет', { foo = 'Привет' }}
+  ,{ '引数=いち', '引数=いち', { ['引数'] = 'いち' }}
 }
 
 local colon_testcases = { 
@@ -43,6 +46,8 @@ local colon_testcases = {
   ,{ 'foo:1&bar:2;baz:quux', 'foo:1%26bar%3A2;baz:quux', { foo = '1&bar:2', baz = 'quux' } }
   ,{ 'foo%3Abaz:bar', 'foo%3Abaz:bar', { ['foo:baz'] = 'bar' } }
   ,{ 'foo:baz:bar', 'foo:baz%3Abar', { foo = 'baz:bar' } }
+  ,{ 'foo:いち', 'foo:いち', { foo = 'いち' }}
+  ,{ 'foo:Привет', 'foo:Привет', { foo = 'Привет' }}
 }
 
 local weird_objects = {
