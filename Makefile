@@ -177,7 +177,7 @@ ${SSLDIR}/libopenssl.a: ${SSLDIR}/Makefile.openssl
 
 ${BUILDDIR}/%.o: src/%.c ${DEPS}
 	mkdir -p ${BUILDDIR}
-	$(CC) ${CPPFLAGS} ${CFLAGS} -O2 -fno-strict-aliasing --std=c99 -D_GNU_SOURCE -g -Wall -Werror -c $< -o $@ \
+	$(CC) ${CPPFLAGS} ${CFLAGS} -O3 -fno-strict-aliasing --std=c99 -D_GNU_SOURCE -g -Wall -Werror -c $< -o $@ \
 		-I${HTTPDIR} -I${UVDIR}/include -I${LUADIR}/src -I${YAJLDIR}/src/api \
 		-I${YAJLDIR}/src -I${ZLIBDIR} -I${CRYPTODIR}/src \
 		-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
