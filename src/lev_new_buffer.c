@@ -756,7 +756,7 @@ static int buffer_write_hex_lower (lua_State *L) {
 
   BUFFER_UDATA(L)
 
-  write_int = luaL_checknumber(L, 2);
+  write_int = luaL_checkint(L, 2);
   out_int = snprintf(tmp, 32, "%zx", write_int);
 
   size_t index = (size_t)lua_tointeger(L, 3);
@@ -781,7 +781,7 @@ static int buffer_write_hex_upper (lua_State *L) {
 
   BUFFER_UDATA(L)
 
-  write_int = luaL_checknumber(L, 2);
+  write_int = luaL_checkint(L, 2);
   out_int = snprintf(tmp, 32, "%zX", write_int);
 
   size_t index = (size_t)lua_tointeger(L, 3);
