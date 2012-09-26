@@ -7,7 +7,6 @@ local newHttpParser = require('http_parser').new
 local parseUrl = require('http_parser').parseUrl
 
 local CRLF = '\r\n'
-local CHUNK_BUFFER = Buffer:new(1024)
 local CHUNKED_NO_TRAILER = Buffer:new('0' .. CRLF .. CRLF)
 
 local web = {}
@@ -73,6 +72,7 @@ function web.createServer(host, port, onRequest, onData)
   if not onRequest then error("onRequest is a required parameter") end
   net.createServer(host or "0.0.0.0", port, function(s, err)
     local client = s:accept()
+    client:nodelay(1)
 
 --- X:S PARSER
     local currentField, headers, url, request, response, parser
@@ -138,7 +138,6 @@ function web.createServer(host, port, onRequest, onData)
             end
 
             response.headers_sent = true
-            response_buffer = nil
 
           end --X:E res.writeHead
           ,write = function(chunk)
@@ -148,8 +147,8 @@ function web.createServer(host, port, onRequest, onData)
             end
             if not response.headers_sent then response.writeHead(200) end
             if response.chunked_encoding then
-              local chunk_buffer_to = CHUNK_BUFFER:writeHexLower(#chunk, 1)
-              client:write( CHUNK_BUFFER:slice(1, chunk_buffer_to) )
+              local chunk_len = Buffer:new(32)
+              client:write( chunk_len:slice(1, chunk_len:writeHexLower(#chunk, 1)) )
               client:write( CRLF )
               client:write( chunk )
               if is_bottled then -- if we are pre-bottled, then ignore flushing here.
@@ -157,6 +156,7 @@ function web.createServer(host, port, onRequest, onData)
               else
                 client:write( CRLF, 1 )
               end
+              chunk_len = nil
             else
               if is_bottled then -- if we are pre-bottled, then ignore flushing here.
                 client:write( chunk )
