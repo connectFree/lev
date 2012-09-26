@@ -1,7 +1,7 @@
 --[[
 
 Copyright 2012 The Luvit Authors.
-Copyright 2012 connectFree k.k. and the lev Authors. All Rights Reserved.
+Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
