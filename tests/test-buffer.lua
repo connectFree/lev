@@ -317,15 +317,15 @@ end
 exports['lev.buffer:\twriteHex'] = function(test)
    local writebuf = Buffer:new(32)
 
-   test.equal(writebuf:writeHexLower(10239409280, 1), 9)
-   test.equal(writebuf:writeHexLower(10239472384, 17), 9)
+   test.equal(writebuf:writeHexLower(214748364, 1), 7)
+   test.equal(writebuf:writeHexLower(214748364, 17), 7)
    test.equal(writebuf:writeHexLower(12, 1), 1)
-   test.equal(writebuf:inspect(), '<Buffer 63 36 32 35 30 66 63 38 30 00 00 00 00 00 00 00 32 36 32 35 31 66 33 30 30 00 00 00 00 00 00 00 >')
-   writebuf:writeHexUpper(12345, 1)
-   writebuf:writeHexUpper(199, 5)
-   writebuf:writeHexUpper(10291829031, 9)
+   test.equal(writebuf:inspect(), '<Buffer 63 63 63 63 63 63 63 00 00 00 00 00 00 00 00 00 63 63 63 63 63 63 63 00 00 00 00 00 00 00 00 00 >')
+   test.equal(writebuf:writeHexUpper(12345, 1), 4)
+   test.equal(writebuf:writeHexUpper(199, 5), 2)
+   test.equal(writebuf:writeHexUpper(214748364, 9), 7)
    test.equal(writebuf:writeHexUpper(12, 1), 1)
-   test.equal(writebuf:inspect(), '<Buffer 43 30 33 39 43 37 63 38 32 36 35 37 30 44 39 32 37 36 32 35 31 66 33 30 30 00 00 00 00 00 00 00 >')
+   test.equal(writebuf:inspect(), '<Buffer 43 30 33 39 43 37 63 00 43 43 43 43 43 43 43 00 63 63 63 63 63 63 63 00 00 00 00 00 00 00 00 00 >')
 
    test.done()
 end
