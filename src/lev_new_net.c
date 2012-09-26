@@ -31,17 +31,17 @@
 
 static int net_is_ipv4(lua_State* L) {
   const char *ip = luaL_checkstring(L, 1);
-  struct in_addr addr;
-  int r = inet_pton(AF_INET, ip, &addr);
-  lua_pushboolean(L, r == 1);
+  unsigned char buf[sizeof(struct in6_addr)];
+  int r = inet_pton(AF_INET, ip, buf);
+  lua_pushboolean(L, r > 0);
   return 1;
 }
 
 static int net_is_ipv6(lua_State* L) {
   const char *ip = luaL_checkstring(L, 1);
-  struct in_addr addr;
-  int r = inet_pton(AF_INET6, ip, &addr);
-  lua_pushboolean(L, r == 1);
+  unsigned char buf[sizeof(struct in6_addr)];
+  int r = inet_pton(AF_INET6, ip, buf);
+  lua_pushboolean(L, r > 0);
   return 1;
 }
 
