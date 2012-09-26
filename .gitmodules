@@ -10,10 +10,6 @@
 	path = deps/luajit
 	url = https://github.com/connectFree/lev-luajit.git
   ignore = dirty
-[submodule "deps/yajl"]
-	path = deps/yajl
-	url = https://github.com/lloyd/yajl.git
-  ignore = dirty
 [submodule "deps/zlib"]
 	path = deps/zlib
 	url = https://github.com/luvit/zlib.git
