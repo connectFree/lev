@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -42,7 +42,14 @@ static void _lev_slab_fill(lev_slab_allocator_t *allocator, size_t blocksize, in
   allocator->pool_count = 0;
   allocator->pool_min = MIN(min_number, SLAB_MAXFREELIST);
   MemBlock *mb;  
-  while (allocator->pool_count < allocator->pool_min) {
+  while (allocator->pool_count < SLAB_MAXFREELIST) {
+    /* 
+      while() uses SLAB_MAXFREELIST instead of allocator->pool_min
+      to suppress bogus warning: "array subscript is above array bounds"
+    */
+    if (allocator->pool_count == allocator->pool_min) {
+      break;
+    }
     mb = (MemBlock *)malloc(sizeof(MemBlock) + blocksize);
     allocator->pool[allocator->pool_count++] = mb;
   }
@@ -99,7 +106,7 @@ MemBlock *lev_slab_getBlock(size_t size) {
 
 int lev_slab_incRef(MemBlock *block) {
   block->refcount++;
-  /*printf("[%p] lev_slab_incRef(r=%d, p=%p)\n", block, block->refcount, block->allocator);*/
+  /*printf("[%p] lev_slab_incRef(r=%d, p=%p(%lu))\n", block, block->refcount, block->allocator, block->size);*/
   return block->refcount;
 }
 
@@ -108,7 +115,7 @@ int lev_slab_decRefCount(MemBlock *block, int count) {
 
   block->refcount--;
 
-  /*printf("[%p] lev_slab_decRef(r=%d, p=%p)\n", block, block->refcount, block->allocator);*/
+  /*printf("[%p] lev_slab_decRef(r=%d, p=%p(%lu))\n", block, block->refcount, block->allocator, block->size);*/
   
   if (block->refcount == 0) {/* return block to pool */
     if (block->allocator->pool_count < block->allocator->pool_min) {

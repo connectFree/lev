@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -182,7 +182,9 @@ MemSlice * lev_buffer_new(lua_State *L, size_t size, const char *temp, size_t te
 
   mb = _static_mb;
   if (size != _static_mb->size) {
-    lev_slab_incRef( _static_mb );
+    if (!_static_mb->refcount) { /* give it a little init! That-a-boy! */
+      lev_slab_incRef( _static_mb );
+    }
   } else { /* we completely own this MemBlock, no need to give it to others */
     _static_mb = NULL;
   }
@@ -236,7 +238,7 @@ void lev_memslice_resize(MemSlice *ms, size_t size) {
     return;
   }
 
-  printf("[%p] GOING FOR RESIZE!\n", ms);
+  /*printf("[%p] GOING FOR RESIZE!\n", ms);*/
 
   size++; /* compensate for terminating NULL */
 
@@ -847,6 +849,10 @@ static int buffer__index (lua_State *L) {
   return 1;
 }
 
+/*
+
+  __pairs is somewhat BROKEN on LuaJIT2 -- disabling this feature
+
 int buffer__pairs_aux(lua_State *L) {
   MemSlice *ms = luaL_checkudata(L, -2, "lev.buffer");
   unsigned char *buffer = (unsigned char *)ms->slice;
@@ -870,6 +876,7 @@ static int buffer__pairs (lua_State *L) {
   lua_pushinteger(L,0);
   return 3;
 }
+*/
 
 static int buffer__concat (lua_State *L) {
   /*
@@ -1035,9 +1042,9 @@ static int buffer__newindex (lua_State *L) {
 
 static int buffer_debug(lua_State *L) {
   MemSlice *ms = luaL_checkudata(L, 1, "lev.buffer");
-  printf("[%p] |||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n", ms->slice);
+  printf("[%p] |||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n", ms);
   printf("[%p] BUFFER DEBUG(r=%d, p=%p)\n", ms, ms->mb->refcount, ms->mb->allocator);
-  printf("[%p] |||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n", ms->slice);
+  printf("[%p] |||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n", ms);
   return 0;
 }
 
@@ -1083,7 +1090,7 @@ static luaL_reg methods[] = {
   ,{"__eq", buffer__eq}
   ,{"__len", buffer__len}
   ,{"__index", buffer__index}
-  ,{"__pairs", buffer__pairs}
+  /*,{"__pairs", buffer__pairs}*/ /* __pairs is somewhat BROKEN on LuaJIT2 -- disabling this feature */
   ,{"__concat", buffer__concat}
   ,{"__tostring", buffer_tostring}
   ,{"__newindex", buffer__newindex}

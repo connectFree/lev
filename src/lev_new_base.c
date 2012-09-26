@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -197,12 +197,14 @@ void* create_obj_init_ref(lua_State* L, size_t size, const char *class_name) {
  
   /* if handle create in a coroutine, we need hold the coroutine */
   mainthread = lev_get_main_thread(L);
-  if (L != mainthread) { 
+  if (L != mainthread) {
+    printf("[%p] NOT IN MAIN THREAD <%s>\n", L, class_name);
     lua_pushthread(L);
     self->threadref = luaL_ref(L, LUA_REGISTRYINDEX);
   } else {
     self->threadref = LUA_NOREF;
   }
+  self->_L = L;
   self->ref = LUA_NOREF;
 
   return (void *)self;

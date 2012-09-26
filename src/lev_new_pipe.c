@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 
 #define UNWRAP(h) \
   pipe_obj* self = container_of((h), pipe_obj, handle); \
-  lua_State* L = self->handle.loop->data;
+  lua_State* L = self->_L;                              \
 
 #define UV_CLOSE_CLIENT                           \
     uv_read_stop((uv_stream_t*)&self->handle);    \
@@ -138,7 +138,7 @@ static int pipe_new(lua_State* L) {
   is_ipc = lua_tointeger(L, 1);
 
   loop = lev_get_loop(L);
-  assert(L == loop->data);
+  assert(NULL != loop->data);
 
   self = (pipe_obj*)create_obj_init_ref(L, sizeof *self, "lev.pipe");
   uv_pipe_init(loop, &self->handle, (is_ipc ? 1 : 0));

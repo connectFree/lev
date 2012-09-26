@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -35,11 +35,13 @@
 typedef struct fs_req_holder_s {
   LEVBASE_REF_FIELDS
   uv_fs_t req;
+  int use_lcb;
 } fs_req_holder_t;
 
 #define UNWRAP(r) \
   fs_req_holder_t* holder = container_of((r), fs_req_holder_t, req); \
-  lua_State* L = (r)->loop->data;
+  lua_State* L = holder->_L;                                         \
+
 
 #define FSR__CBNAME "_cb"
 
@@ -47,7 +49,8 @@ typedef struct fs_req_holder_s {
   uv_fs_cb cb = NULL;                                                 \
   uv_loop_t *loop = lev_get_loop(L);                                  \
   fs_req_holder_t *holder;                                            \
-  uv_fs_t *req;
+  uv_fs_t *req;                                                       \
+
 
 #define FSR__SET_OPT_CB(index, c_callback) \
   holder = (fs_req_holder_t *)create_obj_init_ref(L,                  \
@@ -59,21 +62,32 @@ typedef struct fs_req_holder_s {
     set_callback(L, FSR__CBNAME, (index+1));                          \
     lev_handle_ref(L, (LevRefStruct_t *)holder, 1);                   \
     cb = (c_callback);                                                \
-  }
+    holder->use_lcb = 1;                                              \
+  } else if (LUA_NOREF != holder->threadref) {                        \
+    lev_handle_ref(L, (LevRefStruct_t *)holder, 1);                   \
+    cb = (c_callback);                                                \
+    holder->use_lcb = 0;                                              \
+  }                                                                   \
+
 
 #define FSR__TEARDOWN \
-  /* NOTE: remove "object" */                                     \
-  lua_remove(L, 1);                                               \
-  if (req->result == -1) {                                        \
-    lev_push_uv_errname(L, LEV_UV_ERRCODE_FROM_REQ(req));         \
-    return 1;                                                     \
-  }                                                               \
-  if (cb) {                                                       \
-    return 0;                                                     \
-  } else {                                                        \
-    int ret_n = push_results(L, req);                             \
-    uv_fs_req_cleanup(req);                                       \
-    return ret_n;                                                 \
+  /* NOTE: remove "object" */                                         \
+  lua_remove(L, 1);                                                   \
+  if (req->result == -1) {                                            \
+    lev_push_uv_errname(L, LEV_UV_ERRCODE_FROM_REQ(req));             \
+    return 1;                                                         \
+  }                                                                   \
+  if (cb) {                                                           \
+    if (LUA_NOREF == holder->threadref || holder->use_lcb) {          \
+      return 0;                                                       \
+    } else {                                                          \
+      /*luv_lua_debug_stackdump(L, "YIELD");*/\
+      return lua_yield(L, 0);                                            \
+    }                                                                 \
+  } else {                                                            \
+    int ret_n = push_results(L, req);                                 \
+    uv_fs_req_cleanup(req);                                           \
+    return ret_n;                                                     \
   }
 
 /*
@@ -205,9 +219,15 @@ static void on_fs_callback(uv_fs_t *req) {
   UNWRAP(req);
   int ret_n;
 
-  push_callback_no_obj(L, holder, FSR__CBNAME);
-  ret_n = push_results(L, req);
-  lua_call(L, ret_n, 0);
+  if (LUA_NOREF == holder->threadref || holder->use_lcb) {
+    push_callback_no_obj(L, holder, FSR__CBNAME);
+    ret_n = push_results(L, req);
+    lua_call(L, ret_n, 0);
+  } else { /* coroutines */
+    ret_n = push_results(L, req);
+    /*luv_lua_debug_stackdump(L, "RESUME");*/
+    lua_resume(L, ret_n);
+  }
 
   uv_fs_req_cleanup(req);
   lev_handle_unref(L, (LevRefStruct_t *)holder);
@@ -226,9 +246,14 @@ static void on_exists_callback(uv_fs_t *req) {
   UNWRAP(req);
   int ret_n;
 
-  push_callback_no_obj(L, holder, FSR__CBNAME);
-  ret_n = push_exists_results(L, req);
-  lua_call(L, ret_n, 0);
+  if (LUA_NOREF == holder->threadref) {
+    push_callback_no_obj(L, holder, FSR__CBNAME);
+    ret_n = push_exists_results(L, req);
+    lua_call(L, ret_n, 0);
+  } else { /* coroutines */
+    ret_n = push_exists_results(L, req);
+    lua_resume(L, ret_n);
+  }
 
   uv_fs_req_cleanup(req);
   lev_handle_unref(L, (LevRefStruct_t *)holder);
@@ -239,13 +264,19 @@ static int fs_exists(lua_State* L) {
   const char *path = luaL_checkstring(L, 1);
   FSR__SET_OPT_CB(2, on_exists_callback)
   uv_fs_stat(loop, req, path, cb);
-  lua_pushboolean(L, req->result != -1);
-  if (!cb) {
-    uv_fs_req_cleanup(req);
-  }
   /* NOTE: remove "object" */
   lua_remove(L, 1);
-  return 1;
+
+  if (LUA_NOREF != holder->threadref) { /* we're in coroutine land */
+    return lua_yield(L, 0);
+  } else {/* no coroutines */
+    if (!cb) {
+      uv_fs_req_cleanup(req);
+    }
+    lua_pushboolean(L, req->result != -1);
+    return 1;
+  }
+  return 0; /* unreachable */
 }
 
 /*

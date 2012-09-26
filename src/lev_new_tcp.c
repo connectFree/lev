@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,8 +26,9 @@
 #include "luv_debug.h"
 
 #define UNWRAP(h) \
-  tcp_obj* self = container_of((h), tcp_obj, handle); \
-  lua_State* L = self->handle.loop->data;
+  tcp_obj* self = container_of((h), tcp_obj, handle);   \
+  lua_State* L = self->_L;                              \
+
 
 #define UV_CLOSE_CLIENT                                 \
     uv_read_stop((uv_stream_t*)&self->handle);          \
@@ -45,15 +46,21 @@
     }                                                   \
 
 
-#define BUFFER_MAX_CHUNKS 16
+#define BUFFER_MAX_CHUNKS 16 /* DO NOT CHANGE (1<<16) == 65536 */
+
+typedef struct {
+  uv_write_t req;
+  uv_buf_t bufs[BUFFER_MAX_CHUNKS];
+  int bufcnt;
+  int mask;
+} write_req_t;
 
 typedef struct {
   LEVBASE_REF_FIELDS
   uv_tcp_t handle;
   uv_connect_t connect_req; /* TODO alloc on as needed basis */
-  uv_buf_t buf_bucket[BUFFER_MAX_CHUNKS];
-  int buf_bucket_num;
-  int bottle_mode;
+  int bottle_mode; /* not yet decided on if we should move this to write_req_t */
+  write_req_t *wreq;
 } tcp_obj;
 
 static void tcp_after_close(uv_handle_t* handle) {
@@ -120,10 +127,9 @@ static int tcp_new(lua_State* L) {
   use_this_fd = lua_tointeger(L, 1);
 
   loop = lev_get_loop(L);
-  assert(L == loop->data);
+  assert(NULL != loop->data);
 
   self = (tcp_obj*)create_obj_init_ref(L, sizeof *self, "lev.tcp");
-  self->buf_bucket_num = 0;
   uv_tcp_init(loop, &self->handle);
 
   if (use_this_fd) {
@@ -142,7 +148,6 @@ static int tcp_accept(lua_State* L) {
   self = luaL_checkudata(L, 1, "lev.tcp");
 
   obj = (tcp_obj*)create_obj_init_ref(L, sizeof *obj, "lev.tcp");
-  obj->buf_bucket_num = 0;
   uv_tcp_init(self->handle.loop, &obj->handle);
 
   r = uv_accept((uv_stream_t*)&self->handle,
@@ -319,39 +324,59 @@ static int tcp_read_stop(lua_State* L) {
 
 void tcp_after_write(uv_write_t* req, int status) {
   /*UNWRAP(req->handle);*/
+  write_req_t* wr;
   /*lev_handle_unref(L, (LevRefStruct_t*)self);*/
-  free(req);
+
+  wr = (write_req_t*)req;
+  do {
+    if (wr->mask & (1<<wr->bufcnt)) {/* we malloc'd this earlier (as opposed to a cBuffer) */
+      /*printf("[tcp_after_write] FREEING <%d>\n", wr->bufcnt);*/
+      free( wr->bufs[ wr->bufcnt ].base );
+    }
+  } while (wr->bufcnt--);
+  free(wr);
 }
 
 
 static int tcp_write(lua_State* L) {
   tcp_obj* self;
+  char* tmp;
   size_t len;
 
   self = luaL_checkudata(L, 1, "lev.tcp");
 
+  if (!self->wreq) {
+    self->wreq = malloc(sizeof(write_req_t));
+    memset(self->wreq, 0, sizeof(write_req_t));
+  }
+
   if (lua_isstring(L, 2)) {
     const char* chunk = luaL_checklstring(L, 2, &len);
-    self->buf_bucket[ self->buf_bucket_num++ ] = uv_buf_init((char*)chunk, len);
+    self->wreq->mask |= (1<<self->wreq->bufcnt); /* mark this position as malloc'd */
+    tmp = malloc(len); /* X:TODO in the future, perhaps we can replace this with a cBuffer! */
+    memcpy(tmp, (char*)chunk, len);
+    /*printf("[WRITE] MALLOCING <%d>\n", self->wreq->bufcnt);*/
+    self->wreq->bufs[ self->wreq->bufcnt++ ] = uv_buf_init(tmp, len);
   } else {
-    self->buf_bucket[ self->buf_bucket_num++ ] = lev_buffer_to_uv(L, 2);
+    self->wreq->mask &= ~(1<<self->wreq->bufcnt); /* mark this position as cBuffer */
+    self->wreq->bufs[ self->wreq->bufcnt++ ] = lev_buffer_to_uv(L, 2);
   }
 
   if (LUA_TNUMBER == lua_type(L, 3)) { /* unbottle and flush */
     self->bottle_mode = 0;
   }
 
-  if (!self->bottle_mode || self->buf_bucket_num == BUFFER_MAX_CHUNKS) { /* FLUSH */
-    uv_write_t* req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  if (!self->bottle_mode || self->wreq->bufcnt == BUFFER_MAX_CHUNKS) { /* FLUSH */
     uv_write(
-       req
+       (uv_write_t*) &self->wreq->req
       ,(uv_stream_t*)&self->handle 
-      ,self->buf_bucket /* our iovec */
-      ,self->buf_bucket_num /* iovcnt */
+      ,self->wreq->bufs /* our iovec */
+      ,self->wreq->bufcnt /* iovcnt */
       ,tcp_after_write /* callback */
     );
     /*lev_handle_ref(L, (LevRefStruct_t*)self, 1);*/
-    self->buf_bucket_num = 0;
+    /* once we flush, we remove the object but do not free it (it will be free'd later on callback! */
+    self->wreq = NULL;
   }
   return 0;
 }
