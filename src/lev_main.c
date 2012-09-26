@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -133,7 +133,9 @@ static int report(lua_State *L, int status)
 {
   if (status && !lua_isnil(L, -1)) {
     const char *msg = lua_tostring(L, -1);
-    if (msg == NULL) msg = "(error object is not a string)";
+    if (msg == NULL) {
+      msg = "(error object is not a string)";
+    }
     l_message(progname, msg);
     lua_pop(L, 1);
   }
@@ -336,14 +338,22 @@ static int handle_script(lua_State *L, char **argv, int n)
   int narg = getargs(L, argv, n);  /* collect arguments */
   lua_setglobal(L, "arg");
   fname = argv[n];
-  if (strcmp(fname, "-") == 0 && strcmp(argv[n-1], "--") != 0)
+  if (strcmp(fname, "-") == 0 && strcmp(argv[n-1], "--") != 0) {
     fname = NULL;  /* stdin */
-  status = luaL_loadfile(L, fname);
-  lua_insert(L, -(narg+1));
-  if (status == 0)
-    status = docall(L, narg, 0);
-  else
+  }
+
+//  lua_getfield(L, LUA_GLOBALSINDEX, "_coroutine");
+//  lua_getfield(L, -1, "wrap");
+//  lua_remove(L, -2); /* remove _coroutine -- wrap remains */
+  status = luaL_loadfile(L, fname); 
+  if (status == 0) { /* file as func now on stack */
+//    lua_call(L, 1, 1); /* create wrapper eating both wrap and function, wrapper now on stack */
+    lua_insert(L, -(narg+1)); /* move wrapper to before args */
+    status = docall(L, narg, 0); /* call wrapper with args */
+  } else {
+//    lua_pop(L, narg + 1); /* +1 for _coroutine.wrap */
     lua_pop(L, narg);
+  }
   return report(L, status);
 }
 
@@ -637,7 +647,7 @@ void worker__on_exit(uv_process_t *req, int exit_status, int term_signal) {
       lev_exit_code = SIGSEGV;
       fprintf(stderr, "\n\n\n");
       fprintf(stderr, "/****************************************************\\\n");
-      fprintf(stderr, "|*  A segfault has occurred on one of lev's workers *|\n");
+      fprintf(stderr, "|*   A segfault has occurred on one of lev's cores  *|\n");
       fprintf(stderr, "|*  <Please diagnose the problem using the -g flag> *|\n");
       fprintf(stderr, "|*  In the event that lev project code has faulted, *|\n");
       fprintf(stderr, "|*  please report the error via the website below:  *|\n");
