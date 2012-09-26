@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #ifndef _LEV_SLAB_H_
 #define _LEV_SLAB_H_
 
+#include "lua.h"
 #include "uv.h"
 
 #define SLAB_MAXFREELIST 1024 * 16 * 2
@@ -36,9 +37,11 @@
 /* == ref == */
 /* ref is null when refCount is 0 meaning we're weak */
 #define LEVBASE_REF_FIELDS  \
-  int refCount;             \
+  lua_State *_L;            \
   int threadref;            \
-  int ref;            
+  int refCount;             \
+  int ref;                  \
+
 
 typedef struct _lev_slab_allocator lev_slab_allocator_t;
 typedef struct _MemBlock MemBlock;

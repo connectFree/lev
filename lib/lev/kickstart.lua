@@ -1,6 +1,6 @@
 --[[
 
-Copyright 2012 The lev Authors. All Rights Reserved.
+Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 
 -- Bootstrap require system
 local lev = require('lev')
+local debug = require('debug')
 local utils = require('utils')
 local callbox = require('callbox')
 local signal = lev.signal
@@ -33,9 +34,10 @@ _G.io = nil
 _G.os = nil
 _G.math = nil
 _G.string = nil
+_G._coroutine = _G.coroutine --private function
 _G.coroutine = nil
 _G.jit = nil
-_G.debug = nil
+_G.debug = debug
 _G.table = nil
 _G.print = utils.print
 _G.p = utils.prettyPrint

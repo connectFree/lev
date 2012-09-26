@@ -1,5 +1,5 @@
 /*
- *  Copyright 2012 The lev Authors. All Rights Reserved.
+ *  Copyright 2012 connectFree k.k. and the lev authors. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -45,7 +45,8 @@
 
 #define UNWRAP(h) \
   process_obj* self = container_of((h), process_obj, handle); \
-  lua_State* L = self->handle.loop->data;
+  lua_State* L = self->_L;                                    \
+  
 
 typedef struct {
   LEVBASE_REF_FIELDS
@@ -56,7 +57,7 @@ static int process_new(lua_State* L) {
   process_obj* self;
 
   loop = lev_get_loop(L);
-  assert(L == loop->data);
+  assert(NULL != loop->data);
 
   self = (process_obj*)create_obj_init_ref(L, sizeof *self, "lev.process");
 
