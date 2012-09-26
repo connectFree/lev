@@ -328,23 +328,25 @@ exports['lev.buffer:\twriteHex'] = function(test)
    test.done()
 end
 
-exports['lev.buffer:\tBuffer pair'] = function(test)
-   local buf1 = Buffer:new(4)
-   buf1[1] = 0xFB
-   buf1[2] = 0x04
-   buf1[3] = 0x23
-   buf1[4] = 0x42
-
-   local cnt = 0
-   for k, v in pairs(buf1) do
-      test.is_number(k)
-      test.is_number(v)
-      cnt = cnt + 1
-   end
-   test.equal(cnt, 4)
-
-   test.done()
-end
+-- __pairs is somewhat BROKEN on LuaJIT2 -- disabling this feature
+-- 
+-- exports['lev.buffer:\tBuffer pair'] = function(test)
+--    local buf1 = Buffer:new(4)
+--    buf1[1] = 0xFB
+--    buf1[2] = 0x04
+--    buf1[3] = 0x23
+--    buf1[4] = 0x42
+-- 
+--    local cnt = 0
+--    for k, v in pairs(buf1) do
+--       test.is_number(k)
+--       test.is_number(v)
+--       cnt = cnt + 1
+--    end
+--    test.equal(cnt, 4)
+-- 
+--    test.done()
+-- end
 
 exports['lev.buffer:\tGC'] = function(test)
    local buf1 = Buffer:new(4)
