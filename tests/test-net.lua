@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.net:\tisIPv4'] = function(test)
-  local lev = require('lev')
   local net = lev.net
   test.ok(net.isIPv4("127.0.0.1"))
   test.ok(net.isIPv4("192.168.0.1"))
@@ -31,7 +30,6 @@ exports['lev.net:\tisIPv4'] = function(test)
 end
 
 exports['lev.net:\tisIPv6'] = function(test)
-  local lev = require('lev')
   local net = lev.net
   test.ok(net.isIPv6("2001:0db8:bd05:01d2:288a:1fc0:0001:10ee"))
   test.ok(net.isIPv6("2001:db8::9abc"))

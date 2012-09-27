@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.fs:\tfs_readdir'] = function(test)
-  local lev = require('lev')
   local table = require('table')
   local fs = lev.fs
 

@@ -20,8 +20,6 @@ local exports = {}
 
 exports['lev.tcp:\ttcp_echo_test'] = function(test)
 
-  local lev = require('lev')
-
   local PING_BUF = Buffer:new("\0\1\2\3")
   local PONG_BUF = Buffer:new("\3\2\1\0")
 
