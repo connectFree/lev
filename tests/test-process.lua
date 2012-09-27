@@ -16,7 +16,6 @@ limitations under the License.
 
 --]]
 
-local lev = require("lev")
 local process = lev.process
 
 local exports = {}

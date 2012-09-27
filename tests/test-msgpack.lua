@@ -16,7 +16,7 @@ limitations under the License.
 
 --]]
 
-local mp = require('lev').mpack
+local mp = lev.mpack
 local string = require('string')
 local math = require('math')
 local table = require('table')

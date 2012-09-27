@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.fs:\tfs_fsync'] = function(test)
-  local lev = require('lev')
   local fs = lev.fs
 
   local path = '_test_tmp1.txt'

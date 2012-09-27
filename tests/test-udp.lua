@@ -20,8 +20,6 @@ local exports = {}
 
 exports['lev.udp:\tudp_ping_pong_test'] = function(test)
 
-  local lev = require('lev')
-
   local PING_BUF = Buffer:new("\0\1\2\3")
   local PONG_BUF = Buffer:new("\4\5\6\7")
 
@@ -70,7 +68,6 @@ exports['lev.udp:\tudp_ping_pong_test'] = function(test)
 end
 
 exports['lev.udp:\tudp_bind6'] = function(test)
-  local lev = require('lev')
 
   local TEST_PORT = 9123
 
@@ -83,7 +80,6 @@ exports['lev.udp:\tudp_bind6'] = function(test)
 end
 
 exports['lev.udp:\tudp_bind_error'] = function(test)
-  local lev = require('lev')
   local PORT = 10082
 
   local server = lev.udp.new()
@@ -98,7 +94,6 @@ exports['lev.udp:\tudp_bind_error'] = function(test)
 end
 
 exports['lev.udp:\tudp_set_broadcast'] = function(test)
-  local lev = require('lev')
   local PORT = 10082
 
   local server = lev.udp.new()
@@ -117,7 +112,6 @@ exports['lev.udp:\tudp_set_broadcast'] = function(test)
 end
 
 exports['lev.udp:\tudp_set_ttl'] = function(test)
-  local lev = require('lev')
   local PORT = 10082
 
   local server = lev.udp.new()
@@ -138,7 +132,6 @@ exports['lev.udp:\tudp_set_ttl'] = function(test)
 end
 
 exports['lev.udp:\tudp_set_multicast_loop'] = function(test)
-  local lev = require('lev')
   local PORT = 10082
 
   local server = lev.udp.new()
@@ -157,7 +150,6 @@ exports['lev.udp:\tudp_set_multicast_loop'] = function(test)
 end
 
 exports['lev.udp:\tudp_set_multicast_membership'] = function(test)
-  local lev = require('lev')
   local TEST_PORT = 9123
   local PING_BUF = Buffer:new("PING")
 
@@ -184,7 +176,6 @@ exports['lev.udp:\tudp_set_multicast_membership'] = function(test)
 end
 
 exports['lev.udp:\tudp_set_multicast_ttl'] = function(test)
-  local lev = require('lev')
   local PORT = 10082
 
   local server = lev.udp.new()
@@ -205,7 +196,6 @@ exports['lev.udp:\tudp_set_multicast_ttl'] = function(test)
 end
 
 exports['lev.udp:\tudp_getsockname'] = function(test)
-  local lev = require('lev')
   local PORT = 10082
 
   local server = lev.udp.new()

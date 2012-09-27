@@ -16,8 +16,6 @@ limitations under the License.
 
 --]]
 
-local lev = require("lev")
-
 local exports = {}
 
 local OUTSIDE_BUFFER = Buffer.new("HELLO, SIR!")
