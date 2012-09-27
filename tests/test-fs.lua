@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.fs:\tfs_sync_test'] = function(test)
-  local lev = require('lev')
   local fs = lev.fs
   local err, fd
   local is_exists
@@ -53,7 +52,6 @@ exports['lev.fs:\tfs_sync_test'] = function(test)
 end
 
 exports['lev.fs:\tfs_async_test'] = function(test)
-  local lev = require('lev')
   local fs = lev.fs
 
   fs.open('LICENSE.txt', 'r', '0666', function(err, fd)

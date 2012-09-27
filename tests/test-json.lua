@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.json:\tencode'] = function(test)
-  local lev = require('lev')
   local json = lev.json
   test.ok(json.encode({kristopher="tate"}) == '{"kristopher":"tate"}')
   test.ok(json.encode({1,2,3,4,-12352,5,2934029323094}) == '[1,2,3,4,-12352,5,2934029323094]')
@@ -246,7 +245,6 @@ local TWITTER_JSON_EXAMPLE = [[{
 }]]
 
 exports['lev.json:\tdecode'] = function(test)
-  local lev = require('lev')
   local json = lev.json
   local decoded = json.decode( TWITTER_JSON_EXAMPLE )
   test.ok( decoded )
@@ -263,7 +261,6 @@ exports['lev.json:\tdecode'] = function(test)
 end
 
 exports['lev.json:\tnull'] = function(test)
-  local lev = require('lev')
   local json = lev.json
   test.ok(json.encode({this_is_null=json.null}) == '{"this_is_null":null}')
   local decoded = json.decode('{"this_is_null":null}')

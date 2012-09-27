@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.fs:\tfs_sync_truncate'] = function(test)
-  local lev = require('lev')
   local fs = lev.fs
   local path = '_tmp_file1.txt'
   assert(not fs.exists(path))

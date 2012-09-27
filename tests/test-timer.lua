@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.timer:\ttcp_timer_once'] = function(test)
-  local lev = require('lev')
   local timer = lev.timer.new()
   timer:start(function(t, status)
     test.ok(t)
@@ -31,7 +30,6 @@ exports['lev.timer:\ttcp_timer_once'] = function(test)
 end
 
 exports['lev.timer:\ttcp_timer_repeat'] = function(test)
-  local lev = require('lev')
   local timer = lev.timer.new()
   local called_count = 0
   timer:start(function(t, status)
@@ -47,7 +45,6 @@ exports['lev.timer:\ttcp_timer_repeat'] = function(test)
 end
 
 exports['lev.timer:\ttcp_timer_stop'] = function(test)
-  local lev = require('lev')
   local timer = lev.timer.new()
   local called_count = 0
   timer:start(function(t, status)
@@ -61,7 +58,6 @@ exports['lev.timer:\ttcp_timer_stop'] = function(test)
 end
 
 exports['lev.timer:\ttcp_timer_again'] = function(test)
-  local lev = require('lev')
   local timer = lev.timer.new()
   local called_count = 0
   timer:start(function(t, status)
@@ -79,7 +75,6 @@ exports['lev.timer:\ttcp_timer_again'] = function(test)
 end
 
 exports['lev.timer:\ttcp_timer_again_error'] = function(test)
-  local lev = require('lev')
   local timer = lev.timer.new()
   local err = timer:again()
   test.equal(err, 'EINVAL')
