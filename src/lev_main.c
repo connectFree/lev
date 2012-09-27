@@ -103,7 +103,7 @@ static void laction(int i)
 static void print_usage(void)
 {
   fprintf(stderr,
-  "usage: %s [options]... [script [args]...].\n"
+  "usage: %s [options]... script [args]...\n"
   "Available options are:\n"
   "  -c cores  Use upto these many " LUA_QL("cores") " \n"
   "  -e chunk  Execute string " LUA_QL("chunk") ".\n"
@@ -773,7 +773,7 @@ static int pmain(lua_State *L) {
     uv_timer_start(&gc_timer, (uv_timer_cb)timer_gc_cb, 10000, 10000); /* 10s */
   }
 
-  #ifdef LUV_EXPORTS
+#ifdef LUV_EXPORTS
   lev__suck_in_symbols();
 #endif
   lua_gc(L, LUA_GCRESTART, -1);
@@ -792,6 +792,8 @@ static int pmain(lua_State *L) {
   if (s->status != 0) return 0;
 
   if (!script) {/* we must have a script to run */
+    print_usage(); /* be more friendly... */
+    s->status = 1;
     return 0;
   }
 
@@ -801,12 +803,15 @@ static int pmain(lua_State *L) {
     char *pipe_fn = tempnam("/tmp", "lev_"); /* can we come-up with something better? */
     setenv("LEV_IPC_FILENAME", pipe_fn, 1);
 
-    s->status = luaL_dostring(L, "\
+    s->status = dostring(L, "\
       local path = require('lev').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
       package.path = path .. ';' .. package.path\
       assert(require('kickstart'))\
-      assert(require('_master'))");
-    if (s->status != 0) return 0;
+      assert(require('_master'))", "_master");
+    if (s->status != 0) {
+      fprintf(stderr, "*lev: An error was detected while loading the core library from _master.\n");
+      return 0;
+    }
 
     if ((flags & FLAGS_GDB)) {
       core_count = 1; /* force to one worker */
@@ -841,17 +846,19 @@ static int pmain(lua_State *L) {
     dojitopt(L, "maxmcode=4096");
     dojitopt(L, "maxsnap=4096");
 
-    s->status = luaL_dostring(L, "\
+    s->status = dostring(L, "\
       local path = require('lev').execpath():match('^(.*)"SEP"[^"SEP"]+"SEP"[^"SEP"]+$') .. '"SEP"lib"SEP"lev"SEP"?.lua'\
       package.path = path .. ';' .. package.path\
       assert(require('kickstart'))\
-      assert(require('_worker'))");
-    if (s->status != 0) return 0;
+      assert(require('_worker'))", "_worker");
+    if (s->status != 0) {
+      fprintf(stderr, "*lev: An error was detected while loading the core library from _worker.\n");
+      return 0;
+    }
 
     /* start the madness */
 
     s->status = handle_script(L, argv, script);
-
 
   }
 
