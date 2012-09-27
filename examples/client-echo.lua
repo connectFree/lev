@@ -1,5 +1,3 @@
-local lev = require('lev')
-
 local client = lev.tcp.new()
 client:connect("0.0.0.0", 8080, function(...)
   p("connected")

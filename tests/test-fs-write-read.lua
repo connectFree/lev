@@ -19,7 +19,6 @@ limitations under the License.
 local exports = {}
 
 exports['lev.fs:\tfs_sync_write_read'] = function(test)
-  local lev = require('lev')
   local fs = lev.fs
   local path = '_tmp_file1.txt'
   local err, fd = fs.open(path, 'w+', '0666')
@@ -54,7 +53,6 @@ exports['lev.fs:\tfs_sync_write_read'] = function(test)
 end
 
 exports['lev.fs:\treadFile (callback)'] = function(test)
-  local lev = require('lev')
   local fs = lev.fs
   fs.readFile("AUTHORS", function(err, buf)
     test.is_nil(err)
@@ -64,7 +62,6 @@ exports['lev.fs:\treadFile (callback)'] = function(test)
 end
 
 exports['lev.fs:\treadFile (sync)'] = function(test)
-  local lev = require('lev')
   local fs = lev.fs
   local err, buf = fs.readFile("AUTHORS")
   test.is_nil(err)
