@@ -769,9 +769,9 @@ static int pmain(lua_State *L) {
 
   uv_timer_init(uv_default_loop(), &gc_timer);
   gc_timer.data = L;
-  if (1) {
-    uv_timer_start(&gc_timer, (uv_timer_cb)timer_gc_cb, 10000, 10000); /* 10s */
-  }
+
+  uv_timer_start(&gc_timer, (uv_timer_cb)timer_gc_cb, 10000, 10000); /* 10s */
+  uv_unref((uv_handle_t*)&gc_timer);
 
 #ifdef LUV_EXPORTS
   lev__suck_in_symbols();
