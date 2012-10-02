@@ -23,7 +23,6 @@ local lev = require('lev')
 local pipe = lev.pipe
 local mp = lev.mpack
 local net_tcp = lev.tcp
-local process = lev.process
 
 local bind_pool = {}
 local worker_pool = {}
@@ -83,7 +82,7 @@ local client__on_close = function(c)
 end
 
 local master_ipc = pipe.new(1)
-master_ipc:bind( process.getenv("LEV_IPC_FILENAME") )
+master_ipc:bind( lev.getenv("LEV_IPC_FILENAME") )
 master_ipc:listen(function(s, err)
   local client = s:accept()
   client:on_close( client__on_close )

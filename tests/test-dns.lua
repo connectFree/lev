@@ -16,11 +16,10 @@ limitations under the License.
 
 --]]
 
-local process = lev.process
 
 local exports = {}
 
-if process.getenv('TRAVIS') then
+if lev.getenv('TRAVIS') then
   print("SKIP lev.dns:\tSKIP on TRAVIS")
 else
   exports['lev.dns:\tresolve4'] = function(test)
@@ -50,7 +49,6 @@ else
   exports['lev.dns:\tresolve6'] = function(test)
     local dns = lev.dns
     local net = lev.net
-    local process = lev.process
     dns.resolve6('ipv6.google.com', function(err, ips)
       test.is_nil(err)
       test.ok(#ips > 0)

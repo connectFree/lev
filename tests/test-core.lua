@@ -236,5 +236,126 @@ exports['lev.core:\tversions'] = function (test)
   test.done()
 end
 
+exports['lev.core:\tenviron'] = function (test)
+  local found = false
+  for k, v in lev.environ() do
+    if k == 'LEV_WORKER_ID' then
+      found = true
+    end
+  end
+  test.ok(found)
+
+  test.done()
+end
+
+exports['lev.core:\tpid'] = function (test)
+  test.is_number(lev.pid)
+  test.ok(lev.pid > 0)
+
+  test.done()
+end
+
+exports['lev.core:\texecpath'] = function (test)
+  local path = lev.execpath()
+
+  test.is_string(path)
+  test.ok(#path > 0)
+
+  test.done()
+end
+
+exports['lev.core:\tmemory_usage'] = function (test)
+  local mem = lev.memory_usage()
+
+  test.is_table(mem)
+  test.is_number(mem.rss)
+  test.ok(mem.rss >= 0)
+
+  test.done()
+end
+
+exports['lev.core:\ttitle'] = function (test)
+  local title = lev.title
+
+  test.is_string(title)
+  test.ok(#title > 0)
+
+  test.done()
+end
+
+exports['lev.core:\tcwd'] = function (test)
+  local cur = lev.cwd()
+
+  test.is_string(cur)
+  test.ok(#cur > 0)
+
+  test.done()
+end
+
+exports['lev.core:\tchdir'] = function (test)
+  local old = lev.cwd()
+  local ret = lev.chdir('../')
+  local new = lev.cwd()
+  lev.chdir(old)
+
+  test.is_nil(ret)
+  test.not_equal(new, old)
+
+  test.done()
+end
+
+exports['lev.core:\tchdir: spcify invalid path'] = function (test)
+  test.throws(lev.chdir, 1)
+  test.throws(lev.chdir, 'hoge')
+
+  test.done()
+end
+
+exports['lev.core:\tgetenv'] = function (test)
+  lev.setenv('FOO', 'BAR')
+  local val = lev.getenv('FOO')
+
+  test.equal('BAR', val)
+
+  test.done()
+end
+
+exports['lev.core:\tsetenv'] = function (test)
+  local err = lev.setenv('BAZ', 'FOO')
+  local val = lev.getenv('BAZ')
+
+  test.is_nil(err)
+  test.equal('FOO', val)
+
+  test.done()
+end
+
+exports['lev.core:\tsetenv: specify invalid name'] = function (test)
+  test.throws(lev.setenv, {}, 'FOO')
+
+  test.done()
+end
+
+exports['lev.core:\tsetenv: specify invalid value'] = function (test)
+  test.throws(lev.setenv, "FOO", {})
+
+  test.done()
+end
+
+exports['lev.core:\tunsetenv'] = function (test)
+  local err = lev.unsetenv('FOO')
+
+  test.is_nil(err)
+  test.is_nil(lev.getenv('FOO'))
+
+  test.done()
+end
+
+exports['lev.core:\t unsetenv: specify invalid name'] = function (test)
+  test.throws(lev.unsetenv, {})
+
+  test.done()
+end
+
 return exports
 

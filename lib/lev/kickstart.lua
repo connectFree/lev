@@ -30,6 +30,8 @@ _G.argv = nil
 -- This will break lua code written for other lua runtimes
 _G.process = callbox:new()
 for k,v in pairs(io) do _G.process[k] = v end
+for k,v in pairs(lev.process) do lev[k] = v end
+lev._process, lev.process = lev.process, nil
 _G.io = nil
 _G.os = nil
 _G.math = nil
@@ -44,7 +46,7 @@ _G.p = utils.prettyPrint
 _G.debug = utils.debug
 _G.Buffer = lev.buffer
 
-_G.WorkerID = lev.process.getenv("LEV_WORKER_ID")
+_G.WorkerID = lev.getenv("LEV_WORKER_ID")
 
 lev.activate_signal_handler( signal.SIGPIPE )
 
