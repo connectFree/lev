@@ -43,12 +43,13 @@
 #define UNWRAP(h) \
   process_obj* self = container_of((h), process_obj, handle); \
   lua_State* L = self->_L;                                    \
-  
+
 
 typedef struct {
   LEVBASE_REF_FIELDS
 } process_obj;
 
+/* disabling process_new
 static int process_new(lua_State* L) {
   uv_loop_t* loop;
   process_obj* self;
@@ -60,6 +61,7 @@ static int process_new(lua_State* L) {
 
   return 1;
 }
+*/
 
 static int process_cwd(lua_State* L) {
   size_t size = 2*PATH_MAX - 1;
