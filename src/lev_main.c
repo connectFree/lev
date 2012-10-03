@@ -113,7 +113,9 @@ static void print_usage(void)
   "  -O[opt]   Control LuaJIT optimizations.\n"
   "  -g        Run a single core under GDB.\n"
   "  -G        Run a single core under Valgrind.\n"
-  "  -i        Enter interactive mode after executing " LUA_QL("script") ".\n"
+ /* X:DISABLED
+ "  -i        Enter interactive mode after executing " LUA_QL("script") ".\n"
+ */
   "  -v        Show version information.\n"
   "  --        Stop handling options.\n"
   "  -         Execute stdin and stop handling options.\n"
@@ -522,45 +524,52 @@ static int runargs(lua_State *L, char **argv, int n) {
     if (argv[i] == NULL) continue;
     lua_assert(argv[i][0] == '-');
     switch (argv[i][1]) {  /* option */
-    case 'c': {
-      const char *core_number = argv[i] + 2;
-      if (*core_number == '\0') core_number = argv[++i];
-      lua_assert(core_number != NULL);
-      core_count = atoi(core_number);
-      break;
+      case 'c': {
+        const char *core_number = argv[i] + 2;
+        if (*core_number == '\0') {
+          core_number = argv[++i];
+        }
+        lua_assert(core_number != NULL);
+        core_count = atoi(core_number);
+        break;
       }
-    case 'e': {
-      const char *chunk = argv[i] + 2;
-      if (*chunk == '\0') chunk = argv[++i];
-      lua_assert(chunk != NULL);
-      if (dostring(L, chunk, "=(command line)") != 0)
-  return 1;
-      break;
+      case 'e': {
+        const char *chunk = argv[i] + 2;
+        if (*chunk == '\0') chunk = argv[++i];
+        lua_assert(chunk != NULL);
+        if (dostring(L, chunk, "=(command line)") != 0) {
+          return 1;
+        }
+        break;
       }
-    case 'l': {
-      const char *filename = argv[i] + 2;
-      if (*filename == '\0') filename = argv[++i];
-      lua_assert(filename != NULL);
-      if (dolibrary(L, filename))
-  return 1;  /* stop if file fails */
-      break;
+      case 'l': {
+        const char *filename = argv[i] + 2;
+        if (*filename == '\0') filename = argv[++i];
+        lua_assert(filename != NULL);
+        if (dolibrary(L, filename)) {
+          return 1;  /* stop if file fails */
+        }
+        break;
       }
-    case 'j': {  /* LuaJIT extension */
-      const char *cmd = argv[i] + 2;
-      if (*cmd == '\0') cmd = argv[++i];
-      lua_assert(cmd != NULL);
-      if (dojitcmd(L, cmd))
-  return 1;
-      break;
+      case 'j': {  /* LuaJIT extension */
+        const char *cmd = argv[i] + 2;
+        if (*cmd == '\0') cmd = argv[++i];
+        lua_assert(cmd != NULL);
+        if (dojitcmd(L, cmd)) {
+          return 1;
+        }
+        break;
       }
-    case 'O':  /* LuaJIT extension */
-      if (dojitopt(L, argv[i] + 2))
-  return 1;
-      break;
-    case 'b':  /* LuaJIT extension */
-      return dobytecode(L, argv+i);
-    default: break;
-    }
+      case 'O':  /* LuaJIT extension */
+        if (dojitopt(L, argv[i] + 2)) {
+          return 1;
+        }
+        break;
+      case 'b':  /* LuaJIT extension */
+        return dobytecode(L, argv+i);
+      default:
+        break;
+    } /* X:E switch */
   }
   return 0;
 }
@@ -792,7 +801,9 @@ static int pmain(lua_State *L) {
   if (s->status != 0) return 0;
 
   if (!script) {/* we must have a script to run */
-    print_usage(); /* be more friendly... */
+    if (!(flags & (FLAGS_EXEC|FLAGS_VERSION))) {
+      print_usage(); /* be more friendly... */
+    }
     s->status = 1;
     return 0;
   }
