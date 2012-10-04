@@ -5,11 +5,12 @@ them.
 
 ---
 
-## Properties
-Use the color in the output. This Property used `dump`, `prettyPrint` and `debug` functions.
+## Variables
 
 ### useColors
-* value : boolean
+Use the color in the output. This variable used `dump`, `prettyPrint` and `debug` functions.
+
+* type : boolean
 * default : true
 
     local utils = require('utils')
@@ -17,7 +18,7 @@ Use the color in the output. This Property used `dump`, `prettyPrint` and `debug
     ...
     utils.prettyPrint('hello world')
 
-If you would not like to color output, set `false` to this property.
+If you would not like to color output, set `false` to this variable.
 
 ---
 
