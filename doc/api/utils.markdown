@@ -3,7 +3,7 @@
 These functions and properties are in the module `'utils'`. Use `require('utils')` to access
 them.
 
----
+
 
 ## Variables
 
@@ -20,7 +20,7 @@ Use the color in the output. This variable used `dump`, `prettyPrint` and `debug
 
 If you would not like to color output, set `false` to this variable.
 
----
+
 
 ## Functions
 

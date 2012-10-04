@@ -2,7 +2,7 @@
 
 These Variables are available in all modules. Some of these Variables aren't actually in the global scope but in the module scope.
 
----
+
 
 ## Variables
 
@@ -62,7 +62,7 @@ The lev core variable.
 ### process
 * type : table
 
----
+
 
 ## Functions
 
@@ -74,7 +74,7 @@ A synchronous dump output function. See the `debug` function of [utils section][
 
 This function is alias of `prettyPrint`. See the [utils section][].
 
----
+
 
 ## Lua standard libraries
 * type
