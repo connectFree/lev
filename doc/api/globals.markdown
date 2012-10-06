@@ -1,51 +1,82 @@
 # Global
 
+These Variables are available in all modules. Some of these Variables aren't actually in the global scope but in the module scope.
 
-## Properties
+
+
+## Variables
 
 ### Buffer
-* {table} The buffer object.
+Used to handle binary data. See the [buffer section][].
 
-Used to handle binary data. See the [buffer section][]
+* type : table
 
 ### WorkerID
-* {string}
+The worker ID. When lev was started, set worker ID to this variable.
+
+* type : string
 
 ### \_G
-* {table} The global object.
+A global variable (not a function) that holds the global environment. See the [lua manual page][].
+
+* type : table
 
 ### \_\_file\_\_
-* {string}
+The filename of the code being executed. This is the relative path.
+
+* type : string
 
 ### \_\_path\_\_
-* {string}
+The name of the directory that the currently executing script resides in. This is the relative path.
+
+* type : string
 
 ### arg
-* {table} The command line argument array.
+The command line argument array.
+
+* type : table 
+
+The following is `$ lev hello.lua hoge foo var`.
+
+    for i, v in ipairs(arg) do
+      print(i, v)
+    end
+    -- 1       hoge
+    -- 2       foo
+    -- 3       var
 
 ### bit
-* {table} The bit operation object.
+The bit operation variable. See the luajit [bit operations][].
 
-See the luajit [bit operations][]
+* type : table
+
 
 ### lev
-* {table} The lev core object.
+The lev core variable.
+
+* type : table
 
 ### mbox
-* {table}
+* type : table
 
 ### process
-* {table}
+* type : table
 
 
-## functions
+
+## Functions
 
 ### debug(...)
 
+A synchronous dump output function. See the `debug` function of [utils section][].
+
 ### p(...)
 
+This function is alias of `prettyPrint`. See the [utils section][].
 
-## lua standard libraries
+
+
+## Lua standard libraries
 * type
 * tostring
 * tonumber
@@ -78,9 +109,10 @@ See the luajit [bit operations][]
 * collectgarbage
 * \_VERSION
 
-See the [lua manual page][]
+See the [lua manual page][].
 
 
 [buffer section]: buffer.html
+[utils section]: utils.html
 [bit operations]: http://bitop.luajit.org/api.html
 [lua manual page]: http://www.lua.org/manual/5.2/
