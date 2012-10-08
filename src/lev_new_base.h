@@ -85,6 +85,7 @@ void lev_memslice_append_mem_unsafe(MemSlice *ms, size_t from, const char *c, si
 size_t lev_memslice_append_string(MemSlice *ms, size_t from, const char *str);
 /* X:E buffer helper functions */
 
+void lev__init_start_time();
 
 void* new_object(lua_State* L, size_t size, const char* clazz);
 void set_callback(lua_State* L, const char* name, int index);

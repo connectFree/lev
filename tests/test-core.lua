@@ -56,6 +56,7 @@ end
 
 exports['lev.core:\tuptime'] = function (test)
   local t = lev.uptime()
+  p('uptime', t)
   test.is_number(t)
   test.ok(t >= 0)
 
