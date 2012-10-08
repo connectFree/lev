@@ -899,6 +899,7 @@ static int pmain(lua_State *L) {
 
 int main(int argc, char **argv)
 {
+  lev__init_start_time();
   argv = uv_setup_args(argc, argv);
 
   int status;
