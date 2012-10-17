@@ -191,6 +191,11 @@ const char *core_signo_string(int signo) {
   return "";
 }
 
+static double prog_start_time;
+
+void lev__init_start_time() {
+  uv_uptime(&prog_start_time);
+}
 
 static void core_on_signal(struct ev_loop *loop, struct ev_signal *w, int revents) {
   assert(uv_default_loop()->ev == loop);
@@ -257,7 +262,7 @@ static int core_loadavg(lua_State* L) {
 static int core_uptime(lua_State* L) {
   double uptime;
   uv_uptime(&uptime);
-  lua_pushnumber(L, uptime);
+  lua_pushnumber(L, uptime - prog_start_time);
   return 1;
 }
 
